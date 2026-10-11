@@ -1,0 +1,206 @@
+// CricBid data model.
+// Run `npm run db:migrate` after changing this file.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum TournamentStatus {
+  DRAFT
+  READY
+  LIVE
+  PAUSED
+  COMPLETED
+}
+
+enum PlayerStatus {
+  AVAILABLE
+  LIVE
+  SOLD
+  UNSOLD
+}
+
+enum PlayerSource {
+  EXCEL
+  FORM
+  MANUAL
+}
+
+enum PlayerOrder {
+  RANDOM
+  CATEGORY_RANDOM
+  SEQUENTIAL
+}
+
+enum TournamentPlan {
+  FREE
+  PRO
+}
+
+enum BidSource {
+  AUCTIONEER
+  REMOTE
+}
+
+model User {
+  id              String       @id @default(cuid())
+  email           String       @unique
+  passwordHash    String
+  name            String
+  avatarUrl       String?
+  resetTokenHash  String?
+  resetTokenExp   DateTime?
+  /// Yearly "Season Pass": every tournament this user owns gets Pro features until this date.
+  seasonPassUntil DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  tournaments     Tournament[]
+}
+
+model Tournament {
+  id              String           @id @default(cuid())
+  ownerId         String
+  owner           User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name            String
+  slug            String           @unique
+  logoUrl         String?
+  description     String?
+  venue           String?
+  auctionDate     DateTime?
+  currency        String           @default("INR")
+  status          TournamentStatus @default(DRAFT)
+  plan            TournamentPlan   @default(FREE)
+  planActivatedAt DateTime?
+  /// Look of the public screens: { preset, accent?, hideBranding? }
+  theme           Json?
+
+  // Auction rules — answered in the setup wizard
+  teamPurse          Int         @default(100000)
+  basePrice          Int         @default(2000)
+  /// Array of { from: number, step: number } sorted by `from`. Step that applies is the last tier whose `from` <= current bid.
+  bidIncrements      Json
+  /// Optional map of category -> base price, e.g. { "A": 10000, "B": 5000 }
+  categoryBasePrices Json?
+  minSquad           Int         @default(11)
+  maxSquad           Int         @default(15)
+  playerOrder        PlayerOrder @default(RANDOM)
+  /// Seconds of the visible countdown after each bid. 0 disables the timer.
+  bidTimerSec        Int         @default(0)
+  setupComplete      Boolean     @default(false)
+
+  // Player self-registration (shareable form)
+  registrationOpen   Boolean @default(false)
+  registrationToken  String  @unique
+  /// Which optional standard fields + custom questions the registration form asks.
+  registrationFields Json
+  requireApproval    Boolean @default(false)
+
+  // Public live link + team bidding links
+  liveToken     String  @unique
+  remoteBidding Boolean @default(false)
+
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  teams     Team[]
+  players   Player[]
+  bids      Bid[]
+  state     AuctionState?
+
+  @@index([ownerId])
+}
+
+model Team {
+  id           String     @id @default(cuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  name         String
+  shortName    String
+  color        String
+  logoUrl      String?
+  ownerName    String?
+  /// Remaining purse
+  purse        Int
+  /// Secret token for the team owner's remote bidding paddle
+  bidToken     String     @unique
+  sortOrder    Int        @default(0)
+  createdAt    DateTime   @default(now())
+  players      Player[]
+  bids         Bid[]
+
+  @@index([tournamentId])
+}
+
+model Player {
+  id           String       @id @default(cuid())
+  tournamentId String
+  tournament   Tournament   @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  serial       Int
+  name         String
+  role         String
+  category     String?
+  battingStyle String?
+  bowlingStyle String?
+  phone        String?
+  email        String?
+  city         String?
+  age          Int?
+  photoUrl     String?
+  /// Overrides tournament/category base price when set
+  basePrice    Int?
+  /// Any additional columns from Excel or custom registration answers
+  extra        Json?
+  approved     Boolean      @default(true)
+  source       PlayerSource @default(MANUAL)
+  status       PlayerStatus @default(AVAILABLE)
+  soldTeamId   String?
+  soldTeam     Team?        @relation(fields: [soldTeamId], references: [id], onDelete: SetNull)
+  soldPrice    Int?
+  soldAt       DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  bids         Bid[]
+
+  @@unique([tournamentId, serial])
+  @@index([tournamentId, status])
+}
+
+model Bid {
+  id           String     @id @default(cuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  playerId     String
+  player       Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  teamId       String
+  team         Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  amount       Int
+  round        Int
+  source       BidSource  @default(AUCTIONEER)
+  createdAt    DateTime   @default(now())
+
+  @@index([playerId, round])
+  @@index([tournamentId, createdAt])
+}
+
+/// Live auction cursor. One row per tournament; `version` provides optimistic locking so
+/// two bids arriving at once can never both win.
+model AuctionState {
+  tournamentId    String     @id
+  tournament      Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  currentPlayerId String?
+  currentBid      Int?
+  leadingTeamId   String?
+  round           Int        @default(1)
+  /// Remaining player ids in the order they will come up
+  queue           String[]
+  timerEndsAt     DateTime?
+  version         Int        @default(0)
+  lastEvent       Json?
+  startedAt       DateTime?
+  updatedAt       DateTime   @updatedAt
+}

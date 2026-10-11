@@ -1,0 +1,122 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    /* New light design system tokens */
+    --bg-root: #f5f7f9;
+    --bg-alt: #ecf0f2;
+    --surface: #ffffff;
+    --surface-alt: #f0f3f5;
+    --border-soft: 0 0% 90%;
+    --border-strong: 220 14% 80%;
+    --shadow-sm: 0 1px 2px -1px rgba(0,0,0,.08),0 1px 3px rgba(0,0,0,.04);
+    --shadow-md: 0 4px 12px -2px rgba(0,0,0,.08),0 2px 4px rgba(0,0,0,.06);
+    --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px; --radius-xl: 22px;
+    --color-primary: 86 38% 37%; /* earthy green */
+    --color-primary-foreground: 0 0% 100%;
+    --color-success: 142 71% 30%;
+    --color-danger: 0 72% 45%;
+
+    /* Map existing hsl vars to keep current components working */
+    --background: 0 0% 100%;
+    --foreground: 222.2 47.4% 11.2%;
+    --muted: 210 30% 96.5%;
+    --muted-foreground: 219 14% 46%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 47.4% 11.2%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 47.4% 11.2%;
+    --border: 215 15% 88%;
+    --input: 215 15% 88%;
+    --primary: var(--color-primary);
+    --primary-foreground: var(--color-primary-foreground);
+    --secondary: 210 30% 96.5%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --accent: 210 30% 96.5%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: var(--color-danger);
+    --destructive-foreground: 0 0% 98%;
+    --ring: 215 20% 65%;
+    --radius: 12px;
+  }
+
+  .dark {
+    --bg-root: #0f1214;
+    --bg-alt: #171b1e;
+    --surface: #1d2326;
+    --surface-alt: #252c30;
+    --border: 215 15% 25%;
+    --foreground: 210 40% 96%;
+    --muted: 215 15% 22%;
+    --muted-foreground: 215 20% 70%;
+    --card: 210 28% 10%;
+    --card-foreground: 210 40% 96%;
+    --primary: 86 49% 52%;
+    --primary-foreground: 0 0% 10%;
+    --secondary: 215 15% 22%;
+    --secondary-foreground: 210 40% 96%;
+    --accent: 215 15% 22%;
+    --accent-foreground: 210 40% 96%;
+    --destructive: 0 63% 52%;
+    --destructive-foreground: 210 40% 98%;
+    --ring: 215 20% 50%;
+    --background: 210 28% 8%; /* added so bg-background is dark */
+    --popover: 210 28% 10%;
+    --popover-foreground: 210 40% 96%;
+    --input: 215 15% 25%;
+  }
+}
+
+/* Global form element harmonization */
+/**************** Select styling (replaced @apply) *****************/
+select {
+  height: 2.75rem; /* h-11 */
+  padding: 0 1rem; /* px-4 */
+  border-radius: 999px; /* rounded-full */
+  border: 1px solid hsl(var(--border));
+  background: var(--surface);
+  color: hsl(var(--foreground));
+  font-size: 0.875rem; /* text-sm */
+  line-height: 1.25rem;
+  box-shadow: 0 1px 2px -1px rgba(0,0,0,.08),0 1px 3px rgba(0,0,0,.04);
+  transition: background .2s, color .2s, border-color .2s, box-shadow .2s;
+}
+select:focus {
+  outline: none;
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 2px hsla(var(--primary),0.4);
+}
+.dark select {
+  background: var(--surface);
+  color: hsl(var(--foreground));
+}
+
+html, body {
+  background: linear-gradient(180deg,var(--bg-root),var(--bg-alt) 55%,var(--surface-alt));
+  color: hsl(var(--foreground));
+  min-height: 100%;
+}
+
+* { border-color: hsl(var(--border)); }
+
+/* Surfaces */
+.surface { background: var(--surface); }
+.surface-alt { background: var(--surface-alt); }
+.glass { background: rgba(255,255,255,0.65); backdrop-filter: blur(14px); }
+.dark .glass { background: rgba(29,35,38,0.55); }
+
+/* Scrollbar */
+html { scrollbar-width: thin; scrollbar-color: hsl(var(--muted)) transparent; }
+body { scrollbar-gutter: stable; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: hsl(var(--muted)); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground)); }
+.player-scroll::-webkit-scrollbar { width: 6px; }
+.player-scroll::-webkit-scrollbar-thumb { background: hsl(var(--muted)); border-radius: 999px; }
+.player-scroll::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground)); }
+.player-scroll { scrollbar-width: thin; scrollbar-color: hsl(var(--muted)) transparent; }
+
+@keyframes liveBlink { 0%,100% { background-color: rgba(59,130,246,0.15);} 50% { background-color: rgba(59,130,246,0.35);} }
+.blink-live { animation: liveBlink 1.15s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .blink-live { animation: none; } }
