@@ -68,8 +68,8 @@ export default function AdminSettingsPage() {
             description="Turn off to stop new accounts (email and Google). Existing users can still log in."
           />
           <div className="mt-5 rounded-xl bg-white/[0.03] p-4 text-xs text-ink-300">
-            <p className="font-semibold text-ink-200">Permanent admins (ADMIN_EMAILS on the server)</p>
-            <p className="mt-1">{data.adminEmails.length ? data.adminEmails.join(', ') : 'None set'}. Promote more admins from a user’s page.</p>
+            <p className="font-semibold text-ink-200">Admin access</p>
+            <p className="mt-1">Only {data.adminEmails.length ? data.adminEmails.join(', ') : 'no one'} can open this panel. This is set by ADMIN_EMAILS on the server and can’t be changed from the app.</p>
           </div>
         </Card>
 

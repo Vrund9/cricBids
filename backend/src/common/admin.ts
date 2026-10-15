@@ -1,4 +1,7 @@
-/** Comma-separated ADMIN_EMAILS env var: bootstrap admins who can then promote others from the panel. */
+/**
+ * Comma-separated ADMIN_EMAILS env var — the only way to get admin access.
+ * Admins can't be added from the app, so access is controlled entirely on the server.
+ */
 export function adminEmails(): string[] {
   return (process.env.ADMIN_EMAILS || '')
     .split(',')
@@ -6,6 +9,6 @@ export function adminEmails(): string[] {
     .filter(Boolean)
 }
 
-export function isAdminUser(u: { isAdmin: boolean; email: string }) {
-  return u.isAdmin || adminEmails().includes(u.email.toLowerCase())
+export function isAdminUser(u: { email: string }) {
+  return adminEmails().includes(u.email.toLowerCase())
 }

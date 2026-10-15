@@ -58,7 +58,7 @@ export class AdminService implements OnModuleInit {
     const [
       users, users7, users30, suspended, googleUsers, paidUsers, seasonPasses, proTournaments,
       tournaments, tournaments30, byStatus, players, bids, revenue, revenue30, payments30,
-      signupDates, tournamentDates, recentUsers, recentPayments, live, admins,
+      signupDates, tournamentDates, recentUsers, recentPayments, live,
     ] = await Promise.all([
       this.prisma.user.count(),
       this.prisma.user.count({ where: { createdAt: { gte: d7 } } }),
@@ -81,10 +81,9 @@ export class AdminService implements OnModuleInit {
       this.prisma.user.findMany({ orderBy: { createdAt: 'desc' }, take: 6, select: { id: true, name: true, email: true, avatarUrl: true, createdAt: true, googleId: true } }),
       this.prisma.payment.findMany({ orderBy: { createdAt: 'desc' }, take: 6, include: { user: { select: { id: true, name: true, email: true } }, tournament: { select: { id: true, name: true } } } }),
       this.liveTournaments(),
-      this.prisma.user.count({ where: { isAdmin: true } }),
     ])
     return {
-      users: { total: users, new7d: users7, new30d: users30, suspended, google: googleUsers, admins: admins + adminEmails().length },
+      users: { total: users, new7d: users7, new30d: users30, suspended, google: googleUsers, admins: adminEmails().length },
       paid: { users: paidUsers, seasonPasses, proTournaments },
       revenue: { total: revenue._sum.amount ?? 0, last30d: revenue30._sum.amount ?? 0, payments30d: payments30 },
       tournaments: {
@@ -121,7 +120,7 @@ export class AdminService implements OnModuleInit {
     const and: Prisma.UserWhereInput[] = []
     if (q?.trim()) and.push({ OR: [{ name: { contains: q.trim(), mode: 'insensitive' } }, { email: { contains: q.trim(), mode: 'insensitive' } }] })
     if (filter === 'paid') and.push(this.paidUserWhere())
-    if (filter === 'admins') and.push({ OR: [{ isAdmin: true }, { email: { in: adminEmails() } }] })
+    if (filter === 'admins') and.push({ email: { in: adminEmails() } })
     if (filter === 'suspended') and.push({ suspendedAt: { not: null } })
     if (filter === 'google') and.push({ googleId: { not: null } })
     const where: Prisma.UserWhereInput = and.length ? { AND: and } : {}
@@ -147,7 +146,7 @@ export class AdminService implements OnModuleInit {
     return {
       id: u.id, name: u.name, email: u.email, avatarUrl: u.avatarUrl,
       createdAt: u.createdAt, lastLoginAt: u.lastLoginAt, suspendedAt: u.suspendedAt,
-      isAdmin: isAdminUser(u), adminViaEnv: adminEmails().includes(u.email.toLowerCase()),
+      isAdmin: isAdminUser(u),
       google: !!u.googleId, hasPassword: !!u.passwordHash,
       seasonPassUntil: u.seasonPassUntil, seasonPassActive: pass,
       proTournaments: u.tournaments.length,
@@ -176,22 +175,17 @@ export class AdminService implements OnModuleInit {
     return { ...this.userRow(u), tournamentsList: tournaments, paymentsList: payments, activity }
   }
 
-  async updateUser(actor: AuthUser, id: string, dto: { isAdmin?: boolean; suspended?: boolean; name?: string }) {
+  async updateUser(actor: AuthUser, id: string, dto: { suspended?: boolean; name?: string }) {
     const u = await this.prisma.user.findUnique({ where: { id } })
     if (!u) throw new NotFoundException('User not found')
-    if (id === actor.id && (dto.isAdmin === false || dto.suspended === true)) throw new BadRequestException("You can't remove your own admin access or suspend yourself")
-    if (dto.isAdmin === false && adminEmails().includes(u.email.toLowerCase())) {
-      throw new BadRequestException('This admin is set by the ADMIN_EMAILS server setting. Remove them there instead.')
-    }
+    if (dto.suspended === true && isAdminUser(u)) throw new BadRequestException("Admin accounts can't be suspended")
     const data: Prisma.UserUpdateInput = {}
     const changes: Record<string, unknown> = {}
-    if (dto.isAdmin !== undefined && dto.isAdmin !== u.isAdmin) { data.isAdmin = dto.isAdmin; changes.isAdmin = dto.isAdmin }
     if (dto.suspended !== undefined && dto.suspended !== !!u.suspendedAt) { data.suspendedAt = dto.suspended ? new Date() : null; changes.suspended = dto.suspended }
     if (dto.name !== undefined && dto.name.trim() !== u.name) { data.name = dto.name.trim(); changes.name = { from: u.name, to: dto.name.trim() } }
     if (!Object.keys(changes).length) return this.user(id)
     await this.prisma.user.update({ where: { id }, data })
-    const action = changes.suspended === true ? 'user.suspend' : changes.suspended === false ? 'user.unsuspend'
-      : changes.isAdmin === true ? 'user.promote' : changes.isAdmin === false ? 'user.demote' : 'user.update'
+    const action = changes.suspended === true ? 'user.suspend' : changes.suspended === false ? 'user.unsuspend' : 'user.update'
     await this.audit(actor, action, 'user', id, { email: u.email, ...changes } as Prisma.InputJsonValue)
     return this.user(id)
   }
@@ -220,10 +214,9 @@ export class AdminService implements OnModuleInit {
   }
 
   async deleteUser(actor: AuthUser, id: string) {
-    if (id === actor.id) throw new BadRequestException("You can't delete your own account from the admin panel")
     const u = await this.prisma.user.findUnique({ where: { id }, include: { _count: { select: { tournaments: true } } } })
     if (!u) throw new NotFoundException('User not found')
-    if (adminEmails().includes(u.email.toLowerCase())) throw new BadRequestException('Remove this admin from ADMIN_EMAILS before deleting them')
+    if (isAdminUser(u)) throw new BadRequestException("Admin accounts can't be deleted from the admin panel")
     await this.prisma.user.delete({ where: { id } })
     await this.audit(actor, 'user.delete', 'user', id, { email: u.email, name: u.name, tournaments: u._count.tournaments })
     return { ok: true }

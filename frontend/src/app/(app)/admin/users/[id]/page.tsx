@@ -3,21 +3,19 @@
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { ArrowLeft, Ban, CalendarPlus, ExternalLink, ShieldCheck, ShieldOff, Trash2, UserCheck } from 'lucide-react'
+import { ArrowLeft, Ban, CalendarPlus, ExternalLink, Trash2, UserCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { ConfirmDialog, fmtDate } from '@/components/admin'
 import { Avatar, Badge, Button, Card, EmptyState, PageLoader, Select, StatusBadge } from '@/components/ui'
 import { api } from '@/lib/api'
-import { useAuth } from '@/lib/auth'
 import { money, timeAgo } from '@/lib/format'
 import { AdminUserDetail, PAYMENT_KIND_LABEL, PAYMENT_SOURCE_META, actionLabel, useAdmin } from '@/lib/admin'
 
-type Pending = null | 'suspend' | 'unsuspend' | 'promote' | 'demote' | 'grant' | 'revoke' | 'delete'
+type Pending = null | 'suspend' | 'unsuspend' | 'grant' | 'revoke' | 'delete'
 
 export default function AdminUserPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
-  const { user: me } = useAuth()
   const { data: u, error, setData, reload } = useAdmin<AdminUserDetail>(`/admin/users/${id}`)
   const [pending, setPending] = useState<Pending>(null)
   const [busy, setBusy] = useState(false)
@@ -25,7 +23,6 @@ export default function AdminUserPage() {
 
   if (error && !u) return <EmptyState title="Couldn’t load this user">{error}</EmptyState>
   if (!u) return <PageLoader />
-  const isMe = me?.id === u.id
 
   const run = async (fn: () => Promise<unknown>, success: string) => {
     setBusy(true)
@@ -57,7 +54,7 @@ export default function AdminUserPage() {
           <div className="min-w-0 flex-1">
             <h1 className="flex flex-wrap items-center gap-2 font-display text-2xl font-bold">
               {u.name}
-              {u.isAdmin && <Badge color="#c8ff2e">Admin{u.adminViaEnv && ' (env)'}</Badge>}
+              {u.isAdmin && <Badge color="#c8ff2e">Admin</Badge>}
               {u.suspendedAt && <Badge color="#ff4d6d">Suspended</Badge>}
               {u.seasonPassActive && <Badge color="#ffb020">Season Pass</Badge>}
             </h1>
@@ -82,13 +79,10 @@ export default function AdminUserPage() {
             <Button variant="gold" onClick={() => setPending('grant')}><CalendarPlus className="h-4 w-4" /> {u.seasonPassActive ? 'Extend' : 'Grant'} Season Pass</Button>
           </div>
           {u.seasonPassActive && <Button variant="outline" onClick={() => setPending('revoke')}>Revoke pass</Button>}
-          {!isMe && (u.isAdmin
-            ? !u.adminViaEnv && <Button variant="outline" onClick={() => setPending('demote')}><ShieldOff className="h-4 w-4" /> Remove admin</Button>
-            : <Button variant="outline" onClick={() => setPending('promote')}><ShieldCheck className="h-4 w-4" /> Make admin</Button>)}
-          {!isMe && (u.suspendedAt
+          {!u.isAdmin && (u.suspendedAt
             ? <Button variant="secondary" onClick={() => setPending('unsuspend')}><UserCheck className="h-4 w-4" /> Reactivate</Button>
             : <Button variant="danger" onClick={() => setPending('suspend')}><Ban className="h-4 w-4" /> Suspend</Button>)}
-          {!isMe && !u.adminViaEnv && <Button variant="danger" className="ml-auto" onClick={() => setPending('delete')}><Trash2 className="h-4 w-4" /> Delete user</Button>}
+          {!u.isAdmin && <Button variant="danger" className="ml-auto" onClick={() => setPending('delete')}><Trash2 className="h-4 w-4" /> Delete user</Button>}
         </div>
       </Card>
 
@@ -153,14 +147,6 @@ export default function AdminUserPage() {
       <ConfirmDialog open={pending === 'revoke'} title="Revoke Season Pass" confirmLabel="Revoke" danger loading={busy} onClose={() => setPending(null)}
         onConfirm={() => pass({ action: 'revoke' }, 'Season Pass revoked')}>
         <p>Their tournaments drop back to Free immediately, unless a tournament was upgraded to Pro on its own.</p>
-      </ConfirmDialog>
-      <ConfirmDialog open={pending === 'promote'} title="Make admin" confirmLabel="Make admin" loading={busy} onClose={() => setPending(null)}
-        onConfirm={() => patch({ isAdmin: true }, 'User is now an admin')}>
-        <p><b className="text-white">{u.email}</b> will be able to see all users and payments, change plans and settings, and suspend or delete accounts.</p>
-      </ConfirmDialog>
-      <ConfirmDialog open={pending === 'demote'} title="Remove admin" confirmLabel="Remove admin" danger loading={busy} onClose={() => setPending(null)}
-        onConfirm={() => patch({ isAdmin: false }, 'Admin access removed')}>
-        <p>{u.name} will lose access to the admin panel.</p>
       </ConfirmDialog>
       <ConfirmDialog open={pending === 'suspend'} title="Suspend user" confirmLabel="Suspend" danger loading={busy} onClose={() => setPending(null)}
         onConfirm={() => patch({ suspended: true }, 'User suspended')}>

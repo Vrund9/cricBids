@@ -19,7 +19,6 @@ export interface AdminUserRow {
   lastLoginAt: string | null
   suspendedAt: string | null
   isAdmin: boolean
-  adminViaEnv: boolean
   google: boolean
   hasPassword: boolean
   seasonPassUntil: string | null

@@ -5,7 +5,6 @@ import { AdminService, UserFilter } from './admin.service'
 import { settings } from '../common/settings'
 
 class UpdateUserDto {
-  @IsOptional() @IsBoolean() isAdmin?: boolean
   @IsOptional() @IsBoolean() suspended?: boolean
   @IsOptional() @IsString() @MinLength(2) @MaxLength(80) name?: string
 }
