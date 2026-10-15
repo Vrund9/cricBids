@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer'
-import { IsEmail, IsOptional, IsString, IsUrl, MaxLength, MinLength } from 'class-validator'
+import { IsEmail, IsOptional, IsString, IsUrl, MaxLength, MinLength, ValidateIf } from 'class-validator'
 
 const lower = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim().toLowerCase() : value)
 
@@ -35,9 +35,13 @@ export class ResetPasswordDto {
   password: string
 }
 
+/** Either a Google ID token (`credential`) or an OAuth access token from the popup token client. */
 export class GoogleLoginDto {
-  @IsString() @MinLength(20) @MaxLength(4096)
-  credential: string
+  @ValidateIf((o: GoogleLoginDto) => !o.accessToken) @IsString() @MinLength(20) @MaxLength(4096)
+  credential?: string
+
+  @ValidateIf((o: GoogleLoginDto) => !o.credential) @IsString() @MinLength(20) @MaxLength(4096)
+  accessToken?: string
 }
 
 export class ChangePasswordDto {

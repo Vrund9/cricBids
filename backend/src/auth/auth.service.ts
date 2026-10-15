@@ -9,6 +9,14 @@ import { ChangePasswordDto, GoogleLoginDto, LoginDto, ResetPasswordDto, SignupDt
 import type { User } from '../generated/prisma/client'
 
 const RESET_TTL_MS = 60 * 60 * 1000
+
+interface GoogleProfile {
+  sub: string
+  email?: string
+  email_verified?: boolean
+  name?: string
+  picture?: string
+}
 // Compared against when the email doesn't exist so timing is identical.
 const DUMMY_HASH = bcrypt.hashSync('cricbid-timing-guard', 12)
 
@@ -51,17 +59,32 @@ export class AuthService {
     return this.session(user)
   }
 
-  /** Sign in (or sign up) with a Google Identity Services ID token. */
+  /** Resolves a verified Google profile from an ID token or an access token issued to our client ID. */
+  private async googleProfile(dto: GoogleLoginDto, clientId: string): Promise<GoogleProfile | undefined> {
+    if (dto.credential) {
+      return (await this.google.verifyIdToken({ idToken: dto.credential, audience: clientId })).getPayload()
+    }
+    // Access tokens: first make sure the token was issued to *our* client, otherwise any app's token would work.
+    const info = await this.google.getTokenInfo(dto.accessToken!)
+    if (info.aud !== clientId && info.azp !== clientId) return undefined
+    const res = await fetch('https://openidconnect.googleapis.com/v1/userinfo', { headers: { authorization: `Bearer ${dto.accessToken}` } })
+    if (!res.ok) return undefined
+    const profile = (await res.json()) as GoogleProfile
+    return profile.sub === info.sub ? profile : undefined
+  }
+
+  /** Sign in (or sign up) with Google. */
   async googleLogin(dto: GoogleLoginDto) {
     const clientId = process.env.GOOGLE_CLIENT_ID
     if (!clientId) throw new ServiceUnavailableException('Google sign-in is not configured')
-    let payload
+    let payload: GoogleProfile | undefined
     try {
-      payload = (await this.google.verifyIdToken({ idToken: dto.credential, audience: clientId })).getPayload()
+      payload = await this.googleProfile(dto, clientId)
     } catch {
       throw new UnauthorizedException('Google sign-in failed. Please try again.')
     }
-    if (!payload?.sub || !payload.email || !payload.email_verified) {
+    if (!payload) throw new UnauthorizedException('Google sign-in failed. Please try again.')
+    if (!payload.sub || !payload.email || !payload.email_verified) {
       throw new UnauthorizedException('Your Google account email is not verified')
     }
     const email = payload.email.toLowerCase()

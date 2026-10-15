@@ -44,37 +44,53 @@ function useAuthSuccess() {
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
 
+interface GoogleTokenClient { requestAccessToken: () => void }
 declare global {
   interface Window {
     google?: {
       accounts: {
-        id: {
-          initialize: (opts: { client_id: string; callback: (res: { credential: string }) => void; ux_mode?: 'popup' }) => void
-          renderButton: (el: HTMLElement, opts: Record<string, unknown>) => void
+        oauth2: {
+          initTokenClient: (opts: {
+            client_id: string
+            scope: string
+            callback: (res: { access_token?: string; error?: string }) => void
+            error_callback?: (err: { type: string }) => void
+          }) => GoogleTokenClient
         }
       }
     }
   }
 }
 
-/** "Continue with Google" via Google Identity Services. Renders nothing unless NEXT_PUBLIC_GOOGLE_CLIENT_ID is set. */
-function GoogleButton({ text }: { text: 'signin_with' | 'signup_with' | 'continue_with' }) {
+function GoogleLogo({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 48 48" className={className} aria-hidden>
+      <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z" />
+      <path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" />
+      <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.3 0-9.7-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z" />
+      <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z" />
+    </svg>
+  )
+}
+
+/** Branded "Continue with Google" button (GIS token client popup). Renders nothing unless NEXT_PUBLIC_GOOGLE_CLIENT_ID is set. */
+function GoogleButton() {
   const onSuccess = useAuthSuccess()
-  const ref = useRef<HTMLDivElement>(null)
-  // GIS keeps the callback from initialize(), so route it through a ref to always hit the latest handler.
-  const handler = useRef<(credential: string) => void>(() => {})
+  const client = useRef<GoogleTokenClient | null>(null)
+  // The token client keeps the callback from init, so route it through a ref to always hit the latest handler.
+  const handler = useRef<(accessToken: string) => void>(() => {})
+  const [ready, setReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    handler.current = async (credential: string) => {
+    handler.current = async (accessToken: string) => {
       setLoading(true)
       setError(null)
       try {
-        onSuccess(await api('/auth/google', { body: { credential }, auth: false }))
+        onSuccess(await api('/auth/google', { body: { accessToken }, auth: false }))
       } catch (err) {
         setError((err as Error).message)
-      } finally {
         setLoading(false)
       }
     }
@@ -82,23 +98,44 @@ function GoogleButton({ text }: { text: 'signin_with' | 'signup_with' | 'continu
 
   if (!GOOGLE_CLIENT_ID) return null
 
-  const render = () => {
-    const g = window.google?.accounts.id
-    if (!g || !ref.current) return
-    g.initialize({ client_id: GOOGLE_CLIENT_ID, callback: (res) => handler.current(res.credential), ux_mode: 'popup' })
-    g.renderButton(ref.current, {
-      type: 'standard', theme: 'filled_black', size: 'large', shape: 'rectangular', text, logo_alignment: 'center',
-      width: Math.min(400, ref.current.offsetWidth || 400),
+  const init = () => {
+    const oauth2 = window.google?.accounts.oauth2
+    if (!oauth2) return
+    client.current = oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: 'openid email profile',
+      callback: (res) => {
+        if (res.access_token) handler.current(res.access_token)
+        else setLoading(false)
+      },
+      // Popup closed or blocked: just reset the button.
+      error_callback: () => setLoading(false),
     })
+    setReady(true)
   }
 
   return (
     <div className="mt-6">
-      <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" onReady={render} />
+      <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" onReady={init} />
       <div className="mb-5 flex items-center gap-3 text-xs uppercase tracking-widest text-ink-400">
         <span className="h-px flex-1 bg-white/10" /> or <span className="h-px flex-1 bg-white/10" />
       </div>
-      <div ref={ref} className={`flex min-h-11 justify-center ${loading ? 'pointer-events-none opacity-60' : ''}`} />
+      <Button
+        type="button"
+        variant="secondary"
+        size="lg"
+        className="w-full gap-3"
+        disabled={!ready}
+        loading={loading}
+        onClick={() => {
+          setError(null)
+          setLoading(true)
+          client.current?.requestAccessToken()
+        }}
+      >
+        {!loading && <GoogleLogo className="h-5 w-5" />}
+        Continue with Google
+      </Button>
       {error && <p className="mt-3 rounded-lg bg-rose-hot/10 px-3 py-2 text-sm text-rose-hot">{error}</p>}
     </div>
   )
@@ -144,7 +181,7 @@ function LoginInner() {
         {error && <p className="rounded-lg bg-rose-hot/10 px-3 py-2 text-sm text-rose-hot">{error}</p>}
         <Button type="submit" size="lg" className="w-full" loading={loading}>Log in</Button>
       </form>
-      <GoogleButton text="signin_with" />
+      <GoogleButton />
     </Shell>
   )
 }
@@ -183,7 +220,7 @@ function SignupInner() {
         {error && <p className="rounded-lg bg-rose-hot/10 px-3 py-2 text-sm text-rose-hot">{error}</p>}
         <Button type="submit" size="lg" className="w-full" loading={loading}>Create account</Button>
       </form>
-      <GoogleButton text="signup_with" />
+      <GoogleButton />
     </Shell>
   )
 }
