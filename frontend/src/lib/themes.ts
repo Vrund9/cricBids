@@ -63,6 +63,9 @@ export function themeStyle(theme?: Partial<ThemeConfig> | null): CSSProperties {
     '--tint-strength': '100%',
     '--card-bg': 'linear-gradient(180deg, rgb(255 255 255 / 0.035), rgb(255 255 255 / 0.015))',
     '--card-shadow': 'none',
+    '--avatar-bg': 'linear-gradient(135deg, #34405a, #34405a88)',
+    '--avatar-fg': '#ffffff',
+    '--gradient-end': '#e9ff9a',
     colorScheme: 'dark',
     background: `radial-gradient(1200px 600px at 85% -10%, ${p.accent}17, transparent 60%), radial-gradient(900px 500px at -10% 10%, ${p.second}12, transparent 60%), ${i900}`,
   } as CSSProperties

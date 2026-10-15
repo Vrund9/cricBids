@@ -246,6 +246,8 @@ export function Modal({ open, onClose, title, children, className, wide }: { ope
 
 // ───────────────────────── Avatars ─────────────────────────
 
+const NEUTRAL_AVATARS = ['#34405a', '#222c41', '#182031', '#111622']
+
 export function Avatar({ src, name, size = 40, className, color, rounded = 'full' }: { src?: string | null; name: string; size?: number; className?: string; color?: string; rounded?: 'full' | 'xl' }) {
   const [failed, setFailed] = useState(false)
   useEffect(() => setFailed(false), [src])
@@ -270,7 +272,13 @@ export function Avatar({ src, name, size = 40, className, color, rounded = 'full
     <div
       aria-label={name}
       className={cn('grid shrink-0 place-items-center font-display font-bold text-snow', radius, className)}
-      style={{ width: size, height: size, fontSize: Math.max(10, size * (name.length > 2 && /^[A-Z0-9]{3,4}$/.test(name) ? 0.28 : 0.36)), background: color ? `linear-gradient(135deg, ${color}, ${color}88)` : 'linear-gradient(135deg,#222c41,#111622)' }}
+      style={{
+        width: size, height: size, fontSize: Math.max(10, size * (name.length > 2 && /^[A-Z0-9]{3,4}$/.test(name) ? 0.28 : 0.36)),
+        // Neutral placeholders follow the theme; real colours (team colours) are kept as-is.
+        ...(!color || NEUTRAL_AVATARS.includes(color.toLowerCase())
+          ? { background: 'var(--avatar-bg)', color: 'var(--avatar-fg)' }
+          : { background: `linear-gradient(135deg, ${color}, ${color}88)` }),
+      }}
     >
       {/^[A-Z0-9]{1,4}$/.test(name) ? name : initials(name) || '?'}
     </div>

@@ -60,6 +60,8 @@
     /* How much of its own colour a tinted badge keeps (light mode mixes in black for contrast). */
     --tint-strength: 100%;
     --gradient-end: #e9ff9a;
+    --avatar-bg: linear-gradient(135deg, #34405a, #34405a88);
+    --avatar-fg: #ffffff;
     --card-bg: linear-gradient(180deg, rgb(255 255 255 / 0.035), rgb(255 255 255 / 0.015));
     --card-shadow: none;
   }
@@ -71,34 +73,37 @@
   :root[data-theme='light'] {
     color-scheme: light;
     --color-ink-950: #ffffff;
-    --color-ink-900: #f4f6fa;
+    --color-ink-900: #f6f8fb;
     --color-ink-850: #ffffff;
     --color-ink-800: #ffffff;
-    --color-ink-700: #eef1f6;
-    --color-ink-600: #dfe4ee;
-    --color-ink-500: #c2c9d8;
-    --color-ink-400: #687290;
-    --color-ink-300: #4d5772;
-    --color-ink-200: #333c54;
-    --color-ink-100: #1a2135;
-    --color-white: #0b1020;
-    --color-lime-glow: #4f8a00;
-    --color-gold: #b06500;
-    --color-rose-hot: #e11d48;
-    --color-sky-live: #0277b6;
-    --bg: #f4f6fa;
-    --fg: #0b1020;
-    --border: rgb(11 16 32 / 0.09);
-    --border-strong: rgb(11 16 32 / 0.16);
-    --tint-strength: 62%;
-    --gradient-end: #3d6b00;
+    --color-ink-700: #eef2f7;
+    --color-ink-600: #dde3ec;
+    --color-ink-500: #c3cbd8;
+    --color-ink-400: #6b7489;
+    --color-ink-300: #4c556b;
+    --color-ink-200: #2f374b;
+    --color-ink-100: #161c2c;
+    --color-white: #0d1324;
+    /* Accents tuned for text on white: a crisp pitch green with the brand lime kept for fills. */
+    --color-lime-glow: #2f8a12;
+    --color-gold: #b45309;
+    --color-rose-hot: #d61f4b;
+    --color-sky-live: #0a6fb0;
+    --bg: #f6f8fb;
+    --fg: #0d1324;
+    --border: rgb(13 19 36 / 0.1);
+    --border-strong: rgb(13 19 36 / 0.18);
+    --tint-strength: 58%;
+    --gradient-end: #0e7a5a;
     --card-bg: #ffffff;
-    --card-shadow: 0 1px 2px rgb(11 16 32 / 0.04), 0 10px 30px -18px rgb(11 16 32 / 0.18);
+    --card-shadow: 0 1px 2px rgb(13 19 36 / 0.05), 0 12px 32px -20px rgb(13 19 36 / 0.22);
+    --avatar-bg: linear-gradient(135deg, #e4eaf3, #d3dbe8);
+    --avatar-fg: #34405e;
   }
   :root[data-theme='light'] body {
     background:
-      radial-gradient(1200px 600px at 85% -10%, rgb(200 255 46 / 0.18), transparent 60%),
-      radial-gradient(900px 500px at -10% 10%, rgb(56 189 248 / 0.1), transparent 60%),
+      radial-gradient(1100px 560px at 88% -12%, rgb(200 255 46 / 0.22), transparent 62%),
+      radial-gradient(900px 520px at -12% 6%, rgb(56 189 248 / 0.12), transparent 60%),
       var(--bg);
   }
 
