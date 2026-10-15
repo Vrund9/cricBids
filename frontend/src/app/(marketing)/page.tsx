@@ -74,8 +74,9 @@ export default function Home() {
         {/* Hero */}
         <section className="relative overflow-hidden pt-28 sm:pt-36">
           <div className="grid-bg absolute inset-0 -z-10" />
-          <div className="mx-auto grid max-w-7xl items-center gap-14 px-4 pb-20 sm:px-6 lg:grid-cols-[1.1fr_1fr] lg:pb-28">
-            <div>
+          {/* grid-cols-1 = minmax(0,1fr): without it the mobile column grows to fit the live demo's widest bid and the hero reflows on every bid. */}
+          <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-14 px-4 pb-20 sm:px-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:pb-28">
+            <div className="min-w-0">
               <Reveal>
                 <span className="inline-flex items-center gap-2 rounded-full border border-lime-glow/25 bg-lime-glow/10 px-3 py-1 text-xs font-semibold text-lime-glow">
                   <Sparkles className="h-3.5 w-3.5" /> New · Team owners can bid from their phones

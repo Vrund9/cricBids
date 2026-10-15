@@ -75,31 +75,36 @@ export function HeroAuctionDemo() {
           </span>
         </div>
 
-        <AnimatePresence mode="wait">
-          <motion.div key={p.name} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ type: 'spring', stiffness: 200, damping: 24 }} className="flex items-center gap-4">
-            <Avatar name={p.name} size={76} color="#34405a" rounded="xl" />
-            <div className="min-w-0">
-              <p className="text-xs uppercase tracking-[0.2em] text-ink-300">{p.role}</p>
-              <h3 className="font-display text-2xl font-bold sm:text-3xl">{p.name}</h3>
-              <p className="text-xs text-ink-400">Base {moneyShort(p.base)}</p>
-            </div>
-          </motion.div>
-        </AnimatePresence>
+        {/* Fixed-height slot: with mode="wait" the old row unmounts before the new one mounts, which used to collapse the card for a frame. */}
+        <div className="relative h-[76px]">
+          <AnimatePresence mode="wait">
+            <motion.div key={p.name} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ type: 'spring', stiffness: 200, damping: 24 }} className="absolute inset-0 flex items-center gap-4">
+              <Avatar name={p.name} size={76} color="#34405a" rounded="xl" />
+              <div className="min-w-0">
+                <p className="text-xs uppercase tracking-[0.2em] text-ink-300">{p.role}</p>
+                <h3 className="truncate font-display text-2xl font-bold sm:text-3xl">{p.name}</h3>
+                <p className="text-xs text-ink-400">Base {moneyShort(p.base)}</p>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
 
         <div className="relative mt-6 overflow-hidden rounded-2xl border border-white/10 bg-ink-950/60 p-5">
           <p className="text-xs uppercase tracking-[0.2em] text-ink-400">Current bid</p>
-          <div className="mt-1 flex items-end justify-between gap-3">
-            <span className="font-display text-5xl font-extrabold text-white sm:text-6xl">
+          <div className="mt-1 flex min-w-0 items-end justify-between gap-3">
+            <span className="shrink-0 font-display text-5xl font-extrabold tabular-nums text-white sm:text-6xl">
               <AnimatedNumber value={bid} format={(n) => moneyShort(n)} />
             </span>
-            <AnimatePresence mode="popLayout">
-              {lead && (
-                <motion.span key={lead.short + bid} initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -12, opacity: 0 }} className="mb-2 inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold" style={{ background: `${lead.color}22`, color: lead.color }}>
-                  <span className="h-2 w-2 rounded-full" style={{ background: lead.color }} />
-                  {lead.name}
-                </motion.span>
-              )}
-            </AnimatePresence>
+            <span className="relative mb-2 h-7 min-w-0 flex-1">
+              <AnimatePresence>
+                {lead && (
+                  <motion.span key={lead.short + bid} initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -12, opacity: 0 }} className="absolute right-0 top-0 inline-flex max-w-full items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold" style={{ background: `${lead.color}22`, color: lead.color }}>
+                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: lead.color }} />
+                    <span className="truncate">{lead.name}</span>
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </span>
           </div>
           <AnimatePresence>
             {sold && (
