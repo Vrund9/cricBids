@@ -29,7 +29,10 @@ export class BillingController {
   async tournamentPro(@CurrentUser() u: AuthUser, @Param('id') id: string) {
     await this.tournaments.owned(id, u.id)
     this.charge()
-    await this.prisma.tournament.update({ where: { id }, data: { plan: 'PRO', planActivatedAt: new Date() } })
+    await this.prisma.$transaction([
+      this.prisma.tournament.update({ where: { id }, data: { plan: 'PRO', planActivatedAt: new Date() } }),
+      this.prisma.payment.create({ data: { userId: u.id, tournamentId: id, kind: 'TOURNAMENT_PRO', source: 'DEMO' } }),
+    ])
     this.realtime.stateChanged(id)
     return this.tournaments.plan(id)
   }
@@ -42,7 +45,10 @@ export class BillingController {
     const from = user.seasonPassUntil && user.seasonPassUntil > new Date() ? user.seasonPassUntil : new Date()
     const until = new Date(from)
     until.setFullYear(until.getFullYear() + 1)
-    await this.prisma.user.update({ where: { id: u.id }, data: { seasonPassUntil: until } })
+    await this.prisma.$transaction([
+      this.prisma.user.update({ where: { id: u.id }, data: { seasonPassUntil: until } }),
+      this.prisma.payment.create({ data: { userId: u.id, kind: 'SEASON_PASS', source: 'DEMO' } }),
+    ])
     return { seasonPassUntil: until }
   }
 }

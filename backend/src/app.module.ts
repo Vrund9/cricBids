@@ -17,6 +17,8 @@ import { AuctionGateway } from './auction/auction.gateway'
 import { PublicController } from './public/public.controller'
 import { UPLOAD_DIR, UploadsController } from './uploads/uploads'
 import { BillingController } from './billing/billing.controller'
+import { AdminController, ConfigController } from './admin/admin.controller'
+import { AdminService } from './admin/admin.service'
 
 @Controller('health')
 class HealthController {
@@ -38,7 +40,7 @@ class HealthController {
     RealtimeModule,
     AuthModule,
   ],
-  controllers: [HealthController, TournamentsController, AuctionController, PublicController, UploadsController, BillingController],
+  controllers: [HealthController, TournamentsController, AuctionController, PublicController, UploadsController, BillingController, AdminController, ConfigController],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     TournamentsService,
@@ -47,6 +49,7 @@ class HealthController {
     AuctionService,
     SnapshotService,
     AuctionGateway,
+    AdminService,
   ],
 })
 export class AppModule {}

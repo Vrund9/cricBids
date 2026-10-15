@@ -191,6 +191,12 @@ function SignupInner() {
   const [form, setForm] = useState({ name: '', email: '', password: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [closed, setClosed] = useState(false)
+  useEffect(() => {
+    api<{ signupsEnabled: boolean }>('/config', { auth: false })
+      .then((c) => setClosed(!c.signupsEnabled))
+      .catch(() => {})
+  }, [])
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -207,6 +213,7 @@ function SignupInner() {
   return (
     <Shell title="Create your account" subtitle="Run your first live auction in minutes. Free to start." footer={<>Already have an account? <Link href="/login" className="font-semibold text-lime-glow hover:underline">Log in</Link></>}>
       <RedirectIfSignedIn />
+      {closed && <p className="mb-4 rounded-xl bg-gold/10 px-4 py-3 text-sm text-gold">New sign-ups are paused right now. Please check back soon.</p>}
       <form onSubmit={submit} className="space-y-4">
         <Field label="Your name" htmlFor="name">
           <Input id="name" autoComplete="name" required minLength={2} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />

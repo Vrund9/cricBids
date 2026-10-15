@@ -21,6 +21,8 @@ export interface User {
   seasonPassUntil?: string | null
   /** False for Google-only accounts that haven't set a password yet. */
   hasPassword?: boolean
+  /** Platform admin — can open /admin. */
+  isAdmin?: boolean
 }
 
 export interface IncrementTier {

@@ -1,10 +1,14 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common'
+import {
+  BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, ServiceUnavailableException, UnauthorizedException,
+} from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import bcrypt from 'bcryptjs'
 import { OAuth2Client } from 'google-auth-library'
 import { PrismaService } from '../prisma/prisma.service'
 import { MailService } from '../mail/mail.service'
 import { randomToken, sha256 } from '../common/util'
+import { isAdminUser } from '../common/admin'
+import { settings } from '../common/settings'
 import { ChangePasswordDto, GoogleLoginDto, LoginDto, ResetPasswordDto, SignupDto, UpdateProfileDto } from './auth.dto'
 import type { User } from '../generated/prisma/client'
 
@@ -34,15 +38,23 @@ export class AuthService {
     return {
       id: u.id, name: u.name, email: u.email, avatarUrl: u.avatarUrl, createdAt: u.createdAt, seasonPassUntil: u.seasonPassUntil,
       hasPassword: !!u.passwordHash,
+      isAdmin: isAdminUser(u),
     }
   }
 
   private async session(u: User) {
-    const token = await this.jwt.signAsync({ sub: u.id, email: u.email })
-    return { token, user: this.publicUser(u) }
+    if (u.suspendedAt) throw new ForbiddenException('This account has been suspended. Contact support if you think this is a mistake.')
+    const user = await this.prisma.user.update({ where: { id: u.id }, data: { lastLoginAt: new Date() } })
+    const token = await this.jwt.signAsync({ sub: user.id, email: user.email })
+    return { token, user: this.publicUser(user) }
+  }
+
+  private assertSignupsOpen() {
+    if (!settings().signupsEnabled) throw new ForbiddenException('New sign-ups are paused right now. Please try again later.')
   }
 
   async signup(dto: SignupDto) {
+    this.assertSignupsOpen()
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } })
     if (existing) throw new ConflictException('An account with this email already exists')
     const user = await this.prisma.user.create({
@@ -92,6 +104,7 @@ export class AuthService {
     let user = await this.prisma.user.findUnique({ where: { googleId: payload.sub } })
     if (!user) {
       const existing = await this.prisma.user.findUnique({ where: { email } })
+      if (!existing) this.assertSignupsOpen()
       // Google has verified the address, so link it to an existing password account with the same email.
       user = existing
         ? await this.prisma.user.update({

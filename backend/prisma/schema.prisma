@@ -61,9 +61,70 @@ model User {
   resetTokenExp   DateTime?
   /// Yearly "Season Pass": every tournament this user owns gets Pro features until this date.
   seasonPassUntil DateTime?
+  /// Platform admin (can open /admin). Emails in ADMIN_EMAILS are admins regardless of this flag.
+  isAdmin         Boolean      @default(false)
+  /// Suspended accounts can't sign in or use the API.
+  suspendedAt     DateTime?
+  lastLoginAt     DateTime?
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
   tournaments     Tournament[]
+  payments        Payment[]
+}
+
+enum PaymentKind {
+  TOURNAMENT_PRO
+  SEASON_PASS
+}
+
+enum PaymentSource {
+  /// BILLING_MODE=demo: activated instantly, nothing charged
+  DEMO
+  /// Granted by an admin from the admin panel
+  ADMIN
+  /// Real payment through a gateway
+  GATEWAY
+}
+
+/// One row per plan activation — the revenue / paid-user history shown in the admin panel.
+model Payment {
+  id           String        @id @default(cuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tournamentId String?
+  tournament   Tournament?   @relation(fields: [tournamentId], references: [id], onDelete: SetNull)
+  kind         PaymentKind
+  /// Whole rupees actually charged (0 for demo/admin grants)
+  amount       Int           @default(0)
+  currency     String        @default("INR")
+  source       PaymentSource
+  note         String?
+  createdAt    DateTime      @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+/// Platform-wide settings editable from the admin panel (key → JSON value).
+model AppSetting {
+  key         String   @id
+  value       Json
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+}
+
+/// Every change made from the admin panel.
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actorEmail String
+  action     String
+  targetType String?
+  targetId   String?
+  details    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 model Tournament {
@@ -114,6 +175,7 @@ model Tournament {
   players   Player[]
   bids      Bid[]
   state     AuctionState?
+  payments  Payment[]
 
   @@index([ownerId])
 }

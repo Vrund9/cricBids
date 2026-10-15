@@ -4,10 +4,58 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { LayoutGrid, LogOut, UserRound } from 'lucide-react'
+import { Info, LayoutGrid, LogOut, ShieldCheck, TriangleAlert, UserRound, X } from 'lucide-react'
 import { Logo } from './brand'
 import { Avatar, PageLoader } from './ui'
 import { useRequireAuth } from '@/lib/auth'
+import { api } from '@/lib/api'
+
+interface Announcement { text: string; tone: 'info' | 'success' | 'warning' }
+
+const TONES = {
+  info: 'border-sky-live/30 bg-sky-live/10 text-sky-100',
+  success: 'border-lime-glow/30 bg-lime-glow/10 text-lime-100',
+  warning: 'border-gold/30 bg-gold/10 text-amber-100',
+}
+
+/** Platform-wide message set from the admin panel. Dismissal is remembered per message. */
+function AnnouncementBar() {
+  const [a, setA] = useState<Announcement | null>(null)
+  const [hidden, setHidden] = useState(false)
+  useEffect(() => {
+    api<{ announcement: Announcement | null }>('/config', { auth: false })
+      .then((c) => {
+        if (!c.announcement) return
+        try {
+          if (localStorage.getItem('cricbid:dismissed') === c.announcement.text) return
+        } catch {}
+        setA(c.announcement)
+      })
+      .catch(() => {})
+  }, [])
+  if (!a || hidden) return null
+  const Icon = a.tone === 'warning' ? TriangleAlert : Info
+  return (
+    <div className={`border-b px-4 py-2.5 text-sm ${TONES[a.tone]}`}>
+      <div className="mx-auto flex max-w-7xl items-center gap-3 sm:px-2">
+        <Icon className="h-4 w-4 shrink-0" />
+        <p className="flex-1">{a.text}</p>
+        <button
+          aria-label="Dismiss"
+          className="rounded-lg p-1 opacity-70 hover:bg-white/10 hover:opacity-100"
+          onClick={() => {
+            setHidden(true)
+            try {
+              localStorage.setItem('cricbid:dismissed', a.text)
+            } catch {}
+          }}
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  )
+}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading, signOut } = useRequireAuth()
@@ -31,6 +79,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Link href="/dashboard" className="hidden items-center gap-2 rounded-xl px-3 py-2 text-sm text-ink-200 hover:bg-white/5 hover:text-white sm:inline-flex">
               <LayoutGrid className="h-4 w-4" /> Tournaments
             </Link>
+            {user.isAdmin && (
+              <Link href="/admin" className="hidden items-center gap-2 rounded-xl px-3 py-2 text-sm text-lime-glow hover:bg-lime-glow/10 sm:inline-flex">
+                <ShieldCheck className="h-4 w-4" /> Admin
+              </Link>
+            )}
             <div className="relative" ref={ref}>
               <button onClick={() => setMenu((m) => !m)} className="flex items-center gap-2 rounded-xl p-1.5 pr-3 hover:bg-white/5" aria-haspopup="menu" aria-expanded={menu}>
                 <Avatar src={user.avatarUrl} name={user.name} size={30} color="#34405a" />
@@ -43,6 +96,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <Link href="/account" onClick={() => setMenu(false)} className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-white/5">
                       <UserRound className="h-4 w-4" /> Account
                     </Link>
+                    {user.isAdmin && (
+                      <Link href="/admin" onClick={() => setMenu(false)} className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-lime-glow hover:bg-lime-glow/10">
+                        <ShieldCheck className="h-4 w-4" /> Admin panel
+                      </Link>
+                    )}
                     <button
                       onClick={() => {
                         signOut()
@@ -59,6 +117,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
+      <AnnouncementBar />
       {children}
     </div>
   )
