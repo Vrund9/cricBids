@@ -1,6 +1,7 @@
 'use client'
 
 import { forwardRef, useEffect, useId, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { AnimatePresence, motion, useSpring, useTransform } from 'motion/react'
 import { Loader2, X } from 'lucide-react'
 import { cn } from '@/lib/cn'
@@ -198,6 +199,10 @@ export function EmptyState({ icon, title, children, action }: { icon?: React.Rea
 }
 
 export function Modal({ open, onClose, title, children, className, wide }: { open: boolean; onClose: () => void; title?: React.ReactNode; children: React.ReactNode; className?: string; wide?: boolean }) {
+  // Rendered into <body>: a modal opened from inside an animated card would otherwise be positioned
+  // relative to that card (transforms trap `position: fixed`) and later cards would paint over it.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
@@ -209,10 +214,11 @@ export function Modal({ open, onClose, title, children, className, wide }: { ope
       document.body.style.overflow = prev
     }
   }, [open, onClose])
-  return (
+  if (!mounted) return null
+  return createPortal(
     <AnimatePresence>
       {open && (
-        <motion.div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+        <motion.div className="fixed inset-0 z-[60] flex items-end justify-center p-0 sm:items-center sm:p-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           <div className="absolute inset-0 bg-ink-950/80 backdrop-blur-sm" onClick={onClose} />
           <motion.div
             role="dialog"
@@ -225,7 +231,7 @@ export function Modal({ open, onClose, title, children, className, wide }: { ope
           >
             <div className="mb-5 flex items-start justify-between gap-4">
               {title && <h2 className="font-display text-xl font-semibold">{title}</h2>}
-              <button onClick={onClose} className="-m-1 rounded-lg p-1 text-ink-300 hover:bg-white/5 hover:text-white" aria-label="Close">
+              <button onClick={onClose} className="-m-1 ml-auto rounded-lg p-1 text-ink-300 hover:bg-white/5 hover:text-white" aria-label="Close">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -233,7 +239,8 @@ export function Modal({ open, onClose, title, children, className, wide }: { ope
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   )
 }
 
