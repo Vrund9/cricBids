@@ -7,6 +7,7 @@ import { motion } from 'motion/react'
 import { CalendarDays, MapPin, Plus, Radio, Trophy, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { Avatar, Button, EmptyState, Field, Input, Modal, PageLoader, Select, StatusBadge, stagger, fadeUp } from '@/components/ui'
+import { Tour } from '@/components/tour'
 import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import { CURRENCIES, moneyShort } from '@/lib/format'
@@ -52,13 +53,13 @@ export default function Dashboard() {
           <p className="text-sm text-ink-300">Hey {user?.name.split(' ')[0]} 👋</p>
           <h1 className="mt-1 font-display text-3xl font-bold sm:text-4xl">Your tournaments</h1>
         </div>
-        <Button onClick={() => setOpen(true)} size="lg">
+        <Button onClick={() => setOpen(true)} size="lg" data-tour="new-auction">
           <Plus className="h-4 w-4" /> New auction
         </Button>
       </div>
 
       {items.length === 0 ? (
-        <div className="mt-10">
+        <div className="mt-10" data-tour="tournaments">
           <EmptyState
             icon={<Trophy className="h-6 w-6" />}
             title="Create your first auction"
@@ -68,7 +69,7 @@ export default function Dashboard() {
           </EmptyState>
         </div>
       ) : (
-        <motion.div variants={stagger} initial="hidden" animate="show" className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <motion.div variants={stagger} initial="hidden" animate="show" className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-tour="tournaments">
           {items.map((t) => (
             <motion.div key={t.id} variants={fadeUp} whileHover={{ y: -4 }} transition={{ type: 'spring', stiffness: 300, damping: 24 }}>
               <Link href={t.status === 'LIVE' || t.status === 'PAUSED' ? `/t/${t.id}/auction` : `/t/${t.id}`} className="card group block h-full p-5 hover:border-white/15">
@@ -106,6 +107,17 @@ export default function Dashboard() {
           ))}
         </motion.div>
       )}
+
+      <Tour
+        id="dashboard"
+        onlyNewUsers
+        steps={[
+          { title: `Welcome to CricBid, ${user?.name.split(' ')[0] ?? 'there'}! 🏏`, body: 'Here’s a 30-second tour of how to run your first player auction.' },
+          { target: 'new-auction', title: 'Start a new auction', body: 'Name your tournament here. Then add players, set the rules and go live — CricBid guides you through each step.' },
+          { target: 'tournaments', title: 'Your tournaments', body: items.length ? 'Each card shows players, teams and money spent. Click one to manage it.' : 'Your tournaments will show up here once you create one.' },
+          { target: 'account-menu', title: 'Your account', body: 'Change your photo and password, or replay this tour any time from here.' },
+        ]}
+      />
 
       <Modal open={open} onClose={() => setOpen(false)} title="New auction">
         <form onSubmit={create} className="space-y-4">

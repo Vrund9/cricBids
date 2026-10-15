@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { useTournament } from '@/components/tournament-context'
 import { Avatar, Button, Card, Field, Input, Modal, Select, Textarea, fadeUp, stagger } from '@/components/ui'
 import { ShareLink } from '@/components/share'
+import { Tour } from '@/components/tour'
 import { PlanCard } from '@/components/upgrade'
 import { api, SITE_URL, uploadImage } from '@/lib/api'
 import { CURRENCIES, money } from '@/lib/format'
@@ -33,13 +34,15 @@ export default function Overview() {
       cta: t.stats.players ? 'Manage players' : 'Add players',
     },
     {
-      done: t.registrationOpen || t.stats.fromForm > 0,
+      done: t.stats.fromForm > 0,
       optional: true,
       icon: ClipboardList,
-      title: 'Open player registration',
-      text: t.registrationOpen ? 'Registration link is live' : 'Optional — let players sign up themselves with photo',
+      title: 'Share the registration link',
+      text: t.stats.fromForm > 0
+        ? `${t.stats.fromForm} players registered themselves`
+        : t.registrationOpen ? 'Link is open — share it on WhatsApp so players sign up with photo' : 'Registrations are closed — open them to share the link',
       href: `${base}/registration`,
-      cta: 'Set up form',
+      cta: t.registrationOpen ? 'Share link' : 'Open registrations',
     },
     {
       done: t.setupComplete,
@@ -66,7 +69,7 @@ export default function Overview() {
   return (
     <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
       <div className="space-y-6">
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden" data-tour="checklist">
           <div className="flex items-center justify-between gap-4 border-b border-white/5 p-6">
             <div>
               <h2 className="font-display text-xl font-semibold">Launch checklist</h2>
@@ -102,7 +105,7 @@ export default function Overview() {
             <p className="text-sm text-ink-300">
               {t.status === 'LIVE' || t.status === 'PAUSED' ? 'Your auction is running.' : t.status === 'COMPLETED' ? 'Auction complete — see the results.' : ready ? 'Everything checks out.' : 'Complete the required steps to start.'}
             </p>
-            <Button onClick={() => router.push(t.status === 'COMPLETED' ? `${base}/results` : `${base}/auction`)} disabled={!ready && t.status !== 'LIVE' && t.status !== 'PAUSED' && t.status !== 'COMPLETED'}>
+            <Button data-tour="control-room" onClick={() => router.push(t.status === 'COMPLETED' ? `${base}/results` : `${base}/auction`)} disabled={!ready && t.status !== 'LIVE' && t.status !== 'PAUSED' && t.status !== 'COMPLETED'}>
               <Gavel className="h-4 w-4" /> {t.status === 'COMPLETED' ? 'View results' : 'Open control room'}
             </Button>
           </div>
@@ -125,7 +128,7 @@ export default function Overview() {
 
       <div className="space-y-6">
         <PlanCard />
-        <Card className="p-6">
+        <Card className="p-6" data-tour="live-link">
           <div className="flex items-center gap-2">
             <Radio className="h-4 w-4 text-lime-glow" />
             <h3 className="font-semibold">Live auction link</h3>
@@ -133,7 +136,7 @@ export default function Overview() {
           <p className="mb-4 mt-1 text-sm text-ink-400">Projector, TV, team owners, players at home — everyone sees bids in realtime.</p>
           <ShareLink url={liveUrl} title={`${t.name} live`} message={`🏏 Watch the ${t.name} player auction LIVE`} />
         </Card>
-        <Card className="p-6">
+        <Card className="p-6" data-tour="registration">
           <div className="flex items-center gap-2">
             <ClipboardList className="h-4 w-4 text-sky-live" />
             <h3 className="font-semibold">Player registration</h3>
@@ -165,6 +168,16 @@ export default function Overview() {
       </div>
 
       <DetailsModal open={editing} onClose={() => setEditing(false)} update={update} />
+      <Tour
+        id="tournament"
+        steps={[
+          { target: 'tabs', title: 'Everything for this auction', body: 'Players, registration form, teams, auction rules, screen theme, the control room and results — all in these tabs.' },
+          { target: 'checklist', title: 'Follow the launch checklist', body: 'Work through these steps top to bottom. The ring fills up as you go, and the control room unlocks when the required ones are done.' },
+          { target: 'registration', title: 'Let players register themselves', body: 'Share this link in your WhatsApp groups. Players fill in their name, role and photo and appear in your player list instantly.' },
+          { target: 'live-link', title: 'The live auction link', body: 'Put this on the projector and send it to team owners and fans. Every screen updates in realtime during the auction.' },
+          { target: 'control-room', title: 'Run auction day from here', body: 'When you’re ready, open the control room to start bidding, sell players and track every team’s purse.' },
+        ]}
+      />
     </div>
   )
 }
@@ -213,12 +226,15 @@ function DetailsModal({ open, onClose, update }: { open: boolean; onClose: () =>
               className="hidden"
               onChange={async (e) => {
                 const file = e.target.files?.[0]
+                e.target.value = ''
                 if (!file) return
                 setUploading(true)
                 try {
-                  setForm((f) => ({ ...f, logoUrl: '' }))
                   const url = await uploadImage(file)
                   setForm((f) => ({ ...f, logoUrl: url }))
+                  // Saved straight away so the new logo shows everywhere without pressing Save.
+                  await update({ logoUrl: url })
+                  toast.success('Logo updated')
                 } catch (err) {
                   toast.error((err as Error).message)
                 } finally {

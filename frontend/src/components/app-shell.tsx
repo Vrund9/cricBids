@@ -4,9 +4,10 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Info, LayoutGrid, LogOut, ShieldCheck, TriangleAlert, UserRound, X } from 'lucide-react'
+import { Compass, Info, LayoutGrid, LogOut, ShieldCheck, TriangleAlert, UserRound, X } from 'lucide-react'
 import { Logo } from './brand'
 import { Avatar, PageLoader } from './ui'
+import { resetTours } from './tour'
 import { useRequireAuth } from '@/lib/auth'
 import { api } from '@/lib/api'
 
@@ -85,7 +86,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </Link>
             )}
             <div className="relative" ref={ref}>
-              <button onClick={() => setMenu((m) => !m)} className="flex items-center gap-2 rounded-xl p-1.5 pr-3 hover:bg-white/5" aria-haspopup="menu" aria-expanded={menu}>
+              <button onClick={() => setMenu((m) => !m)} className="flex items-center gap-2 rounded-xl p-1.5 pr-3 hover:bg-white/5" aria-haspopup="menu" aria-expanded={menu} data-tour="account-menu">
                 <Avatar src={user.avatarUrl} name={user.name} size={30} color="#34405a" />
                 <span className="hidden max-w-32 truncate text-sm font-medium sm:block">{user.name}</span>
               </button>
@@ -96,6 +97,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <Link href="/account" onClick={() => setMenu(false)} className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-white/5">
                       <UserRound className="h-4 w-4" /> Account
                     </Link>
+                    <button
+                      onClick={() => {
+                        setMenu(false)
+                        resetTours(user.id)
+                        router.push('/dashboard?tour=1')
+                        if (window.location.pathname === '/dashboard') window.location.reload()
+                      }}
+                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-white/5"
+                    >
+                      <Compass className="h-4 w-4" /> Take the tour
+                    </button>
                     {user.isAdmin && (
                       <Link href="/admin" onClick={() => setMenu(false)} className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-lime-glow hover:bg-lime-glow/10">
                         <ShieldCheck className="h-4 w-4" /> Admin panel

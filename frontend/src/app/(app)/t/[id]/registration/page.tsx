@@ -191,7 +191,20 @@ export default function RegistrationPage() {
         </Card>
         <Card className="p-6">
           <h3 className="mb-3 font-semibold">Share with players</h3>
-          <ShareLink url={url} title={`${t.name} registration`} message={`🏏 ${t.name} — register for the player auction here:`} />
+          {t.registrationOpen ? (
+            <ShareLink url={url} title={`${t.name} registration`} message={`🏏 ${t.name} — register for the player auction here:`} />
+          ) : (
+            // Sharing while closed sends players to a "Registrations are closed" page, so open first.
+            <div className="rounded-xl border border-gold/30 bg-gold/10 p-4">
+              <p className="flex items-start gap-2 text-sm text-amber-100">
+                <Lock className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+                Registrations are closed, so anyone opening the link would see “Registrations are closed”. Open them to get a link you can share.
+              </p>
+              <Button className="mt-3 w-full" onClick={() => toggleSetting({ registrationOpen: true }, 'Registrations are open — share the link')}>
+                Open registrations
+              </Button>
+            </div>
+          )}
           <button onClick={resetLink} className="mt-4 inline-flex items-center gap-1.5 text-xs text-ink-400 hover:text-white">
             <RefreshCw className="h-3 w-3" /> Reset link
           </button>

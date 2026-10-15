@@ -84,6 +84,8 @@ export class TournamentsService {
         logoUrl: dto.logoUrl,
         bidIncrements: DEFAULT_INCREMENTS as any,
         registrationFields: DEFAULT_REG_FIELDS as any,
+        // Open by default so the first link an organiser shares actually works.
+        registrationOpen: true,
         registrationToken: randomToken(),
         liveToken: randomToken(),
       },
