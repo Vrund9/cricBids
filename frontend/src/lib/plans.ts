@@ -31,7 +31,7 @@ export const PLANS: PricingPlan[] = [
     tagline: 'One serious auction, fully loaded',
     cta: 'Go Pro',
     highlight: true,
-    features: ['Everything in Free', 'Up to 16 teams & 500 players', 'Team owners bid from their phones', 'Your brand colour on every screen', 'Remove CricBid branding', 'Priority WhatsApp support'],
+    features: ['Everything in Free', 'Up to 16 teams & 500 players', 'Team owners bid from their phones', 'Your brand colour on every screen', 'Remove BidWicket branding', 'Priority WhatsApp support'],
   },
   {
     id: 'season',
@@ -62,5 +62,5 @@ export const COMPARISON: { feature: string; free: string | boolean; pro: string 
   { feature: 'Screen themes, sounds & role effects', free: true, pro: true },
   { feature: 'Remote bidding paddles for team owners', free: false, pro: true },
   { feature: 'Custom brand colour', free: false, pro: true },
-  { feature: 'Remove “Powered by CricBid”', free: false, pro: true },
+  { feature: 'Remove “Powered by BidWicket”', free: false, pro: true },
 ]

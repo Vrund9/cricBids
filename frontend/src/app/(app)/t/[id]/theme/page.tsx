@@ -90,7 +90,7 @@ export default function ThemePage() {
               checked={!!theme.hideBranding}
               disabled={!pro}
               onChange={(v) => setTheme((x) => ({ ...x, hideBranding: v }))}
-              label={<span className="flex items-center gap-2">Remove “Powered by CricBid” {!pro && <Badge color="#ffb020"><Crown className="h-3 w-3" /> Pro</Badge>}</span>}
+              label={<span className="flex items-center gap-2">Remove “Powered by BidWicket” {!pro && <Badge color="#ffb020"><Crown className="h-3 w-3" /> Pro</Badge>}</span>}
               description="White-label the live screen and registration form."
             />
           </div>
@@ -124,7 +124,7 @@ export default function ThemePage() {
             <span className="mt-2 inline-flex rounded-xl bg-lime-glow/15 px-3 py-1 text-sm font-bold text-lime-glow">Royal Strikers</span>
           </div>
           <button className="mt-4 h-11 w-full rounded-xl bg-lime-bright font-semibold text-on-accent">Register</button>
-          {!theme.hideBranding && <p className="mt-3 text-center text-[10px] text-ink-400">Powered by CricBid</p>}
+          {!theme.hideBranding && <p className="mt-3 text-center text-[10px] text-ink-400">Powered by BidWicket</p>}
         </motion.div>
       </div>
     </div>

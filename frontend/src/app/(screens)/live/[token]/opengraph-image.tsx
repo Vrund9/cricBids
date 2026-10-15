@@ -1,4 +1,5 @@
 import { ImageResponse } from 'next/og'
+import { LOGO_DATA_URI } from '@/lib/brand-mark'
 import { serverGet } from '@/lib/api'
 import { moneyShort } from '@/lib/format'
 import { palette, type ThemeConfig } from '@/lib/themes'
@@ -39,8 +40,10 @@ export default async function Image({ params }: { params: Promise<{ token: strin
     (
       <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 70, color: 'white', fontFamily: 'sans-serif', background: `radial-gradient(900px 500px at 90% 0%, ${p.accent}38, transparent 60%), radial-gradient(700px 400px at 0% 100%, ${p.second}2e, transparent 60%), ${p.ink[1]}` }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', fontSize: 28, fontWeight: 800 }}>
-            Cric<span style={{ color: p.accent }}>Bid</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 28, fontWeight: 800 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={LOGO_DATA_URI} width={40} height={40} alt="" />
+            Bid<span style={{ color: p.accent }}>Wicket</span>
           </div>
           <div style={{ display: 'flex', fontSize: 26, fontWeight: 800, color: badgeColor, border: `3px solid ${badgeColor}`, borderRadius: 999, padding: '8px 22px', letterSpacing: 3 }}>{badge}</div>
         </div>

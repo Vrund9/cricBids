@@ -1,4 +1,4 @@
-// Demo data: `npm run db:seed`  →  log in as demo@cricbid.app / demo12345
+// Demo data: `npm run db:seed`  →  log in as demo@bidwicket.app / demo12345
 //
 // Five tournaments, each exercising different situations:
 //  1. Demo Premier League 2026  READY      Pro · 8 teams · 72 players · categories, custom base price,
@@ -165,7 +165,7 @@ async function sell(tournamentId: string, playerId: string, teamId: string, pric
 }
 
 async function main() {
-  const email = 'demo@cricbid.app'
+  const email = 'demo@bidwicket.app'
   await prisma.user.deleteMany({ where: { email } })
   const user = await prisma.user.create({ data: { email, name: 'Demo Organiser', passwordHash: await bcrypt.hash('demo12345', 12) } })
 

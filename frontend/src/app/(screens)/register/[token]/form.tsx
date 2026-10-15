@@ -115,7 +115,7 @@ export function RegistrationForm({ token, config }: { token: string; config: For
             </motion.form>
           )}
         </AnimatePresence>
-        {!config.theme?.hideBranding && <p className="mt-8 text-center text-xs text-ink-500">Powered by <Link href="/" className="font-semibold text-ink-300 hover:text-lime-glow">CricBid</Link></p>}
+        {!config.theme?.hideBranding && <p className="mt-8 text-center text-xs text-ink-500">Powered by <Link href="/" className="font-semibold text-ink-300 hover:text-lime-glow">BidWicket</Link></p>}
       </div>
     </main>
   )

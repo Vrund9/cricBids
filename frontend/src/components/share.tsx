@@ -6,11 +6,8 @@ import { Check, Copy, Download, ExternalLink, QrCode, Share2 } from 'lucide-reac
 import { toast } from 'sonner'
 import { Button, Modal } from './ui'
 import { cn } from '@/lib/cn'
+import { LOGO_DATA_URI } from '@/lib/brand-mark'
 
-/** CricBid mark for the centre of QR codes (level H error correction keeps them scannable). */
-const QR_LOGO = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e9ff9a"/><stop offset="1" stop-color="#9fd400"/></linearGradient></defs><rect width="32" height="32" rx="9" fill="#0c1019"/><circle cx="16" cy="16" r="9" fill="url(#g)"/><path d="M10.2 11.5c3.2 2.4 3.2 6.6 0 9M21.8 11.5c-3.2 2.4-3.2 6.6 0 9" stroke="#0c1019" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-dasharray="1.6 1.4"/></svg>',
-)}`
 
 export function useCopy() {
   const [copied, setCopied] = useState(false)
@@ -74,7 +71,7 @@ export function ShareLink({ url, title, message, className, compact }: { url: st
       ctx.fillText(url.replace(/^https?:\/\//, ''), W / 2, 1190, W - 120)
       ctx.fillStyle = '#9fd400'
       ctx.font = '800 32px system-ui, -apple-system, sans-serif'
-      ctx.fillText('CricBid', W / 2, 1290)
+      ctx.fillText('BidWicket', W / 2, 1290)
       const a = document.createElement('a')
       a.download = `${title.replace(/\W+/g, '_')}_qr.png`
       a.href = c.toDataURL('image/png')
@@ -115,7 +112,7 @@ export function ShareLink({ url, title, message, className, compact }: { url: st
                 level="H"
                 marginSize={0}
                 className="h-auto w-[min(232px,62vw)]"
-                imageSettings={{ src: QR_LOGO, height: 44, width: 44, excavate: true }}
+                imageSettings={{ src: LOGO_DATA_URI, height: 44, width: 44, excavate: true }}
               />
             </div>
           </div>

@@ -3,7 +3,7 @@ import { LoginForm } from '@/components/auth-forms'
 
 export const metadata: Metadata = {
   title: 'Log in',
-  description: 'Log in to CricBid to manage your cricket tournament player auctions.',
+  description: 'Log in to BidWicket to manage your cricket tournament player auctions.',
   alternates: { canonical: '/login' },
 }
 

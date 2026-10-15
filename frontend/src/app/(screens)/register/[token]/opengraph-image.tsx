@@ -1,4 +1,5 @@
 import { ImageResponse } from 'next/og'
+import { LOGO_DATA_URI } from '@/lib/brand-mark'
 import { serverGet } from '@/lib/api'
 
 export const alt = 'Player registration'
@@ -12,8 +13,10 @@ export default async function Image({ params }: { params: Promise<{ token: strin
   return new ImageResponse(
     (
       <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 70, color: 'white', fontFamily: 'sans-serif', background: 'radial-gradient(900px 500px at 90% 0%, rgba(56,189,248,0.25), transparent 60%), #080b13' }}>
-        <div style={{ display: 'flex', fontSize: 28, fontWeight: 800 }}>
-          Cric<span style={{ color: '#c8ff2e' }}>Bid</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 28, fontWeight: 800 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={LOGO_DATA_URI} width={40} height={40} alt="" />
+          Bid<span style={{ color: '#c8ff2e' }}>Wicket</span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={{ fontSize: 30, color: '#38bdf8', letterSpacing: 4 }}>{`PLAYER REGISTRATION ${c && !c.open ? '· CLOSED' : 'OPEN'}`}</div>

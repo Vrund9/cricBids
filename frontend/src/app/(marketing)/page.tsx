@@ -13,7 +13,7 @@ const FAQ = [
   },
   {
     q: 'Can I use my existing Excel sheet?',
-    a: 'Yes. Upload any .xlsx, .xls or .csv file. CricBid detects columns like name, role, mobile, photo and category automatically (including Google Forms exports and Google Drive photo links), and you can adjust the mapping before importing.',
+    a: 'Yes. Upload any .xlsx, .xls or .csv file. BidWicket detects columns like name, role, mobile, photo and category automatically (including Google Forms exports and Google Drive photo links), and you can adjust the mapping before importing.',
   },
   {
     q: 'Do I still need to make a PowerPoint for auction day?',
@@ -37,7 +37,7 @@ const jsonLd = [
   {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
-    name: 'CricBid',
+    name: 'BidWicket',
     applicationCategory: 'SportsApplication',
     operatingSystem: 'Web, Android, iOS',
     url: SITE_URL,
@@ -53,7 +53,7 @@ const jsonLd = [
   {
     '@context': 'https://schema.org',
     '@type': 'Organization',
-    name: 'CricBid',
+    name: 'BidWicket',
     url: SITE_URL,
     logo: `${SITE_URL}/icon.svg`,
   },
@@ -115,7 +115,7 @@ export default function Home() {
         <section className="mx-auto max-w-7xl px-4 py-24 sm:px-6">
           <Reveal className="mx-auto max-w-2xl text-center">
             <h2 className="font-display text-4xl font-bold sm:text-5xl">From spreadsheet chaos to auction night</h2>
-            <p className="mt-4 text-ink-300">Most local tournaments still run auctions off a static sheet and a slideshow. CricBid makes the whole thing dynamic.</p>
+            <p className="mt-4 text-ink-300">Most local tournaments still run auctions off a static sheet and a slideshow. BidWicket makes the whole thing dynamic.</p>
           </Reveal>
           <div className="mt-14 grid gap-5 md:grid-cols-2">
             <Reveal>
@@ -136,7 +136,7 @@ export default function Home() {
             </Reveal>
             <Reveal delay={0.08}>
               <div className="card h-full border-lime-glow/20 p-7 shadow-[0_0_80px_-30px_rgba(200,255,46,0.4)]">
-                <p className="text-sm font-semibold uppercase tracking-widest text-lime-glow">With CricBid</p>
+                <p className="text-sm font-semibold uppercase tracking-widest text-lime-glow">With BidWicket</p>
                 <ul className="mt-5 space-y-4 text-ink-100">
                   {[
                     'Players register themselves via your link — or drop in any Excel',

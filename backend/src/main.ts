@@ -18,7 +18,7 @@ async function bootstrap() {
   app.enableShutdownHooks()
   const port = Number(process.env.PORT || 4000)
   await app.listen(port)
-  Logger.log(`CricBid API ready on http://localhost:${port}`, 'Bootstrap')
+  Logger.log(`BidWicket API ready on http://localhost:${port}`, 'Bootstrap')
 }
 
 void bootstrap()

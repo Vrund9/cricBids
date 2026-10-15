@@ -14,11 +14,11 @@ const description =
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: 'CricBid — Live Cricket Player Auction Software for Tournaments',
-    template: '%s · CricBid',
+    default: 'BidWicket — Live Cricket Player Auction Software for Tournaments',
+    template: '%s · BidWicket',
   },
   description,
-  applicationName: 'CricBid',
+  applicationName: 'BidWicket',
   keywords: [
     'cricket auction software',
     'cricket player auction',
@@ -31,20 +31,20 @@ export const metadata: Metadata = {
     'cricket league management',
     'online cricket auction',
   ],
-  authors: [{ name: 'CricBid' }],
-  creator: 'CricBid',
+  authors: [{ name: 'BidWicket' }],
+  creator: 'BidWicket',
   alternates: { canonical: '/' },
   openGraph: {
     type: 'website',
-    siteName: 'CricBid',
-    title: 'CricBid — Run an IPL-style player auction for your tournament',
+    siteName: 'BidWicket',
+    title: 'BidWicket — Run an IPL-style player auction for your tournament',
     description,
     url: '/',
     locale: 'en_IN',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'CricBid — Live Cricket Player Auctions',
+    title: 'BidWicket — Live Cricket Player Auctions',
     description,
   },
   robots: {

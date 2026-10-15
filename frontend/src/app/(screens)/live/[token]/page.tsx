@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: { absolute: title },
     description,
     robots: { index: false, follow: false },
-    openGraph: { title, description, type: 'website', siteName: 'CricBid' },
+    openGraph: { title, description, type: 'website', siteName: 'BidWicket' },
     twitter: { card: 'summary_large_image', title, description },
   }
 }

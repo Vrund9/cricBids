@@ -25,7 +25,7 @@ export default function AdminOverviewPage() {
     <>
       <AdminHeader
         title="Overview"
-        subtitle={<>Everything happening on CricBid. Billing mode: <b className={data.billingMode === 'demo' ? 'text-gold' : 'text-white'}>{data.billingMode}</b></>}
+        subtitle={<>Everything happening on BidWicket. Billing mode: <b className={data.billingMode === 'demo' ? 'text-gold' : 'text-white'}>{data.billingMode}</b></>}
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

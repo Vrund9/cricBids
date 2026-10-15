@@ -17,7 +17,7 @@ export function SiteFooter() {
           <Link href="/login" className="hover:text-white">Log in</Link>
           <Link href="/signup" className="hover:text-white">Sign up</Link>
         </nav>
-        <p>© {new Date().getFullYear()} CricBid</p>
+        <p>© {new Date().getFullYear()} BidWicket</p>
       </div>
     </footer>
   )

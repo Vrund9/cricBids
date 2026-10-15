@@ -1,8 +1,8 @@
 {
-  "name": "cricbid",
+  "name": "bidwicket",
   "version": "1.0.0",
   "private": true,
-  "description": "CricBid \u2014 live cricket player auction platform (NestJS + Prisma + Postgres API, Next.js web)",
+  "description": "BidWicket \u2014 live cricket player auction platform (NestJS + Prisma + Postgres API, Next.js web)",
   "workspaces": [
     "backend",
     "frontend"

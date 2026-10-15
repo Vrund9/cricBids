@@ -147,7 +147,7 @@ export function LiveView({ token, initial }: { token: string; initial: Snapshot 
       <footer className="relative z-10 pb-20 pt-4 text-center text-xs text-ink-500">
         {!t.theme?.hideBranding && (
           <>
-            Powered by <Link href="/" className="font-semibold text-ink-300 hover:text-lime-glow">CricBid</Link>
+            Powered by <Link href="/" className="font-semibold text-ink-300 hover:text-lime-glow">BidWicket</Link>
           </>
         )}
       </footer>

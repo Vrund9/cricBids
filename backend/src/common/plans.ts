@@ -80,7 +80,7 @@ export function sanitizeTheme(input: unknown, limits: PlanLimits): Theme {
     theme.accent = raw.accent.toLowerCase()
   }
   if (raw.hideBranding) {
-    if (!limits.hideBranding) planLimit('Removing CricBid branding is a Pro feature')
+    if (!limits.hideBranding) planLimit('Removing BidWicket branding is a Pro feature')
     theme.hideBranding = true
   }
   return theme

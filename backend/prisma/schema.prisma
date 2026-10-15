@@ -1,4 +1,4 @@
-// CricBid data model.
+// BidWicket data model.
 // Run `npm run db:migrate` after changing this file.
 
 generator client {

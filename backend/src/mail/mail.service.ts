@@ -22,7 +22,7 @@ export class MailService {
       this.logger.warn(`SMTP not configured. Mail to ${to} — ${subject}\n${text}`)
       return
     }
-    await this.transport.sendMail({ from: process.env.MAIL_FROM || 'CricBid <no-reply@cricbid.app>', to, subject, html, text })
+    await this.transport.sendMail({ from: process.env.MAIL_FROM || 'BidWicket <no-reply@bidwicket.app>', to, subject, html, text })
   }
 }
 

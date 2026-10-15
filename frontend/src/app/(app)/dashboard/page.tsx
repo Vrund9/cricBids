@@ -112,8 +112,8 @@ export default function Dashboard() {
         id="dashboard"
         onlyNewUsers
         steps={[
-          { title: `Welcome to CricBid, ${user?.name.split(' ')[0] ?? 'there'}! 🏏`, body: 'Here’s a 30-second tour of how to run your first player auction.' },
-          { target: 'new-auction', title: 'Start a new auction', body: 'Name your tournament here. Then add players, set the rules and go live — CricBid guides you through each step.' },
+          { title: `Welcome to BidWicket, ${user?.name.split(' ')[0] ?? 'there'}! 🏏`, body: 'Here’s a 30-second tour of how to run your first player auction.' },
+          { target: 'new-auction', title: 'Start a new auction', body: 'Name your tournament here. Then add players, set the rules and go live — BidWicket guides you through each step.' },
           { target: 'tournaments', title: 'Your tournaments', body: items.length ? 'Each card shows players, teams and money spent. Click one to manage it.' : 'Your tournaments will show up here once you create one.' },
           { target: 'account-menu', title: 'Your account', body: 'Change your photo and password, or replay this tour any time from here.' },
         ]}

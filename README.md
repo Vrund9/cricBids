@@ -1,4 +1,4 @@
-# CricBid — live cricket player auctions
+# BidWicket — live cricket player auctions
 
 Replace the Excel → PPT → WhatsApp-screenshots routine with a dynamic auction:
 
@@ -38,7 +38,7 @@ Open http://localhost:3000.
 
 ### Demo data
 
-`npm run db:seed` resets `demo@cricbid.app` / `demo12345` with five tournaments covering different situations:
+`npm run db:seed` resets `demo@bidwicket.app` / `demo12345` with five tournaments covering different situations:
 
 | Tournament | State | What it shows |
 |---|---|---|

@@ -1,6 +1,6 @@
 @import 'tailwindcss';
 
-/* ───────────── CricBid design tokens — "Floodlight" ───────────── */
+/* ───────────── BidWicket design tokens — "Floodlight" ───────────── */
 @theme {
   --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-bricolage), var(--font-geist), ui-sans-serif, sans-serif;

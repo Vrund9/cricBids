@@ -152,7 +152,7 @@ export class AuthService {
       const link = `${origin}/reset-password?token=${token}`
       await this.mail.send(
         user.email,
-        'Reset your CricBid password',
+        'Reset your BidWicket password',
         `<p>Hi ${user.name},</p><p><a href="${link}">Click here to reset your password</a>. The link is valid for 1 hour.</p>`,
         `Hi ${user.name},\nReset your password: ${link}\nThe link is valid for 1 hour.`,
       )

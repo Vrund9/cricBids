@@ -7,9 +7,9 @@ import { SITE_URL } from '@/lib/api'
 
 export const metadata: Metadata = {
   title: 'Pricing — Free for small leagues, ₹1,499 per Pro auction',
-  description: 'CricBid pricing: start free with up to 6 teams and 60 players. Go Pro for ₹1,499 per tournament for remote bidding, 16 teams, 500 players and your own branding. Season Pass ₹4,999/year.',
+  description: 'BidWicket pricing: start free with up to 6 teams and 60 players. Go Pro for ₹1,499 per tournament for remote bidding, 16 teams, 500 players and your own branding. Season Pass ₹4,999/year.',
   alternates: { canonical: '/pricing' },
-  openGraph: { title: 'CricBid pricing', description: 'Free for small leagues. ₹1,499 per Pro auction. ₹4,999/year Season Pass.', url: '/pricing' },
+  openGraph: { title: 'BidWicket pricing', description: 'Free for small leagues. ₹1,499 per Pro auction. ₹4,999/year Season Pass.', url: '/pricing' },
 }
 
 const FAQ = [
@@ -22,7 +22,7 @@ const FAQ = [
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'Product',
-  name: 'CricBid cricket auction software',
+  name: 'BidWicket cricket auction software',
   url: `${SITE_URL}/pricing`,
   description: 'Live cricket player auction software for tournaments.',
   offers: PLANS.filter((p) => p.price.startsWith('₹')).map((p) => ({
@@ -59,7 +59,7 @@ export default function PricingPage() {
                   {p.features.map((f) => <li key={f} className="flex gap-2.5"><Check className="mt-0.5 h-4 w-4 shrink-0 text-lime-glow" />{f}</li>)}
                 </ul>
                 <Link
-                  href={p.id === 'enterprise' ? 'mailto:hello@cricbid.app?subject=CricBid%20League%20plan' : '/signup'}
+                  href={p.id === 'enterprise' ? 'mailto:hello@bidwicket.app?subject=BidWicket%20League%20plan' : '/signup'}
                   className={`mt-8 inline-flex h-11 items-center justify-center rounded-xl font-semibold ${p.highlight ? 'bg-lime-bright text-on-accent hover:bg-[#d6ff5c]' : 'border border-white/15 hover:bg-white/5'}`}
                 >
                   {p.cta}

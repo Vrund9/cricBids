@@ -1,0 +1,8 @@
+/**
+ * BidWicket mark: three stumps with one bail in place and one flying off (the moment a wicket falls).
+ * Single source for the favicon, QR-code centre and share images; the <LogoMark> component mirrors it.
+ */
+export const LOGO_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><defs><linearGradient id="bw" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e9ff9a"/><stop offset="1" stop-color="#9fd400"/></linearGradient></defs><rect width="32" height="32" rx="9" fill="#0c1019"/><rect x="9.2" y="12.2" width="2.7" height="13" rx="1.35" fill="url(#bw)"/><rect x="14.65" y="12.2" width="2.7" height="13" rx="1.35" fill="url(#bw)"/><rect x="20.1" y="12.2" width="2.7" height="13" rx="1.35" fill="url(#bw)"/><rect x="9.2" y="9.5" width="6.3" height="1.8" rx=".9" fill="#c8ff2e"/><rect x="16.8" y="7.6" width="6.3" height="1.8" rx=".9" fill="#c8ff2e" transform="rotate(-28 19.95 8.5)"/></svg>'
+
+export const LOGO_DATA_URI = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(LOGO_SVG)}`

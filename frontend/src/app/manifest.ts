@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'CricBid — Cricket Player Auctions',
-    short_name: 'CricBid',
+    name: 'BidWicket — Cricket Player Auctions',
+    short_name: 'BidWicket',
     description: 'Run live cricket player auctions for your tournament.',
     start_url: '/dashboard',
     display: 'standalone',

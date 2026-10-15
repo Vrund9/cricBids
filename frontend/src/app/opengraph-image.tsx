@@ -1,6 +1,7 @@
 import { ImageResponse } from 'next/og'
+import { LOGO_DATA_URI } from '@/lib/brand-mark'
 
-export const alt = 'CricBid — Live cricket player auctions for your tournament'
+export const alt = 'BidWicket — Live cricket player auctions for your tournament'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
@@ -21,9 +22,10 @@ export default function OgImage() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-          <div style={{ width: 64, height: 64, borderRadius: 18, background: '#c8ff2e' }} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={LOGO_DATA_URI} width={64} height={64} alt="" />
           <div style={{ display: 'flex', fontSize: 44, fontWeight: 800 }}>
-            Cric<span style={{ color: '#c8ff2e' }}>Bid</span>
+            Bid<span style={{ color: '#c8ff2e' }}>Wicket</span>
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
