@@ -86,7 +86,7 @@ export default function Overview() {
           <motion.ol variants={stagger} initial="hidden" animate="show" className="divide-y divide-white/5">
             {steps.map((s) => (
               <motion.li key={s.title} variants={fadeUp} className="flex items-center gap-4 p-5">
-                <div className={cn('grid h-10 w-10 shrink-0 place-items-center rounded-xl', s.done ? 'bg-lime-glow text-ink-950' : 'bg-white/5 text-ink-300')}>
+                <div className={cn('grid h-10 w-10 shrink-0 place-items-center rounded-xl', s.done ? 'bg-lime-bright text-on-accent' : 'bg-white/5 text-ink-300')}>
                   {s.done ? <Check className="h-5 w-5" /> : <s.icon className="h-5 w-5" />}
                 </div>
                 <div className="min-w-0 flex-1">

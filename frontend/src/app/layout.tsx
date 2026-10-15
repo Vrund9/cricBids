@@ -58,15 +58,22 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: '#080b13',
-  colorScheme: 'dark',
+  colorScheme: 'dark light',
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
 }
 
+/** Applies the saved theme before paint (no flash). Public screens are always dark. */
+const THEME_SCRIPT = `(function(){try{var d=document.documentElement,t=localStorage.getItem('cricbid.theme');if(/^\\/(live|register|bid)\\//.test(location.pathname))t='dark';d.dataset.theme=t==='light'?'light':'dark';if(t==='light'){var m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content','#f4f6fa')}}catch(e){}})()`
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${geist.variable} ${geistMono.variable} ${bricolage.variable}`}>
+    // data-theme is set by THEME_SCRIPT before first paint, so React must not complain about it.
+    <html lang="en" data-theme="dark" suppressHydrationWarning className={`${geist.variable} ${geistMono.variable} ${bricolage.variable}`}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>

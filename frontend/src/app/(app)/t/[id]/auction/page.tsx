@@ -142,7 +142,7 @@ export default function ControlRoom() {
     return (
       <div className="mx-auto max-w-3xl">
         <Card className="grain relative overflow-hidden p-8 text-center sm:p-12">
-          <motion.div initial={{ scale: 0.8, rotate: -10 }} animate={{ scale: 1, rotate: 0 }} className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-lime-glow text-ink-950">
+          <motion.div initial={{ scale: 0.8, rotate: -10 }} animate={{ scale: 1, rotate: 0 }} className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-lime-bright text-on-accent">
             <Rocket className="h-8 w-8" />
           </motion.div>
           <h2 className="mt-6 font-display text-4xl font-extrabold">Ready to go live?</h2>
@@ -177,7 +177,7 @@ export default function ControlRoom() {
         <h2 className="mt-4 font-display text-4xl font-extrabold">Auction complete</h2>
         <p className="mt-2 text-ink-300">{snap.counts.sold} players sold for {money(snap.totalSpent, currency)}.</p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link href={`/t/${t.id}/results`} className="inline-flex h-12 items-center gap-2 rounded-xl bg-lime-glow px-6 font-semibold text-ink-950"><Trophy className="h-4 w-4" /> Results &amp; Excel</Link>
+          <Link href={`/t/${t.id}/results`} className="inline-flex h-12 items-center gap-2 rounded-xl bg-lime-bright px-6 font-semibold text-on-accent"><Trophy className="h-4 w-4" /> Results &amp; Excel</Link>
           <Button size="lg" variant="danger" loading={busy === 'reset'} onClick={() => confirm('Reset wipes every sale and purse so you can run the auction again. Continue?') && run('reset')}>
             <RotateCcw className="h-4 w-4" /> Reset auction
           </Button>

@@ -83,7 +83,7 @@ export function FilterTabs<T extends string>({ value, onChange, options }: { val
         <button
           key={o.value}
           onClick={() => onChange(o.value)}
-          className={cn('rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors', value === o.value ? 'bg-lime-glow text-ink-950' : 'text-ink-300 hover:bg-white/5 hover:text-white')}
+          className={cn('rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors', value === o.value ? 'bg-lime-bright text-on-accent' : 'text-ink-300 hover:bg-white/5 hover:text-white')}
         >
           {o.label}
         </button>

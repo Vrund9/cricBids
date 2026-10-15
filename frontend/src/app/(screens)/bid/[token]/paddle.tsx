@@ -119,7 +119,7 @@ export function Paddle({ token }: { token: string }) {
           whileTap={blocked || sending ? undefined : { scale: 0.96 }}
           disabled={!!blocked || sending}
           onClick={placeBid}
-          className="relative flex h-24 w-full flex-col items-center justify-center overflow-hidden rounded-3xl font-display text-ink-950 shadow-2xl transition disabled:cursor-not-allowed"
+          className="relative flex h-24 w-full flex-col items-center justify-center overflow-hidden rounded-3xl font-display text-on-accent shadow-2xl transition disabled:cursor-not-allowed"
           style={{ background: blocked ? '#222c41' : team.color, color: blocked ? '#8a94ad' : '#fff' }}
         >
           {blocked ? (

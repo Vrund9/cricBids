@@ -123,7 +123,7 @@ export default function ThemePage() {
             <p className="font-display text-4xl font-black">{money(45000, t.currency)}</p>
             <span className="mt-2 inline-flex rounded-xl bg-lime-glow/15 px-3 py-1 text-sm font-bold text-lime-glow">Royal Strikers</span>
           </div>
-          <button className="mt-4 h-11 w-full rounded-xl bg-lime-glow font-semibold text-ink-950">Register</button>
+          <button className="mt-4 h-11 w-full rounded-xl bg-lime-bright font-semibold text-on-accent">Register</button>
           {!theme.hideBranding && <p className="mt-3 text-center text-[10px] text-ink-400">Powered by CricBid</p>}
         </motion.div>
       </div>

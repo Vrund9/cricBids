@@ -146,7 +146,7 @@ export function Tour({ id, steps, when = true, onlyNewUsers = false }: { id: str
           <div className="mt-5 flex items-center gap-2">
             <div className="flex flex-1 gap-1.5">
               {steps.map((_, n) => (
-                <span key={n} className={`h-1.5 rounded-full transition-all ${n === i ? 'w-5 bg-lime-glow' : 'w-1.5 bg-white/15'}`} />
+                <span key={n} className={`h-1.5 rounded-full transition-all ${n === i ? 'w-5 bg-lime-bright' : 'w-1.5 bg-white/15'}`} />
               ))}
             </div>
             {i > 0 && (

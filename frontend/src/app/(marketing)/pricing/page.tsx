@@ -50,7 +50,7 @@ export default function PricingPage() {
           {PLANS.map((p, i) => (
             <Reveal key={p.id} delay={i * 0.06}>
               <div className={`card relative flex h-full flex-col p-6 ${p.highlight ? 'border-lime-glow/40 shadow-[0_0_80px_-30px_rgba(200,255,46,0.5)]' : ''}`}>
-                {p.highlight && <span className="absolute -top-3 left-6 inline-flex items-center gap-1 rounded-full bg-lime-glow px-3 py-1 text-xs font-bold text-ink-950"><Crown className="h-3 w-3" /> Most popular</span>}
+                {p.highlight && <span className="absolute -top-3 left-6 inline-flex items-center gap-1 rounded-full bg-lime-bright px-3 py-1 text-xs font-bold text-on-accent"><Crown className="h-3 w-3" /> Most popular</span>}
                 <h2 className="font-display text-2xl font-bold">{p.name}</h2>
                 <p className="mt-1 text-sm text-ink-400">{p.tagline}</p>
                 <p className="mt-6 font-display text-5xl font-black">{p.price}</p>
@@ -60,7 +60,7 @@ export default function PricingPage() {
                 </ul>
                 <Link
                   href={p.id === 'enterprise' ? 'mailto:hello@cricbid.app?subject=CricBid%20League%20plan' : '/signup'}
-                  className={`mt-8 inline-flex h-11 items-center justify-center rounded-xl font-semibold ${p.highlight ? 'bg-lime-glow text-ink-950 hover:bg-[#d6ff5c]' : 'border border-white/15 hover:bg-white/5'}`}
+                  className={`mt-8 inline-flex h-11 items-center justify-center rounded-xl font-semibold ${p.highlight ? 'bg-lime-bright text-on-accent hover:bg-[#d6ff5c]' : 'border border-white/15 hover:bg-white/5'}`}
                 >
                   {p.cta}
                 </Link>

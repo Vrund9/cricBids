@@ -10,12 +10,12 @@ import { initials } from '@/lib/format'
 // ───────────────────────── Button ─────────────────────────
 
 const variants = {
-  primary: 'bg-lime-glow text-ink-950 hover:bg-[#d6ff5c] shadow-[0_0_0_1px_rgba(200,255,46,0.4),0_8px_30px_-8px_rgba(200,255,46,0.55)]',
+  primary: 'bg-lime-bright text-on-accent hover:bg-[#d6ff5c] shadow-[0_0_0_1px_rgba(200,255,46,0.4),0_8px_30px_-8px_rgba(200,255,46,0.55)]',
   secondary: 'bg-white/[0.07] text-white hover:bg-white/[0.12] border border-white/10',
   ghost: 'text-ink-200 hover:text-white hover:bg-white/[0.06]',
   outline: 'border border-white/15 text-white hover:bg-white/[0.06]',
   danger: 'bg-rose-hot/15 text-rose-hot border border-rose-hot/30 hover:bg-rose-hot/25',
-  gold: 'bg-gold text-ink-950 hover:bg-[#ffc24d] shadow-[0_8px_30px_-8px_rgba(255,176,32,0.6)]',
+  gold: 'bg-gold-bright text-on-accent hover:bg-[#ffc24d] shadow-[0_8px_30px_-8px_rgba(255,176,32,0.6)]',
 } as const
 
 const sizes = {
@@ -116,7 +116,7 @@ export function Switch({ checked, onChange, label, description, disabled }: { ch
         aria-checked={checked}
         disabled={disabled}
         onClick={() => onChange(!checked)}
-        className={cn('relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors', checked ? 'bg-lime-glow' : 'bg-white/15')}
+        className={cn('relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors', checked ? 'bg-lime-bright' : 'bg-white/15')}
       >
         <motion.span
           layout
@@ -142,7 +142,7 @@ export function Badge({ children, className, color }: { children: React.ReactNod
   return (
     <span
       className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide', className)}
-      style={color ? { color, borderColor: `${color}55`, background: `${color}14` } : undefined}
+      style={color ? { color: `color-mix(in oklab, ${color} var(--tint-strength), black)`, borderColor: `${color}55`, background: `${color}14` } : undefined}
     >
       {children}
     </span>
@@ -269,7 +269,7 @@ export function Avatar({ src, name, size = 40, className, color, rounded = 'full
   return (
     <div
       aria-label={name}
-      className={cn('grid shrink-0 place-items-center font-display font-bold text-white', radius, className)}
+      className={cn('grid shrink-0 place-items-center font-display font-bold text-snow', radius, className)}
       style={{ width: size, height: size, fontSize: Math.max(10, size * (name.length > 2 && /^[A-Z0-9]{3,4}$/.test(name) ? 0.28 : 0.36)), background: color ? `linear-gradient(135deg, ${color}, ${color}88)` : 'linear-gradient(135deg,#222c41,#111622)' }}
     >
       {/^[A-Z0-9]{1,4}$/.test(name) ? name : initials(name) || '?'}

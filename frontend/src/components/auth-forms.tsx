@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'motion/react'
 import { toast } from 'sonner'
 import { Logo } from './brand'
+import { ThemeToggle } from './theme-toggle'
 import { Button, Field, Input } from './ui'
 import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
@@ -16,6 +17,7 @@ function Shell({ title, subtitle, children, footer }: { title: string; subtitle:
   return (
     <main className="relative flex min-h-dvh items-center justify-center px-4 py-12">
       <div className="grid-bg absolute inset-0 -z-10" />
+      <ThemeToggle className="absolute right-4 top-4" />
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 140, damping: 20 }} className="w-full max-w-md">
         <div className="mb-8 flex justify-center">
           <Logo />

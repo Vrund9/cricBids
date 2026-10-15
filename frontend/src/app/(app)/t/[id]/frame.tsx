@@ -51,8 +51,8 @@ function Header({ id }: { id: string }) {
               <Link key={tab.href} href={href} className={cn('relative flex shrink-0 items-center gap-2 px-3.5 py-3 text-sm font-medium transition', active ? 'text-white' : 'text-ink-400 hover:text-ink-100')}>
                 <tab.icon className="h-4 w-4" />
                 {tab.label}
-                {tab.href === '/auction' && t.status === 'LIVE' && <span className="h-1.5 w-1.5 rounded-full bg-lime-glow shadow-[0_0_8px_#c8ff2e]" />}
-                {active && <motion.span layoutId="tab-underline" className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-lime-glow" />}
+                {tab.href === '/auction' && t.status === 'LIVE' && <span className="h-1.5 w-1.5 rounded-full bg-lime-bright shadow-[0_0_8px_#c8ff2e]" />}
+                {active && <motion.span layoutId="tab-underline" className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-lime-bright" />}
               </Link>
             )
           })}

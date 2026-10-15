@@ -93,7 +93,7 @@ export default function Home() {
                 </p>
               </Reveal>
               <Reveal delay={0.15} className="mt-9 flex flex-wrap items-center gap-3">
-                <Link href="/signup" className="group inline-flex h-12 items-center gap-2 rounded-xl bg-lime-glow px-6 font-semibold text-ink-950 shadow-[0_8px_40px_-8px_rgba(200,255,46,0.6)] hover:bg-[#d6ff5c]">
+                <Link href="/signup" className="group inline-flex h-12 items-center gap-2 rounded-xl bg-lime-bright px-6 font-semibold text-on-accent shadow-[0_8px_40px_-8px_rgba(200,255,46,0.6)] hover:bg-[#d6ff5c]">
                   Create your auction <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
                 </Link>
                 <Link href="/pricing" className="inline-flex h-12 items-center rounded-xl border border-white/15 px-6 font-semibold text-white hover:bg-white/5">
@@ -250,7 +250,7 @@ export default function Home() {
             <div className="grain relative overflow-hidden rounded-[2rem] border border-lime-glow/20 bg-gradient-to-br from-lime-glow/15 via-ink-800 to-ink-900 p-10 text-center sm:p-16">
               <h2 className="font-display text-4xl font-extrabold sm:text-5xl">Your next auction, without the PPT.</h2>
               <p className="mx-auto mt-4 max-w-xl text-ink-200">Set up in minutes. Share one link. Let the bidding wars begin.</p>
-              <Link href="/signup" className="mt-8 inline-flex h-12 items-center gap-2 rounded-xl bg-lime-glow px-7 font-semibold text-ink-950 hover:bg-[#d6ff5c]">
+              <Link href="/signup" className="mt-8 inline-flex h-12 items-center gap-2 rounded-xl bg-lime-bright px-7 font-semibold text-on-accent hover:bg-[#d6ff5c]">
                 Create your auction <ArrowRight className="h-4 w-4" />
               </Link>
             </div>

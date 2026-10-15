@@ -242,13 +242,13 @@ export function HammerOverlay({ snap, duration = 3200 }: { snap: Snapshot | null
                 {sold ? 'SOLD' : 'UNSOLD'}
               </motion.div>
               {sold && (
-                <motion.div initial={{ rotate: -60, x: -40, opacity: 0 }} animate={{ rotate: [-60, 15, 0], x: 0, opacity: 1 }} transition={{ delay: 0.1, duration: 0.5 }} className="absolute -bottom-6 -left-8 grid h-16 w-16 place-items-center rounded-2xl bg-gold text-ink-950 shadow-2xl">
+                <motion.div initial={{ rotate: -60, x: -40, opacity: 0 }} animate={{ rotate: [-60, 15, 0], x: 0, opacity: 1 }} transition={{ delay: 0.1, duration: 0.5 }} className="absolute -bottom-6 -left-8 grid h-16 w-16 place-items-center rounded-2xl bg-gold-bright text-on-accent shadow-2xl">
                   <Gavel className="h-8 w-8" />
                 </motion.div>
               )}
             </div>
             {record && (
-              <motion.p initial={{ scale: 0, rotate: -6 }} animate={{ scale: [0, 1.25, 1], rotate: -3 }} transition={{ delay: 0.55, duration: 0.5 }} className="mt-10 rounded-full bg-gold px-5 py-1.5 font-display text-lg font-black uppercase tracking-[0.25em] text-ink-950 shadow-[0_0_40px_rgba(255,176,32,0.6)]">
+              <motion.p initial={{ scale: 0, rotate: -6 }} animate={{ scale: [0, 1.25, 1], rotate: -3 }} transition={{ delay: 0.55, duration: 0.5 }} className="mt-10 rounded-full bg-gold-bright px-5 py-1.5 font-display text-lg font-black uppercase tracking-[0.25em] text-on-accent shadow-[0_0_40px_rgba(255,176,32,0.6)]">
                 Record buy
               </motion.p>
             )}

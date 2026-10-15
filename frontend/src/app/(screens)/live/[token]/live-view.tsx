@@ -85,7 +85,7 @@ export function LiveView({ token, initial }: { token: string; initial: Snapshot 
           {(['live', 'teams', 'squads'] as Tab[]).map((x) => (
             <button key={x} onClick={() => setTab(x)} className={cn('relative flex-1 py-2.5 text-sm font-semibold capitalize', tab === x ? 'text-white' : 'text-ink-400')}>
               {x}
-              {tab === x && <motion.span layoutId="live-tab" className="absolute inset-x-6 bottom-0 h-0.5 rounded-full bg-lime-glow" />}
+              {tab === x && <motion.span layoutId="live-tab" className="absolute inset-x-6 bottom-0 h-0.5 rounded-full bg-lime-bright" />}
             </button>
           ))}
         </div>

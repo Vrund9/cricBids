@@ -8,6 +8,7 @@ import { Compass, Info, LayoutGrid, LogOut, ShieldCheck, TriangleAlert, UserRoun
 import { Logo } from './brand'
 import { Avatar, PageLoader } from './ui'
 import { resetTours } from './tour'
+import { ThemeToggle } from './theme-toggle'
 import { useRequireAuth } from '@/lib/auth'
 import { api } from '@/lib/api'
 
@@ -77,6 +78,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
           <Logo href="/dashboard" />
           <div className="flex items-center gap-1">
+            <ThemeToggle />
             <Link href="/dashboard" className="hidden items-center gap-2 rounded-xl px-3 py-2 text-sm text-ink-200 hover:bg-white/5 hover:text-white sm:inline-flex">
               <LayoutGrid className="h-4 w-4" /> Tournaments
             </Link>

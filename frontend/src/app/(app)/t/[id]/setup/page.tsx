@@ -160,7 +160,7 @@ export default function SetupWizard() {
       <div className="mb-6 flex items-center gap-2">
         {QUESTIONS.map((name, i) => (
           <button key={name} onClick={() => { setDir(i > step ? 1 : -1); setStep(i) }} aria-label={`Question ${i + 1}`} className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
-            <motion.span className="block h-full rounded-full bg-lime-glow" initial={false} animate={{ width: i <= step ? '100%' : '0%' }} transition={{ type: 'spring', stiffness: 120, damping: 20 }} />
+            <motion.span className="block h-full rounded-full bg-lime-bright" initial={false} animate={{ width: i <= step ? '100%' : '0%' }} transition={{ type: 'spring', stiffness: 120, damping: 20 }} />
           </button>
         ))}
       </div>
@@ -410,7 +410,7 @@ function Chips<T extends number>({ options, value, onChange }: { options: { labe
   return (
     <div className="mt-6 flex flex-wrap gap-2">
       {options.map((o) => (
-        <button key={o.label} onClick={() => onChange(o.value)} className={cn('rounded-full border px-4 py-2 text-sm font-semibold transition', value === o.value ? 'border-lime-glow bg-lime-glow text-ink-950' : 'border-white/10 text-ink-200 hover:border-white/25')}>
+        <button key={o.label} onClick={() => onChange(o.value)} className={cn('rounded-full border px-4 py-2 text-sm font-semibold transition', value === o.value ? 'border-lime-glow bg-lime-bright text-on-accent' : 'border-white/10 text-ink-200 hover:border-white/25')}>
           {o.label}
         </button>
       ))}
@@ -426,7 +426,7 @@ function OptionCard({ active, onClick, title, text, icon }: { active: boolean; o
         <span className="block font-semibold">{title}</span>
         <span className="mt-0.5 block text-sm text-ink-400">{text}</span>
       </span>
-      <span className={cn('grid h-5 w-5 shrink-0 place-items-center rounded-full border', active ? 'border-lime-glow bg-lime-glow text-ink-950' : 'border-white/20')}>{active && <Check className="h-3 w-3" />}</span>
+      <span className={cn('grid h-5 w-5 shrink-0 place-items-center rounded-full border', active ? 'border-lime-glow bg-lime-bright text-on-accent' : 'border-white/20')}>{active && <Check className="h-3 w-3" />}</span>
     </button>
   )
 }
