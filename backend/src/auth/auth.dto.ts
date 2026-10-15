@@ -35,9 +35,14 @@ export class ResetPasswordDto {
   password: string
 }
 
+export class GoogleLoginDto {
+  @IsString() @MinLength(20) @MaxLength(4096)
+  credential: string
+}
+
 export class ChangePasswordDto {
-  @IsString()
-  currentPassword: string
+  @IsOptional() @IsString()
+  currentPassword?: string
 
   @IsString() @MinLength(8, { message: 'Password must be at least 8 characters' }) @MaxLength(128)
   newPassword: string

@@ -1,10 +1,11 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common'
+import { BadRequestException, ConflictException, Injectable, NotFoundException, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import bcrypt from 'bcryptjs'
+import { OAuth2Client } from 'google-auth-library'
 import { PrismaService } from '../prisma/prisma.service'
 import { MailService } from '../mail/mail.service'
 import { randomToken, sha256 } from '../common/util'
-import { ChangePasswordDto, LoginDto, ResetPasswordDto, SignupDto, UpdateProfileDto } from './auth.dto'
+import { ChangePasswordDto, GoogleLoginDto, LoginDto, ResetPasswordDto, SignupDto, UpdateProfileDto } from './auth.dto'
 import type { User } from '../generated/prisma/client'
 
 const RESET_TTL_MS = 60 * 60 * 1000
@@ -13,6 +14,8 @@ const DUMMY_HASH = bcrypt.hashSync('cricbid-timing-guard', 12)
 
 @Injectable()
 export class AuthService {
+  private readonly google = new OAuth2Client()
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
@@ -20,7 +23,10 @@ export class AuthService {
   ) {}
 
   private publicUser(u: User) {
-    return { id: u.id, name: u.name, email: u.email, avatarUrl: u.avatarUrl, createdAt: u.createdAt, seasonPassUntil: u.seasonPassUntil }
+    return {
+      id: u.id, name: u.name, email: u.email, avatarUrl: u.avatarUrl, createdAt: u.createdAt, seasonPassUntil: u.seasonPassUntil,
+      hasPassword: !!u.passwordHash,
+    }
   }
 
   private async session(u: User) {
@@ -45,6 +51,37 @@ export class AuthService {
     return this.session(user)
   }
 
+  /** Sign in (or sign up) with a Google Identity Services ID token. */
+  async googleLogin(dto: GoogleLoginDto) {
+    const clientId = process.env.GOOGLE_CLIENT_ID
+    if (!clientId) throw new ServiceUnavailableException('Google sign-in is not configured')
+    let payload
+    try {
+      payload = (await this.google.verifyIdToken({ idToken: dto.credential, audience: clientId })).getPayload()
+    } catch {
+      throw new UnauthorizedException('Google sign-in failed. Please try again.')
+    }
+    if (!payload?.sub || !payload.email || !payload.email_verified) {
+      throw new UnauthorizedException('Your Google account email is not verified')
+    }
+    const email = payload.email.toLowerCase()
+
+    let user = await this.prisma.user.findUnique({ where: { googleId: payload.sub } })
+    if (!user) {
+      const existing = await this.prisma.user.findUnique({ where: { email } })
+      // Google has verified the address, so link it to an existing password account with the same email.
+      user = existing
+        ? await this.prisma.user.update({
+            where: { id: existing.id },
+            data: { googleId: payload.sub, avatarUrl: existing.avatarUrl ?? payload.picture },
+          })
+        : await this.prisma.user.create({
+            data: { email, googleId: payload.sub, name: (payload.name || email.split('@')[0]).slice(0, 80), avatarUrl: payload.picture },
+          })
+    }
+    return this.session(user)
+  }
+
   async me(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } })
     if (!user) throw new NotFoundException('User not found')
@@ -58,7 +95,9 @@ export class AuthService {
 
   async changePassword(userId: string, dto: ChangePasswordDto) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } })
-    if (!user || !(await bcrypt.compare(dto.currentPassword, user.passwordHash))) {
+    if (!user) throw new NotFoundException('User not found')
+    // Google-only accounts have no password yet and may set one without a current password.
+    if (user.passwordHash && !(await bcrypt.compare(dto.currentPassword ?? '', user.passwordHash))) {
       throw new BadRequestException('Current password is incorrect')
     }
     await this.prisma.user.update({ where: { id: userId }, data: { passwordHash: await bcrypt.hash(dto.newPassword, 12) } })

@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { Suspense, useEffect, useState } from 'react'
+import Script from 'next/script'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'motion/react'
 import { toast } from 'sonner'
@@ -39,6 +40,68 @@ function useAuthSuccess() {
     const next = params.get('next')
     router.replace(next && next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard')
   }
+}
+
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (opts: { client_id: string; callback: (res: { credential: string }) => void; ux_mode?: 'popup' }) => void
+          renderButton: (el: HTMLElement, opts: Record<string, unknown>) => void
+        }
+      }
+    }
+  }
+}
+
+/** "Continue with Google" via Google Identity Services. Renders nothing unless NEXT_PUBLIC_GOOGLE_CLIENT_ID is set. */
+function GoogleButton({ text }: { text: 'signin_with' | 'signup_with' | 'continue_with' }) {
+  const onSuccess = useAuthSuccess()
+  const ref = useRef<HTMLDivElement>(null)
+  // GIS keeps the callback from initialize(), so route it through a ref to always hit the latest handler.
+  const handler = useRef<(credential: string) => void>(() => {})
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    handler.current = async (credential: string) => {
+      setLoading(true)
+      setError(null)
+      try {
+        onSuccess(await api('/auth/google', { body: { credential }, auth: false }))
+      } catch (err) {
+        setError((err as Error).message)
+      } finally {
+        setLoading(false)
+      }
+    }
+  })
+
+  if (!GOOGLE_CLIENT_ID) return null
+
+  const render = () => {
+    const g = window.google?.accounts.id
+    if (!g || !ref.current) return
+    g.initialize({ client_id: GOOGLE_CLIENT_ID, callback: (res) => handler.current(res.credential), ux_mode: 'popup' })
+    g.renderButton(ref.current, {
+      type: 'standard', theme: 'filled_black', size: 'large', shape: 'rectangular', text, logo_alignment: 'center',
+      width: Math.min(400, ref.current.offsetWidth || 400),
+    })
+  }
+
+  return (
+    <div className="mt-6">
+      <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" onReady={render} />
+      <div className="mb-5 flex items-center gap-3 text-xs uppercase tracking-widest text-ink-400">
+        <span className="h-px flex-1 bg-white/10" /> or <span className="h-px flex-1 bg-white/10" />
+      </div>
+      <div ref={ref} className={`flex min-h-11 justify-center ${loading ? 'pointer-events-none opacity-60' : ''}`} />
+      {error && <p className="mt-3 rounded-lg bg-rose-hot/10 px-3 py-2 text-sm text-rose-hot">{error}</p>}
+    </div>
+  )
 }
 
 function RedirectIfSignedIn() {
@@ -81,6 +144,7 @@ function LoginInner() {
         {error && <p className="rounded-lg bg-rose-hot/10 px-3 py-2 text-sm text-rose-hot">{error}</p>}
         <Button type="submit" size="lg" className="w-full" loading={loading}>Log in</Button>
       </form>
+      <GoogleButton text="signin_with" />
     </Shell>
   )
 }
@@ -119,6 +183,7 @@ function SignupInner() {
         {error && <p className="rounded-lg bg-rose-hot/10 px-3 py-2 text-sm text-rose-hot">{error}</p>}
         <Button type="submit" size="lg" className="w-full" loading={loading}>Create account</Button>
       </form>
+      <GoogleButton text="signup_with" />
     </Shell>
   )
 }

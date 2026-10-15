@@ -51,7 +51,10 @@ enum BidSource {
 model User {
   id              String       @id @default(cuid())
   email           String       @unique
-  passwordHash    String
+  /// Null for accounts created with Google sign-in until they set a password.
+  passwordHash    String?
+  /// Google account "sub" claim, set when the user signs in with Google.
+  googleId        String?      @unique
   name            String
   avatarUrl       String?
   resetTokenHash  String?

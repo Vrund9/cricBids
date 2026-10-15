@@ -16,6 +16,7 @@ function Account() {
   const [saving, setSaving] = useState(false)
   const [changing, setChanging] = useState(false)
   if (!user) return null
+  const hasPassword = user.hasPassword !== false
 
   const saveProfile = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -34,9 +35,10 @@ function Account() {
     e.preventDefault()
     setChanging(true)
     try {
-      await api('/auth/change-password', { body: pw })
+      await api('/auth/change-password', { body: hasPassword ? pw : { newPassword: pw.newPassword } })
       setPw({ currentPassword: '', newPassword: '' })
-      toast.success('Password changed')
+      if (!hasPassword) setUser({ ...user, hasPassword: true })
+      toast.success(hasPassword ? 'Password changed' : 'Password set — you can now also log in with email')
     } catch (err) {
       toast.error((err as Error).message)
     } finally {
@@ -70,11 +72,12 @@ function Account() {
         </form>
       </Card>
       <Card className="p-6">
-        <h2 className="mb-4 font-semibold">Change password</h2>
-        <form onSubmit={changePassword} className="space-y-4">
-          <Field label="Current password"><Input type="password" autoComplete="current-password" required value={pw.currentPassword} onChange={(e) => setPw({ ...pw, currentPassword: e.target.value })} /></Field>
+        <h2 className="font-semibold">{hasPassword ? 'Change password' : 'Set a password'}</h2>
+        {!hasPassword && <p className="mt-1 text-sm text-ink-300">You sign in with Google. Add a password to also log in with your email.</p>}
+        <form onSubmit={changePassword} className="mt-4 space-y-4">
+          {hasPassword && <Field label="Current password"><Input type="password" autoComplete="current-password" required value={pw.currentPassword} onChange={(e) => setPw({ ...pw, currentPassword: e.target.value })} /></Field>}
           <Field label="New password" hint="At least 8 characters"><Input type="password" autoComplete="new-password" required minLength={8} value={pw.newPassword} onChange={(e) => setPw({ ...pw, newPassword: e.target.value })} /></Field>
-          <Button type="submit" variant="secondary" loading={changing}>Update password</Button>
+          <Button type="submit" variant="secondary" loading={changing}>{hasPassword ? 'Update password' : 'Set password'}</Button>
         </form>
       </Card>
     </main>

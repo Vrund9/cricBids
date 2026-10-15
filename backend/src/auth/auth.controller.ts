@@ -2,7 +2,7 @@ import { Body, Controller, Get, HttpCode, Patch, Post, UseGuards } from '@nestjs
 import { Throttle } from '@nestjs/throttler'
 import { AuthService } from './auth.service'
 import { AuthUser, CurrentUser, JwtAuthGuard } from './jwt.guard'
-import { ChangePasswordDto, ForgotPasswordDto, LoginDto, ResetPasswordDto, SignupDto, UpdateProfileDto } from './auth.dto'
+import { ChangePasswordDto, ForgotPasswordDto, GoogleLoginDto, LoginDto, ResetPasswordDto, SignupDto, UpdateProfileDto } from './auth.dto'
 
 @Controller('auth')
 export class AuthController {
@@ -19,6 +19,13 @@ export class AuthController {
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   login(@Body() dto: LoginDto) {
     return this.auth.login(dto)
+  }
+
+  @Post('google')
+  @HttpCode(200)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  google(@Body() dto: GoogleLoginDto) {
+    return this.auth.googleLogin(dto)
   }
 
   @Post('forgot-password')

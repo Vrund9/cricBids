@@ -19,6 +19,8 @@ export interface User {
   avatarUrl?: string | null
   createdAt: string
   seasonPassUntil?: string | null
+  /** False for Google-only accounts that haven't set a password yet. */
+  hasPassword?: boolean
 }
 
 export interface IncrementTier {
