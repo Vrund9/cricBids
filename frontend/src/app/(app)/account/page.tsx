@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ImagePlus } from 'lucide-react'
+import { ImagePlus, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Avatar, Button, Card, Field, Input } from '@/components/ui'
 import { api, uploadImage } from '@/lib/api'
@@ -15,6 +15,7 @@ function Account() {
   const [pw, setPw] = useState({ currentPassword: '', newPassword: '' })
   const [saving, setSaving] = useState(false)
   const [changing, setChanging] = useState(false)
+  const [uploading, setUploading] = useState(false)
   if (!user) return null
   const hasPassword = user.hasPassword !== false
 
@@ -54,14 +55,22 @@ function Account() {
           <div className="flex items-center gap-4">
             <Avatar src={avatarUrl} name={name || user.name} size={64} color="#34405a" />
             <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold hover:bg-white/5">
-              <ImagePlus className="h-4 w-4" /> Photo
-              <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />} {uploading ? 'Uploading…' : 'Change photo'}
+              <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={async (e) => {
                 const f = e.target.files?.[0]
+                e.target.value = ''
                 if (!f) return
+                setUploading(true)
                 try {
-                  setAvatarUrl(await uploadImage(f))
+                  // Saved straight away — no need to press "Save profile".
+                  const url = await uploadImage(f)
+                  setAvatarUrl(url)
+                  setUser(await api<User>('/auth/me', { method: 'PATCH', body: { avatarUrl: url } }))
+                  toast.success('Photo updated')
                 } catch (err) {
                   toast.error((err as Error).message)
+                } finally {
+                  setUploading(false)
                 }
               }} />
             </label>

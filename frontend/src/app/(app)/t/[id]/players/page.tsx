@@ -330,11 +330,18 @@ function PlayerModal({ player, onClose, tournamentId, onSaved }: { player: Playe
             <ImagePlus className="h-4 w-4" /> {uploading ? 'Uploading…' : 'Photo'}
             <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
               const f = e.target.files?.[0]
+              e.target.value = ''
               if (!f) return
               setUploading(true)
               try {
                 const url = await uploadImage(f)
                 setForm((x) => ({ ...x, photoUrl: url }))
+                // Existing players get the new photo saved immediately; new players save it with the form.
+                if (!isNew && p) {
+                  await api(`/tournaments/${tournamentId}/players/${p.id}`, { method: 'PATCH', body: { name: p.name, photoUrl: url } })
+                  toast.success('Photo updated')
+                  onSaved()
+                }
               } catch (err) {
                 toast.error((err as Error).message)
               } finally {
