@@ -79,8 +79,8 @@ export default function RegistrationPage() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-      <div className="space-y-6">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="min-w-0 space-y-6">
         <div>
           <h2 className="font-display text-2xl font-bold">Registration form</h2>
           <p className="text-sm text-ink-400">Players fill this in from your link. Every answer lands straight in your player list — no Excel cleanup.</p>
@@ -173,7 +173,7 @@ export default function RegistrationPage() {
         </AnimatePresence>
       </div>
 
-      <div className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+      <div className="min-w-0 space-y-6 lg:sticky lg:top-24 lg:self-start">
         <Card className={cn('p-6 transition', t.registrationOpen && 'border-lime-glow/30')}>
           <Switch
             checked={t.registrationOpen}

@@ -43,7 +43,7 @@ function Header({ id }: { id: string }) {
             </p>
           </div>
         </div>
-        <nav className="scroll-thin -mb-px mt-6 flex gap-1 overflow-x-auto" aria-label="Tournament sections" data-tour="tabs">
+        <nav className="no-scrollbar -mb-px mt-6 flex gap-1 overflow-x-auto" aria-label="Tournament sections" data-tour="tabs">
           {TABS.map((tab) => {
             const href = base + tab.href
             const active = tab.href === '' ? pathname === base : pathname.startsWith(href)

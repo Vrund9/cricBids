@@ -66,9 +66,10 @@ export default function Overview() {
   const ready = required.every((s) => s.done) && t.teams.length >= 2 && t.stats.available > 0
   const progress = Math.round((steps.filter((s) => s.done).length / steps.length) * 100)
 
+  // minmax(0,…) + min-w-0: long share links must truncate, not widen the columns past the screen.
   return (
-    <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-      <div className="space-y-6">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+      <div className="min-w-0 space-y-6">
         <Card className="overflow-hidden" data-tour="checklist">
           <div className="flex items-center justify-between gap-4 border-b border-white/5 p-6">
             <div>
@@ -126,7 +127,7 @@ export default function Overview() {
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="min-w-0 space-y-6">
         <PlanCard />
         <Card className="p-6" data-tour="live-link">
           <div className="flex items-center gap-2">
