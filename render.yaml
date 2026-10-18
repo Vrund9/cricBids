@@ -1,0 +1,105 @@
+# BidWicket on Render: website (Next.js) + API (NestJS + Socket.IO) + Postgres.
+# Apply from https://dashboard.render.com/blueprint/new?repo=https://github.com/Vrund9/cricBids
+#
+# The URLs below assume Render gives the services the names used here
+# (bidwicket-web.onrender.com / bidwicket-api.onrender.com). If a name is taken and Render
+# adds a suffix, update NEXT_PUBLIC_API_URL / NEXT_PUBLIC_SITE_URL / WEB_ORIGIN / API_PUBLIC_URL
+# in the Dashboard and redeploy (the NEXT_PUBLIC_ values are baked into the website build).
+
+services:
+  # ───────────── API ─────────────
+  - type: web
+    name: bidwicket-api
+    runtime: node
+    region: singapore
+    # Starter, not free: uploaded photos need a persistent disk, and migrations run as a pre-deploy step.
+    plan: starter
+    buildCommand: npm ci --include=dev && npm run build -w backend
+    preDeployCommand: npm run prisma:deploy -w backend
+    startCommand: npm run start -w backend
+    healthCheckPath: /health
+    autoDeploy: true
+    buildFilter:
+      paths:
+        - backend/**
+        - package.json
+        - package-lock.json
+    disk:
+      name: uploads
+      # process.cwd() is backend/ under `npm run start -w backend`, so uploads land here.
+      mountPath: /opt/render/project/src/backend/uploads
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: bidwicket-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: WEB_ORIGIN
+        value: https://bidwicket-web.onrender.com
+      - key: API_PUBLIC_URL
+        value: https://bidwicket-api.onrender.com
+      # No payment gateway is wired yet: "demo" activates purchases without charging.
+      # Switch to "disabled" (or change it in Admin → Settings) to stop free activations.
+      - key: BILLING_MODE
+        value: demo
+      # Comma-separated emails that get the admin panel.
+      - key: ADMIN_EMAILS
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
+        value: BidWicket <no-reply@bidwicket.app>
+
+  # ───────────── Website ─────────────
+  - type: web
+    name: bidwicket-web
+    runtime: node
+    region: singapore
+    plan: free
+    buildCommand: npm ci --include=dev && npm run build -w frontend
+    startCommand: npm run start -w frontend
+    autoDeploy: true
+    buildFilter:
+      paths:
+        - frontend/**
+        - package.json
+        - package-lock.json
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        value: https://bidwicket-api.onrender.com
+      - key: NEXT_PUBLIC_SITE_URL
+        value: https://bidwicket-web.onrender.com
+      - key: NEXT_PUBLIC_GOOGLE_CLIENT_ID
+        sync: false
+      # Only so the shared `npm ci` (which runs `prisma generate` for the API workspace) can resolve it.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: bidwicket-db
+          property: connectionString
+
+databases:
+  - name: bidwicket-db
+    databaseName: bidwicket
+    region: singapore
+    # Paid: free Render Postgres is deleted after 30 days.
+    plan: basic-256mb
