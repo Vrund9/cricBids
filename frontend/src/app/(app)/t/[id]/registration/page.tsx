@@ -7,10 +7,12 @@ import { toast } from 'sonner'
 import { useTournament } from '@/components/tournament-context'
 import { Button, Card, Field, Input, Select, Switch } from '@/components/ui'
 import { ShareLink } from '@/components/share'
+import { PlayersNav } from '@/components/players-nav'
 import { api, SITE_URL } from '@/lib/api'
 import { downloadTemplate } from '@/lib/excel'
 import type { FieldType, RegField } from '@/lib/types'
 import { cn } from '@/lib/cn'
+import { useConfirm } from '@/components/confirm'
 
 const TYPE_LABEL: Record<FieldType, string> = {
   text: 'Short text', textarea: 'Paragraph', number: 'Number', tel: 'Phone', email: 'Email', select: 'Dropdown', photo: 'Photo upload',
@@ -18,6 +20,7 @@ const TYPE_LABEL: Record<FieldType, string> = {
 
 export default function RegistrationPage() {
   const { t, update, reload } = useTournament()
+  const confirm = useConfirm()
   const [fields, setFields] = useState<RegField[]>(t.registrationFields)
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -72,18 +75,20 @@ export default function RegistrationPage() {
   }
 
   const resetLink = async () => {
-    if (!confirm('Reset the registration link? The old link will stop working.')) return
+    if (!(await confirm({ title: 'Reset the registration link?', message: 'The old link stops working straight away — anyone you already sent it to will need the new one.', confirmLabel: 'Reset link', danger: true }))) return
     await api(`/tournaments/${t.id}/rotate-token`, { body: { kind: 'registration' } })
     await reload()
     toast.success('New registration link created')
   }
 
   return (
+    <div>
+    <PlayersNav />
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
       <div className="min-w-0 space-y-6">
         <div>
           <h2 className="font-display text-2xl font-bold">Registration form</h2>
-          <p className="text-sm text-ink-400">Players fill this in from your link. Every answer lands straight in your player list — no Excel cleanup.</p>
+          <p className="text-sm text-ink-400">Players fill this in from your link. Every answer lands straight in your player list, next to anyone you upload from Excel.</p>
         </div>
 
         <Card className="divide-y divide-white/5">
@@ -211,13 +216,14 @@ export default function RegistrationPage() {
         </Card>
         <Card className="p-6">
           <h3 className="font-semibold">Collecting offline too?</h3>
-          <p className="mt-1 text-sm text-ink-400">Download an Excel template with exactly these columns. Fill it in and upload it on the Players tab — both lists merge cleanly.</p>
+          <p className="mt-1 text-sm text-ink-400">Download an Excel template with exactly these columns. Fill it in and upload it from the player list — both lists merge cleanly.</p>
           <Button className="mt-4" variant="secondary" size="sm" onClick={() => downloadTemplate(fields, t.name)}>
             <Download className="h-4 w-4" /> Excel template
           </Button>
         </Card>
         <p className="text-center text-xs text-ink-400">{t.stats.fromForm} players registered via the form</p>
       </div>
+    </div>
     </div>
   )
 }

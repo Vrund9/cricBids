@@ -34,7 +34,7 @@ export function LiveDot({ label = 'LIVE', color = '#ff4d6d' }: { label?: string;
 /** Hero card for the player currently under the hammer. */
 export function PlayerSpotlight({ player, basePrice, currency, size = 'lg' }: { player: PublicPlayer; basePrice: number; currency: string; size?: 'md' | 'lg' | 'xl' }) {
   const rm = roleMeta(player.role)
-  const px = size === 'xl' ? 280 : size === 'lg' ? 180 : 112
+  const px = size === 'xl' ? 230 : size === 'lg' ? 180 : 112
   const facts = [player.battingStyle, player.bowlingStyle && player.bowlingStyle !== 'Does not bowl' ? player.bowlingStyle : null, player.age ? `${player.age} yrs` : null, player.city].filter(Boolean) as string[]
   return (
     <motion.div key={player.id} initial={{ opacity: 0, y: 24, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 160, damping: 20 }} className={cn('relative flex gap-6', size === 'xl' ? 'flex-col items-center text-center lg:flex-row lg:items-end lg:text-left' : 'flex-col items-center text-center sm:flex-row sm:items-end sm:text-left')}>
@@ -48,7 +48,7 @@ export function PlayerSpotlight({ player, basePrice, currency, size = 'lg' }: { 
           <Badge color={rm.color}>{player.role}</Badge>
           {player.category && <Badge color="#ffb020">Cat {player.category}</Badge>}
         </div>
-        <h2 className={cn('mt-3 font-display font-extrabold leading-[0.95]', size === 'xl' ? 'text-5xl sm:text-7xl xl:text-8xl' : size === 'lg' ? 'text-4xl sm:text-5xl' : 'text-3xl')}>{player.name}</h2>
+        <h2 className={cn('mt-3 font-display font-extrabold leading-[0.95]', size === 'xl' ? 'text-5xl sm:text-6xl xl:text-7xl' : size === 'lg' ? 'text-4xl sm:text-5xl' : 'text-3xl')}>{player.name}</h2>
         {facts.length > 0 && <p className={cn('mt-3 text-ink-300', size === 'xl' ? 'text-lg' : 'text-sm')}>{facts.join(' · ')}</p>}
         <p className={cn('mt-2 text-ink-400', size === 'xl' ? 'text-base' : 'text-sm')}>Base price <b className="text-ink-100">{money(basePrice, currency)}</b></p>
       </div>
@@ -61,12 +61,12 @@ export function BidTimer({ endsAt, skew, total }: { endsAt: string | null; skew:
   if (left === null || !total) return null
   const pct = Math.max(0, Math.min(1, left / total))
   const label = left <= 0 ? 'Going… going…' : left <= total * 0.25 ? 'Going twice' : left <= total * 0.5 ? 'Going once' : `${Math.ceil(left)}s`
-  const color = left <= total * 0.25 ? '#ff4d6d' : left <= total * 0.5 ? '#ffb020' : '#c8ff2e'
+  const color = left <= total * 0.25 ? '#ff4d6d' : left <= total * 0.5 ? '#ffb020' : 'var(--color-lime-glow)'
   return (
     <div className="flex items-center gap-3" role="timer" aria-label={label}>
       <svg viewBox="0 0 36 36" className="h-10 w-10 -rotate-90">
         <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="3.5" />
-        <circle cx="18" cy="18" r="15" fill="none" stroke={color} strokeWidth="3.5" strokeLinecap="round" strokeDasharray="94.2" strokeDashoffset={94.2 * (1 - pct)} style={{ transition: 'stroke-dashoffset 0.1s linear, stroke 0.3s' }} />
+        <circle cx="18" cy="18" r="15" fill="none" stroke={color} strokeWidth="3.5" strokeLinecap="round" strokeDasharray="94.2" strokeDashoffset={94.2 * (1 - pct)} style={{ transition: 'stroke-dashoffset 0.2s linear, stroke 0.3s' }} />
       </svg>
       <span className="text-sm font-bold uppercase tracking-wider" style={{ color }}>{label}</span>
     </div>
@@ -119,7 +119,7 @@ export function BidHistory({ snap, limit = 8 }: { snap: Snapshot; limit?: number
         {bids.map((b, i) => {
           const t = teams.get(b.teamId)
           return (
-            <motion.li key={b.id} layout initial={{ opacity: 0, x: -16, height: 0 }} animate={{ opacity: i === 0 ? 1 : 0.65 - i * 0.05, x: 0, height: 'auto' }} exit={{ opacity: 0 }} className="flex items-center gap-3 rounded-xl px-3 py-2" style={i === 0 ? { background: `${t?.color}1f` } : undefined}>
+            <motion.li key={b.id} initial={{ opacity: 0, x: -16 }} animate={{ opacity: i === 0 ? 1 : 0.65 - i * 0.05, x: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-3 rounded-xl px-3 py-2" style={i === 0 ? { background: `${t?.color}1f` } : undefined}>
               <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: t?.color }} />
               <span className="min-w-0 flex-1 truncate text-sm font-medium">{t?.name ?? 'Team'}</span>
               {b.source === 'REMOTE' && <Smartphone className="h-3.5 w-3.5 text-ink-400" />}
@@ -140,7 +140,7 @@ export function TeamPurses({ snap, compact, highlightId }: { snap: Snapshot; com
         const pct = snap.tournament.teamPurse ? (t.purse / snap.tournament.teamPurse) * 100 : 0
         const leading = highlightId === t.id
         return (
-          <motion.li key={t.id} layout animate={{ borderColor: leading ? t.color : 'rgba(255,255,255,0.06)' }} className="rounded-2xl border bg-white/[0.02] p-3">
+          <motion.li key={t.id} animate={{ borderColor: leading ? t.color : 'rgba(255,255,255,0.06)' }} className="rounded-2xl border bg-white/[0.02] p-3">
             <div className="flex items-center gap-3">
               <Avatar src={t.logoUrl} name={t.shortName} size={34} rounded="xl" color={t.color} />
               <div className="min-w-0 flex-1">
@@ -159,6 +159,43 @@ export function TeamPurses({ snap, compact, highlightId }: { snap: Snapshot; com
   )
 }
 
+/**
+ * Every team's purse at a glance, as small tiles that wrap into a few rows,
+ * so the control room and big screen never need scrolling to compare purses.
+ */
+export function PurseBoard({ snap, highlightId, className }: { snap: Snapshot; highlightId?: string | null; className?: string }) {
+  const cur = snap.tournament.currency
+  const full = snap.tournament.teamPurse
+  return (
+    <ul className={cn('grid grid-cols-[repeat(auto-fill,minmax(132px,1fr))] gap-2', className)} aria-label="Team purses">
+      {snap.teams.map((t) => {
+        const pct = full ? Math.max(0, Math.min(100, (t.purse / full) * 100)) : 0
+        const leading = highlightId === t.id
+        return (
+          <li
+            key={t.id}
+            className={cn('relative overflow-hidden rounded-xl border bg-white/[0.03] px-2.5 py-2 transition-colors', leading ? 'border-2' : 'border-white/[0.07]')}
+            style={leading ? { borderColor: t.color, background: `color-mix(in oklab, ${t.color} 14%, transparent)` } : undefined}
+            title={`${t.name}: ${money(t.purse, cur)} left · ${t.squadSize}/${snap.tournament.maxSquad} players · max bid ${money(t.maxBid, cur)}`}
+          >
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: t.color }} />
+              <span className="min-w-0 flex-1 truncate text-xs font-bold">{t.shortName}</span>
+              <span className="text-[10px] text-ink-400 tabular">{t.squadSize}/{snap.tournament.maxSquad}</span>
+            </div>
+            <p className="mt-0.5 font-mono text-sm font-semibold tabular">
+              <AnimatedNumber value={t.purse} format={(n) => moneyShort(n, cur)} />
+            </p>
+            <div className="mt-1 h-1 overflow-hidden rounded-full bg-white/5">
+              <div className="h-full rounded-full transition-[width] duration-500" style={{ width: `${pct}%`, background: t.color }} />
+            </div>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
 export function RecentSales({ snap, limit = 6 }: { snap: Snapshot; limit?: number }) {
   const teams = useMemo(() => new Map(snap.teams.map((t) => [t.id, t])), [snap.teams])
   const sales = snap.sold.slice(0, limit)
@@ -169,7 +206,7 @@ export function RecentSales({ snap, limit = 6 }: { snap: Snapshot; limit?: numbe
         {sales.map((p) => {
           const t = teams.get(p.soldTeamId!)
           return (
-            <motion.li key={p.id} layout initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-3">
+            <motion.li key={p.id} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-3">
               <Avatar src={p.photoUrl} name={p.name} size={32} />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{p.name}</p>
@@ -188,7 +225,7 @@ export function RecentSales({ snap, limit = 6 }: { snap: Snapshot; limit?: numbe
 
 function Confetti({ color }: { color: string }) {
   const bits = useMemo(
-    () => Array.from({ length: 36 }, (_, i) => ({ i, x: (Math.random() - 0.5) * 900, y: -Math.random() * 500 - 100, r: Math.random() * 720 - 360, c: i % 3 === 0 ? '#ffb020' : i % 3 === 1 ? color : '#ffffff', s: 6 + Math.random() * 8 })),
+    () => Array.from({ length: 24 }, (_, i) => ({ i, x: (Math.random() - 0.5) * 900, y: -Math.random() * 500 - 100, r: Math.random() * 720 - 360, c: i % 3 === 0 ? '#ffb020' : i % 3 === 1 ? color : '#ffffff', s: 6 + Math.random() * 8 })),
     [color],
   )
   return (
@@ -201,9 +238,21 @@ function Confetti({ color }: { color: string }) {
 }
 
 /** Full-screen moment when the hammer falls. Triggered by a new SOLD / UNSOLD event. */
+/** True when this sale beats every earlier one (the snapshot's top buys always include the record). */
+export function isRecordSale(snap: Snapshot, playerId?: string, amount?: number | null) {
+  const others = snap.topBuys.filter((p) => p.id !== playerId).map((p) => p.soldPrice ?? 0)
+  return (amount ?? 0) > 0 && others.length > 0 && (amount ?? 0) >= Math.max(...others)
+}
+
 export function HammerOverlay({ snap, duration = 3200 }: { snap: Snapshot | null; duration?: number }) {
   const [show, setShow] = useState<AuctionEvent | null>(null)
   const lastAt = useRef<number | null>(null)
+  // Timer in a ref: any rebroadcast during the overlay re-runs the effect, and clearing the
+  // timer in its cleanup used to leave the overlay stuck until someone clicked it.
+  const hide = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => () => {
+    if (hide.current) clearTimeout(hide.current)
+  }, [])
   useEffect(() => {
     const e = snap?.lastEvent
     if (!e) return
@@ -213,16 +262,14 @@ export function HammerOverlay({ snap, duration = 3200 }: { snap: Snapshot | null
     }
     if (e.at === lastAt.current) return
     lastAt.current = e.at
+    if (hide.current) clearTimeout(hide.current)
     if (e.type === 'SOLD' || e.type === 'UNSOLD') {
       setShow(e)
-      const id = setTimeout(() => setShow(null), duration)
-      return () => clearTimeout(id)
-    }
-    setShow(null)
+      hide.current = setTimeout(() => setShow(null), duration)
+    } else setShow(null)
   }, [snap?.lastEvent, duration])
 
-  const others = show && snap ? snap.sold.filter((p) => p.id !== show.playerId).map((p) => p.soldPrice ?? 0) : []
-  const record = !!show && show.type === 'SOLD' && others.length > 0 && (show.amount ?? 0) >= Math.max(...others)
+  const record = !!show && !!snap && show.type === 'SOLD' && isRecordSale(snap, show.playerId, show.amount)
   const player = show && snap ? (snap.current && snap.current.player.id === show.playerId ? snap.current.player : snap.sold.find((p) => p.id === show.playerId)) : null
   const team = show?.teamId ? snap?.teams.find((t) => t.id === show.teamId) : null
   const sold = show?.type === 'SOLD'
@@ -242,13 +289,13 @@ export function HammerOverlay({ snap, duration = 3200 }: { snap: Snapshot | null
                 {sold ? 'SOLD' : 'UNSOLD'}
               </motion.div>
               {sold && (
-                <motion.div initial={{ rotate: -60, x: -40, opacity: 0 }} animate={{ rotate: [-60, 15, 0], x: 0, opacity: 1 }} transition={{ delay: 0.1, duration: 0.5 }} className="absolute -bottom-6 -left-8 grid h-16 w-16 place-items-center rounded-2xl bg-gold-bright text-on-accent shadow-2xl">
+                <motion.div initial={{ rotate: -60, x: -40, opacity: 0 }} animate={{ rotate: [-60, 15, 0], x: 0, opacity: 1 }} transition={{ delay: 0.1, duration: 0.5 }} className="absolute -bottom-6 -left-8 grid h-16 w-16 place-items-center rounded-2xl bg-gold-bright text-on-gold shadow-2xl">
                   <Gavel className="h-8 w-8" />
                 </motion.div>
               )}
             </div>
             {record && (
-              <motion.p initial={{ scale: 0, rotate: -6 }} animate={{ scale: [0, 1.25, 1], rotate: -3 }} transition={{ delay: 0.55, duration: 0.5 }} className="mt-10 rounded-full bg-gold-bright px-5 py-1.5 font-display text-lg font-black uppercase tracking-[0.25em] text-on-accent shadow-[0_0_40px_rgba(255,176,32,0.6)]">
+              <motion.p initial={{ scale: 0, rotate: -6 }} animate={{ scale: [0, 1.25, 1], rotate: -3 }} transition={{ delay: 0.55, duration: 0.5 }} className="mt-10 rounded-full bg-gold-bright px-5 py-1.5 font-display text-lg font-black uppercase tracking-[0.25em] text-on-gold shadow-[0_0_40px_rgba(255,176,32,0.6)]">
                 Record buy
               </motion.p>
             )}

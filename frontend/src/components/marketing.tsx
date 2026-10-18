@@ -143,8 +143,10 @@ export function SoldTicker() {
     ['Vihaan Joshi', 'Coastal Titans', '₹58K'],
   ]
   return (
-    <div className="relative overflow-hidden border-y border-white/5 bg-ink-950/50 py-3 [mask-image:linear-gradient(90deg,transparent,black_10%,black_90%,transparent)]">
-      <div className="flex w-max animate-marquee gap-10">
+    // Same width as the sections around it (max-w-7xl + gutters), not edge to edge.
+    <div className="mx-auto max-w-7xl px-4 sm:px-6">
+    <div className="relative overflow-hidden rounded-2xl border border-white/5 bg-ink-950/50 py-3 [mask-image:linear-gradient(90deg,transparent,black_6%,black_94%,transparent)]">
+      <div className="flex w-max animate-marquee gap-10 pr-10">
         {[...items, ...items].map(([n, t, p], i) => (
           <span key={i} className="inline-flex items-center gap-2 text-sm text-ink-300">
             <Gavel className="h-3.5 w-3.5 text-gold" />
@@ -152,6 +154,7 @@ export function SoldTicker() {
           </span>
         ))}
       </div>
+    </div>
     </div>
   )
 }

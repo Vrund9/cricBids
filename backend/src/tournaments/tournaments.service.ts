@@ -4,7 +4,8 @@ import { RealtimeService } from '../realtime/realtime.service'
 import { DEFAULT_INCREMENTS, maxBidFor } from '../common/auction-rules'
 import { DEFAULT_REG_FIELDS, sanitizeFields } from '../common/registration'
 import { randomToken, slugify } from '../common/util'
-import { planInfo, planLimit, sanitizeTheme } from '../common/plans'
+import { resetPurses } from './retention'
+import { planInfo, planLimit, PLAN_OWNER_SELECT, sanitizeTheme } from '../common/plans'
 import { CreateTournamentDto, UpdateTournamentDto } from './tournament.dto'
 import type { Tournament } from '../generated/prisma/client'
 
@@ -30,9 +31,19 @@ export class TournamentsService {
     return t
   }
 
+  /** Like `owned`, but refuses changes once the auction is complete — results are final. */
+  async editable(id: string, userId: string) {
+    const t = await this.owned(id, userId)
+    if (t.status === 'COMPLETED') throw new BadRequestException('This auction is complete, so its details are locked')
+    return t
+  }
+
   /** Effective plan for a tournament (per-tournament Pro or the owner's Season Pass). */
   async plan(id: string) {
-    const t = await this.prisma.tournament.findUnique({ where: { id }, select: { plan: true, owner: { select: { seasonPassUntil: true } } } })
+    const t = await this.prisma.tournament.findUnique({
+      where: { id },
+      select: { plan: true, extraTeams: true, themeUnlocked: true, auctionFeePaid: true, randomUnlocked: true, sequence: true, owner: { select: PLAN_OWNER_SELECT } },
+    })
     if (!t) throw new NotFoundException('Tournament not found')
     return planInfo(t, t.owner)
   }
@@ -72,14 +83,17 @@ export class TournamentsService {
   }
 
   async create(userId: string, dto: CreateTournamentDto) {
+    // The counter never goes down, so deleting old auctions doesn't reset the free allowance.
+    const { auctionsCreated } = await this.prisma.user.update({ where: { id: userId }, data: { auctionsCreated: { increment: 1 } }, select: { auctionsCreated: true } })
     return this.prisma.tournament.create({
       data: {
         ownerId: userId,
+        sequence: auctionsCreated,
         name: dto.name.trim(),
         slug: slugify(dto.name),
         description: dto.description,
         venue: dto.venue,
-        auctionDate: dto.auctionDate ? new Date(dto.auctionDate) : undefined,
+        auctionDate: new Date(dto.auctionDate),
         currency: dto.currency ?? 'INR',
         logoUrl: dto.logoUrl,
         bidIncrements: DEFAULT_INCREMENTS as any,
@@ -128,7 +142,8 @@ export class TournamentsService {
   }
 
   async update(id: string, userId: string, dto: UpdateTournamentDto) {
-    const t = await this.owned(id, userId)
+    const t = await this.editable(id, userId)
+    if (dto.auctionDate === null) throw new BadRequestException('Auction date is required')
     const started = isStarted(t)
     if (started && dto.teamPurse !== undefined && dto.teamPurse !== t.teamPurse) {
       throw new BadRequestException('Team purse cannot be changed after the auction has started')
@@ -143,7 +158,6 @@ export class TournamentsService {
     }
 
     const { limits } = await this.plan(id)
-    if (dto.remoteBidding && !t.remoteBidding && !limits.remoteBidding) planLimit('Remote bidding from team owners’ phones is a Pro feature')
     const theme = dto.theme !== undefined ? sanitizeTheme(dto.theme, limits) : undefined
 
     const { registrationFields, auctionDate, categoryBasePrices, bidIncrements, theme: _theme, ...rest } = dto
@@ -169,10 +183,8 @@ export class TournamentsService {
           status: !started && (dto.setupComplete ?? t.setupComplete) ? 'READY' : undefined,
         },
       })
-      // Before the auction, every team's purse simply mirrors the tournament purse.
-      if (!started && dto.teamPurse !== undefined) {
-        await tx.team.updateMany({ where: { tournamentId: id }, data: { purse: dto.teamPurse } })
-      }
+      // Before the auction, every team's purse is the tournament purse minus its retentions.
+      if (!started && dto.teamPurse !== undefined) await resetPurses(tx, id, dto.teamPurse)
       return row
     })
     this.realtime.stateChanged(id)

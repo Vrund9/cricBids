@@ -1,26 +1,32 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { AlertTriangle, Check, FastForward, Flag, Gavel, Keyboard, MonitorPlay, Pause, Play, RotateCcw, Rocket, SkipForward, Trophy, Undo2, Volume2, VolumeX, XCircle } from 'lucide-react'
+import { AlertTriangle, Check, Dices, FastForward, Flag, Gavel, Keyboard, MonitorPlay, Pause, Play, RotateCcw, Rocket, SkipForward, Trophy, Undo2, Volume2, VolumeX, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTournament } from '@/components/tournament-context'
+import { useUpgrade } from '@/components/upgrade'
 import { Avatar, Button, Card, Input, PageLoader, Switch } from '@/components/ui'
 import { ShareLink } from '@/components/share'
-import { BidDisplay, BidHistory, ConnIndicator, HammerOverlay, PlayerSpotlight, RecentSales, TeamPurses } from '@/components/auction'
+import { BidDisplay, BidHistory, ConnIndicator, HammerOverlay, PlayerSpotlight, PurseBoard, RecentSales } from '@/components/auction'
 import { RoleAura, RoleIntro, useAuctionAudio } from '@/components/effects'
 import { unlock } from '@/lib/sound'
-import { api, SITE_URL } from '@/lib/api'
-import { money, moneyShort } from '@/lib/format'
+import { api, isPlanLimit, SITE_URL } from '@/lib/api'
+import { money, moneyShort, ordinal } from '@/lib/format'
 import { useLiveAuction } from '@/lib/live'
 import type { Snapshot } from '@/lib/types'
 import { cn } from '@/lib/cn'
+import { useConfirm } from '@/components/confirm'
 
-type Action = 'start' | 'next' | 'sell' | 'unsold' | 'undo' | 'reopen' | 'skip' | 'pause' | 'resume' | 'reauction' | 'finish' | 'reset'
+type Action = 'random' | 'start' | 'next' | 'sell' | 'unsold' | 'undo' | 'reopen' | 'skip' | 'pause' | 'resume' | 'reauction' | 'finish' | 'reset'
 
 export default function ControlRoom() {
   const { t, reload } = useTournament()
+  const { openUpgrade } = useUpgrade()
+  const router = useRouter()
+  const confirm = useConfirm()
   const { state, conn, viewers, skew, setState } = useLiveAuction({ ownerTournamentId: t.id })
   const [busy, setBusy] = useState<string | null>(null)
   const [jump, setJump] = useState('')
@@ -133,6 +139,7 @@ export default function ControlRoom() {
 
   // ── Before the auction ──
   if (snap.tournament.status === 'DRAFT' || snap.tournament.status === 'READY') {
+    const fee = t.planInfo.limits.auctionFeeDue
     const checks = [
       { ok: snap.teams.length >= 2, label: `${snap.teams.length} teams`, fix: `/t/${t.id}/setup` },
       { ok: snap.counts.available > 0, label: `${snap.counts.available} players ready to auction`, fix: `/t/${t.id}/players` },
@@ -155,11 +162,43 @@ export default function ControlRoom() {
                 {!c.ok && <Link href={c.fix} className="text-xs font-semibold text-lime-glow">Fix</Link>}
               </li>
             ))}
+            {fee && (
+              <li className="flex items-center gap-3 rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 text-sm">
+                <AlertTriangle className="h-4 w-4 text-gold" />
+                <span className="flex-1">Auction fee ₹{t.planInfo.pricing.auctionFee} · your auction #{t.planInfo.sequence}</span>
+                <button className="text-xs font-semibold text-gold" onClick={() => openUpgrade(`Each auction from your ${ordinal(t.planInfo.pricing.freeAuctions + 1)} is ₹${t.planInfo.pricing.auctionFee}. Pay the auction fee to go live.`)}>Pay</button>
+              </li>
+            )}
+            <li className="px-1 pt-1 text-xs text-ink-400">One auction can be live at a time — finish any running auction first.</li>
           </ul>
-          <Button size="xl" className="mt-8" disabled={!ok} loading={busy === 'start'} onClick={() => run('start')}>
+          <Button size="xl" className="mt-8" disabled={!ok || fee} loading={busy === 'start'} onClick={() => run('start')}>
             <Gavel className="h-5 w-5" /> Start auction
           </Button>
         </Card>
+        <RandomAuctionCard
+          grades={t.categories.map((c) => c.name)}
+          ready={ok}
+          unlocked={t.planInfo.limits.randomAuction}
+          price={t.planInfo.pricing.randomAuction}
+          busy={busy === 'random'}
+          onUnlock={() => openUpgrade(`Random auction is a ₹${t.planInfo.pricing.randomAuction} add-on for this auction`)}
+          onRun={async () => {
+            if (fee) return openUpgrade(`Each auction from your ${ordinal(t.planInfo.pricing.freeAuctions + 1)} is ₹${t.planInfo.pricing.auctionFee}. Pay the auction fee to run it.`)
+            const how = t.categories.length ? 'grade by grade' : 'at random'
+            if (!(await confirm({ title: 'Run the random auction?', message: `All ${snap.counts.available} players are drawn to ${snap.teams.length} teams ${how}, each at their base price, and the auction is marked complete. This can’t be undone.`, confirmLabel: 'Run random auction' }))) return
+            setBusy('random')
+            try {
+              const r = await api<{ sold: number; unsold: number }>(`/tournaments/${t.id}/auction/random`, { body: {} })
+              toast.success(`Random auction done — ${r.sold} players drawn${r.unsold ? `, ${r.unsold} couldn’t be placed` : ''}`)
+              await reload()
+              router.push(`/t/${t.id}/results`)
+            } catch (e) {
+              if (!isPlanLimit(e)) toast.error((e as Error).message)
+            } finally {
+              setBusy(null)
+            }
+          }}
+        />
         <Card className="mt-6 p-6">
           <h3 className="mb-1 font-semibold">Put this on the big screen</h3>
           <p className="mb-4 text-sm text-ink-400">Open it on the projector now — it shows a countdown and switches to the live auction the moment you start.</p>
@@ -178,7 +217,7 @@ export default function ControlRoom() {
         <p className="mt-2 text-ink-300">{snap.counts.sold} players sold for {money(snap.totalSpent, currency)}.</p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link href={`/t/${t.id}/results`} className="inline-flex h-12 items-center gap-2 rounded-xl bg-lime-bright px-6 font-semibold text-on-accent"><Trophy className="h-4 w-4" /> Results &amp; Excel</Link>
-          <Button size="lg" variant="danger" loading={busy === 'reset'} onClick={() => confirm('Reset wipes every sale and purse so you can run the auction again. Continue?') && run('reset')}>
+          <Button size="lg" variant="danger" loading={busy === 'reset'} onClick={async () => (await confirm({ title: 'Reset the auction?', message: 'Every sale is wiped and purses go back to full so you can run the auction again.', confirmLabel: 'Reset auction', danger: true })) && run('reset')}>
             <RotateCcw className="h-4 w-4" /> Reset auction
           </Button>
         </div>
@@ -188,7 +227,7 @@ export default function ControlRoom() {
 
   // ── Live room ──
   return (
-    <div className="space-y-6">
+    <div className="screen-perf space-y-6">
       <div className="flex flex-wrap items-center gap-3">
         <ConnIndicator conn={conn} viewers={viewers} />
         <span className="text-sm text-ink-400">Round {snap.round} · {snap.counts.queue} in queue · {snap.counts.sold} sold · {snap.counts.unsold} unsold</span>
@@ -201,7 +240,7 @@ export default function ControlRoom() {
             {sound ? <Volume2 className="h-3.5 w-3.5 text-lime-glow" /> : <VolumeX className="h-3.5 w-3.5" />} Sound
           </Button>
           <Button size="sm" variant="ghost" onClick={() => setHelp((h) => !h)}><Keyboard className="h-3.5 w-3.5" /> Shortcuts</Button>
-          <Button size="sm" variant="ghost" onClick={() => confirm('Finish the auction now? Remaining players stay unsold.') && run('finish')}><Flag className="h-3.5 w-3.5" /> Finish</Button>
+          <Button size="sm" variant="ghost" onClick={async () => (await confirm({ title: 'Finish the auction now?', message: 'Players still in the queue stay unsold and the results become final.', confirmLabel: 'Finish auction', danger: true })) && run('finish')}><Flag className="h-3.5 w-3.5" /> Finish</Button>
         </div>
       </div>
 
@@ -220,6 +259,7 @@ export default function ControlRoom() {
       {paused && (
         <div className="flex items-center gap-3 rounded-2xl border border-gold/30 bg-gold/10 px-5 py-3 text-sm text-gold"><Pause className="h-4 w-4" /> Auction paused — bids are blocked until you resume.</div>
       )}
+
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,1fr)]">
         <div className="space-y-6">
@@ -308,6 +348,11 @@ export default function ControlRoom() {
                   description="Bring up the next player 3.5s after each hammer."
                 />
               </Card>
+              {/* Below the bid buttons so the auctioneer never scrolls past purses to bid. */}
+              <Card className="p-3">
+                <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-[0.2em] text-ink-400">Purses</h3>
+                <PurseBoard snap={snap} highlightId={cur?.leadingTeamId} />
+              </Card>
             </>
           ) : (
             <RoundEnd snap={snap} busy={busy} run={run} />
@@ -326,10 +371,6 @@ export default function ControlRoom() {
             </Card>
           )}
           <Card className="p-5">
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-ink-400">Purses</h3>
-            <TeamPurses snap={snap} compact highlightId={cur?.leadingTeamId} />
-          </Card>
-          <Card className="p-5">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-ink-400">Recent sales</h3>
             <RecentSales snap={snap} />
           </Card>
@@ -338,6 +379,34 @@ export default function ControlRoom() {
       <RoleIntro snap={snap} sound={sound} compact />
       <HammerOverlay snap={snap} duration={1800} />
     </div>
+  )
+}
+
+/** The no-bidding alternative: draw every player to a team grade by grade in one click. */
+function RandomAuctionCard({ grades, ready, unlocked, price, busy, onUnlock, onRun }: { grades: string[]; ready: boolean; unlocked: boolean; price: number; busy: boolean; onUnlock: () => void; onRun: () => void }) {
+  return (
+    <Card className="mt-6 overflow-hidden">
+      <div className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center">
+        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-sky-live/10 text-sky-live"><Dices className="h-7 w-7" /></div>
+        <div className="min-w-0 flex-1">
+          <h3 className="flex flex-wrap items-center gap-2 font-semibold">
+            No bidding night? Run a random auction
+            {!unlocked && <span className="rounded-full border border-gold/40 px-2 py-0.5 text-[10px] font-bold text-gold">₹{price} add-on</span>}
+          </h3>
+          <p className="mt-1 text-sm text-ink-400">
+            {grades.length
+              ? `One click draws every player to a team, grade by grade (${grades.slice(0, 4).join(' → ')}${grades.length > 4 ? ' …' : ''}), so each team gets an even share of every grade.`
+              : 'One click shuffles every player and shares them out evenly across the teams. (Give players a category such as A, B, C to draw grade by grade instead.)'}{' '}
+            Players go at their base price from the purse, and the results are ready instantly.
+          </p>
+        </div>
+        {unlocked ? (
+          <Button variant="secondary" size="lg" disabled={!ready} loading={busy} onClick={onRun} className="shrink-0"><Dices className="h-4 w-4" /> Run random auction</Button>
+        ) : (
+          <Button variant="gold" size="lg" onClick={onUnlock} className="shrink-0">Unlock · ₹{price}</Button>
+        )}
+      </div>
+    </Card>
   )
 }
 

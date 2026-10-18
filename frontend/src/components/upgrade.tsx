@@ -1,31 +1,88 @@
 'use client'
 
 import Link from 'next/link'
-import { createContext, useCallback, useContext, useEffect, useState } from 'react'
-import { motion } from 'motion/react'
-import { Check, Crown, Sparkles, X } from 'lucide-react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { Check, Crown, Dices, Gift, Minus, Palette, Plus, Shield, Sparkles, Ticket } from 'lucide-react'
 import { toast } from 'sonner'
-import { Badge, Button, Card, Modal } from './ui'
+import { Button, Card, Modal, Switch } from './ui'
 import { useTournament } from './tournament-context'
 import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
-import { COMPARISON, PLANS } from '@/lib/plans'
+import { cn } from '@/lib/cn'
+import { uiFlags } from '@/lib/flags'
+
+interface Preset {
+  teams?: boolean
+  theme?: boolean
+  auctionFee?: boolean
+  random?: boolean
+}
 
 const UpgradeContext = createContext<{ openUpgrade: (reason?: string) => void }>({ openUpgrade: () => undefined })
 
 export const useUpgrade = () => useContext(UpgradeContext)
 
-/** Owns the upgrade dialog for a tournament. Any API "PLAN_LIMIT" error opens it automatically. */
+/** Same rule as the API: whole blocks of 100 points = 10% each, up to 50%. */
+function rewardDiscount(points: number) {
+  const blocks = Math.min(Math.floor(Math.max(0, points) / 100), 5)
+  return { pct: blocks * 10, pointsUsed: blocks * 100 }
+}
+
+/** Guess what the organiser hit from the API's PLAN_LIMIT message, so the right add-on is pre-ticked. */
+function presetFor(reason?: string): Preset {
+  const r = (reason ?? '').toLowerCase()
+  return { teams: r.includes('team'), theme: r.includes('theme'), random: r.includes('random'), auctionFee: r.includes('auction #') || r.includes('auction fee') || r.includes('each auction') }
+}
+
+/** Owns the add-on checkout for a tournament. Any API "PLAN_LIMIT" error opens it automatically. */
 export function UpgradeProvider({ children }: { children: React.ReactNode }) {
   const { t, reload } = useTournament()
   const { user, setUser } = useAuth()
   const [open, setOpen] = useState(false)
   const [reason, setReason] = useState<string | undefined>()
-  const [busy, setBusy] = useState<string | null>(null)
+  const info = t.planInfo
+  const price = info.pricing
+  const room = info.limits.teamCap - info.limits.includedTeams
 
-  const openUpgrade = useCallback((r?: string) => {
-    setReason(r)
-    setOpen(true)
+  const [extraTeams, setExtraTeams] = useState(info.purchases.extraTeams)
+  const [theme, setTheme] = useState(false)
+  const [fee, setFee] = useState(false)
+  const [random, setRandom] = useState(false)
+  const [pro, setPro] = useState(false)
+  const [usePoints, setUsePoints] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  const openUpgrade = useCallback(
+    (r?: string) => {
+      const p = presetFor(r)
+      setReason(r)
+      const needed = Math.max(0, t.teams.length + (p.teams ? 1 : 0) - info.limits.includedTeams)
+      setExtraTeams(Math.min(room, Math.max(info.purchases.extraTeams, needed)))
+      setTheme(!!p.theme && !info.limits.customTheme)
+      setRandom(!!p.random && !info.limits.randomAuction)
+      setFee(info.limits.auctionFeeDue && (!!p.auctionFee || !!p.random || (!p.teams && !p.theme)))
+      setPro(false)
+      setUsePoints((user?.rewardPoints ?? 0) >= 100)
+      setOpen(true)
+    },
+    [t.teams.length, info, room, user?.rewardPoints],
+  )
+
+  // The pricing calculator links here with its picks, e.g. #addons=teams:10,theme,random,fee or #addons=pro.
+  useEffect(() => {
+    const m = window.location.hash.match(/^#addons=(.*)$/)
+    if (!m) return
+    uiFlags.checkoutFromLink = true
+    history.replaceState(null, '', window.location.pathname)
+    const picks = new Map(decodeURIComponent(m[1]).split(',').map((x): [string, string] => [x.split(':')[0], x.split(':')[1] ?? '']))
+    openUpgrade()
+    if (picks.has('pro')) return setPro(true)
+    const teams = Number(picks.get('teams'))
+    if (teams) setExtraTeams(Math.min(room, Math.max(info.purchases.extraTeams, teams - info.limits.includedTeams)))
+    setTheme(picks.has('theme') && !info.limits.customTheme)
+    setRandom(picks.has('random') && !info.limits.randomAuction)
+    setFee(picks.has('fee') && info.limits.auctionFeeDue)
+    // Runs once on arrival; later plan changes must not reopen the dialog.
   }, [])
 
   useEffect(() => {
@@ -34,77 +91,144 @@ export function UpgradeProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('cricbid:plan-limit', on)
   }, [openUpgrade])
 
-  const demo = t.planInfo.billingMode === 'demo'
-  const buy = async (kind: 'pro' | 'season') => {
-    setBusy(kind)
+  const newTeams = Math.max(0, extraTeams - info.purchases.extraTeams)
+  const addOnLines = useMemo(
+    () =>
+      [
+        newTeams > 0 && { label: `${newTeams} extra team${newTeams === 1 ? '' : 's'} × ₹${price.perExtraTeam}`, amount: newTeams * price.perExtraTeam },
+        theme && { label: 'Theme customisation', amount: price.themeUnlock },
+        random && { label: 'Random auction', amount: price.randomAuction },
+        fee && { label: `Auction fee · auction #${info.sequence}`, amount: price.auctionFee },
+      ].filter(Boolean) as { label: string; amount: number }[],
+    [newTeams, theme, random, fee, price, info.sequence],
+  )
+  const addOnTotal = addOnLines.reduce((a, l) => a + l.amount, 0)
+  // Pro replaces every individual add-on with one price.
+  const lines = pro ? [{ label: 'Pro for this auction — everything unlocked', amount: price.pro }] : addOnLines
+  const subtotal = lines.reduce((a, l) => a + l.amount, 0)
+  const points = user?.rewardPoints ?? 0
+  const disc = usePoints ? rewardDiscount(points) : { pct: 0, pointsUsed: 0 }
+  const total = Math.round((subtotal * (100 - disc.pct)) / 100)
+  const demo = info.billingMode === 'demo'
+
+  const buy = async () => {
+    setBusy(true)
     try {
-      if (kind === 'pro') await api(`/billing/tournaments/${t.id}/pro`, { body: {} })
-      else {
-        const r = await api<{ seasonPassUntil: string }>('/billing/season-pass', { body: {} })
-        if (user) setUser({ ...user, seasonPassUntil: r.seasonPassUntil })
-      }
+      const r = await api<{ receipt: { rewardPoints: number; total: number } }>(`/billing/tournaments/${t.id}/checkout`, { body: pro ? { pro: true, usePoints } : { extraTeams, theme, randomAuction: random, auctionFee: fee, usePoints } })
+      if (user) setUser({ ...user, rewardPoints: r.receipt.rewardPoints })
       await reload()
-      toast.success(kind === 'pro' ? `${t.name} is now Pro 🎉` : 'Season Pass active — every tournament is Pro 🎉')
+      toast.success(pro ? `${t.name} is now Pro 🎉` : `Unlocked for ${t.name} 🎉`)
       setOpen(false)
     } catch (e) {
       toast.error((e as Error).message)
     } finally {
-      setBusy(null)
+      setBusy(false)
     }
   }
-
-  const pro = PLANS.find((p) => p.id === 'pro')!
-  const season = PLANS.find((p) => p.id === 'season')!
 
   return (
     <UpgradeContext.Provider value={{ openUpgrade }}>
       {children}
-      <Modal open={open} onClose={() => setOpen(false)} title={<span className="flex items-center gap-2"><Crown className="h-5 w-5 text-gold" /> Upgrade {t.name}</span>} wide>
-        {reason && <p className="mb-5 rounded-xl bg-gold/10 px-4 py-3 text-sm text-gold">{reason}</p>}
-        <div className="grid gap-4 md:grid-cols-2">
-          {[{ plan: pro, kind: 'pro' as const, note: 'Just this tournament' }, { plan: season, kind: 'season' as const, note: 'All your tournaments for a year' }].map(({ plan, kind, note }, i) => (
-            <motion.div key={plan.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
-              <Card className={`flex h-full flex-col p-5 ${plan.highlight ? 'border-lime-glow/40' : ''}`}>
-                <div className="flex items-center justify-between">
-                  <h3 className="font-display text-xl font-bold">{plan.name}</h3>
-                  {plan.highlight && <Badge color="#c8ff2e">Popular</Badge>}
+      <Modal open={open} onClose={() => setOpen(false)} title={<span className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-gold" /> Add-ons for {t.name}</span>} wide>
+        {info.plan === 'PRO' ? (
+          <p className="rounded-xl bg-lime-glow/10 px-4 py-3 text-sm text-lime-glow">Everything is already unlocked for this auction{info.source === 'PLAN_CODE' ? ' through your plan code' : ''}.</p>
+        ) : (
+          <div className="space-y-4">
+            {reason && <p className="rounded-xl bg-gold/10 px-4 py-3 text-sm text-gold">{reason}</p>}
+            <button
+              onClick={() => setPro((v) => !v)}
+              aria-pressed={pro}
+              className={cn('relative w-full overflow-hidden rounded-2xl border-2 p-4 text-left transition', pro ? 'border-gold bg-gold/10' : 'border-gold/30 hover:border-gold/60')}
+            >
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gold-bright text-on-gold"><Crown className="h-5 w-5" /></div>
+                <div className="min-w-0 flex-1">
+                  <p className="flex flex-wrap items-center gap-2 font-semibold">
+                    Pro for this auction
+                    {!pro && addOnTotal >= price.pro && <span className="rounded-full bg-gold/15 px-2 py-0.5 text-[10px] font-bold uppercase text-gold">Better deal</span>}
+                  </p>
+                  <p className="text-xs text-ink-400">Everything at once: up to {info.limits.teamCap} teams, custom theme, random auction{info.limits.auctionFeeDue ? ' and the auction fee' : ''}.</p>
                 </div>
-                <p className="mt-1 text-xs text-ink-400">{note}</p>
-                <p className="mt-4 font-display text-4xl font-black">{plan.price}<span className="ml-1 text-sm font-medium text-ink-400">{plan.priceNote}</span></p>
-                <ul className="mt-4 flex-1 space-y-2 text-sm">
-                  {plan.features.map((f) => <li key={f} className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-lime-glow" />{f}</li>)}
+                <p className="font-display text-2xl font-black">₹{price.pro}</p>
+                <span className={cn('grid h-6 w-6 shrink-0 place-items-center rounded-full border-2', pro ? 'border-gold bg-gold-bright text-on-gold' : 'border-white/25')}>{pro && <Check className="h-3.5 w-3.5" />}</span>
+              </div>
+            </button>
+            <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-ink-400">or pick only what you need</p>
+            <div className={cn('space-y-4 transition-opacity', pro && 'pointer-events-none opacity-40')}>
+
+            <AddOnRow icon={<Shield className="h-5 w-5" />} title="Extra teams" hint={`${info.limits.includedTeams} teams free · ₹${price.perExtraTeam} for each team above that (max ${info.limits.teamCap})`}>
+              <div className="flex items-center gap-2">
+                <button className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 hover:bg-white/5 disabled:opacity-30" disabled={extraTeams <= info.purchases.extraTeams} onClick={() => setExtraTeams((n) => n - 1)} aria-label="Fewer teams"><Minus className="h-4 w-4" /></button>
+                <span className="w-24 text-center text-sm"><b className="font-display text-lg">{info.limits.includedTeams + extraTeams}</b> teams</span>
+                <button className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 hover:bg-white/5 disabled:opacity-30" disabled={extraTeams >= room} onClick={() => setExtraTeams((n) => n + 1)} aria-label="More teams"><Plus className="h-4 w-4" /></button>
+              </div>
+            </AddOnRow>
+
+            <AddOnRow icon={<Palette className="h-5 w-5" />} title="Theme customisation" hint={`₹${price.themeUnlock} · all colour themes, brand colour and backgrounds`}>
+              {info.limits.customTheme ? <Owned /> : <Switch checked={theme} onChange={setTheme} />}
+            </AddOnRow>
+
+            <AddOnRow icon={<Dices className="h-5 w-5" />} title="Random auction" hint={`₹${price.randomAuction} · one click shares players out evenly at base price — grade by grade if players have categories, otherwise fully random`}>
+              {info.limits.randomAuction ? <Owned /> : <Switch checked={random} onChange={setRandom} />}
+            </AddOnRow>
+
+            {(info.limits.auctionFeeDue || info.purchases.auctionFeePaid) && (
+              <AddOnRow icon={<Ticket className="h-5 w-5" />} title={`Auction fee · auction #${info.sequence}`} hint={`Your first ${price.freeAuctions} auctions are free; after that each is ₹${price.auctionFee}. Needed to go live.`}>
+                {info.purchases.auctionFeePaid ? <Owned /> : <Switch checked={fee} onChange={setFee} />}
+              </AddOnRow>
+            )}
+            </div>
+
+            <Card className="space-y-3 p-4">
+              <Switch
+                checked={usePoints}
+                disabled={points < 100}
+                onChange={setUsePoints}
+                label={<span className="inline-flex items-center gap-2"><Gift className="h-4 w-4 text-gold" /> Use reward points</span>}
+                description={points >= 100 ? `You have ${points} points — ${rewardDiscount(points).pct}% off this purchase.` : `You have ${points} points. Every 100 points = 10% off. Earn 5 per suggestion or bug report on your account page.`}
+              />
+              <div className="h-px bg-white/5" />
+              {lines.length ? (
+                <ul className="space-y-1 text-sm">
+                  {lines.map((l) => <li key={l.label} className="flex justify-between"><span className="text-ink-300">{l.label}</span><span>₹{l.amount}</span></li>)}
+                  {disc.pct > 0 && <li className="flex justify-between text-lime-glow"><span>Reward discount ({disc.pct}%, {disc.pointsUsed} points)</span><span>−₹{subtotal - total}</span></li>}
                 </ul>
-                <Button className="mt-5 w-full" variant={plan.highlight ? 'primary' : 'secondary'} loading={busy === kind} disabled={!!busy} onClick={() => buy(kind)}>
-                  <Sparkles className="h-4 w-4" /> {demo ? `${plan.cta} (demo — no charge)` : plan.cta}
+              ) : (
+                <p className="text-sm text-ink-400">Pick an add-on above.</p>
+              )}
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-display text-3xl font-black">₹{total}</p>
+                <Button size="lg" loading={busy} disabled={!lines.length} onClick={buy}>
+                  <Sparkles className="h-4 w-4" /> {pro ? `Pay ₹${total} · go Pro` : `Pay ₹${total}`}
                 </Button>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-        <div className="mt-6 overflow-hidden rounded-2xl border border-white/10">
-          <table className="w-full text-sm">
-            <thead className="bg-white/[0.03] text-left text-xs text-ink-400">
-              <tr><th className="px-4 py-2 font-medium">Feature</th><th className="px-4 py-2 font-medium">Free</th><th className="px-4 py-2 font-medium">Pro</th></tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {COMPARISON.map((r) => (
-                <tr key={r.feature}>
-                  <td className="px-4 py-2 text-ink-200">{r.feature}</td>
-                  {[r.free, r.pro].map((v, i) => (
-                    <td key={i} className="px-4 py-2">{v === true ? <Check className="h-4 w-4 text-lime-glow" /> : v === false ? <X className="h-4 w-4 text-ink-500" /> : v}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p className="mt-4 text-center text-xs text-ink-400">
-          {demo ? 'Demo billing is on: upgrades activate instantly without payment. ' : ''}
-          <Link href="/pricing" target="_blank" className="font-semibold text-ink-200 hover:text-white">See full pricing</Link>
-        </p>
+              </div>
+            </Card>
+            <p className="text-center text-xs text-ink-400">
+              {demo ? 'Demo billing is on: payment is skipped and add-ons activate instantly. ' : ''}
+              Have a plan code? Enter it in <Link href="/account/plan" className="font-semibold text-ink-200 hover:text-white">Plan activation</Link>. · <Link href="/plans" className="font-semibold text-ink-200 hover:text-white">See pricing</Link>
+            </p>
+          </div>
+        )}
       </Modal>
     </UpgradeContext.Provider>
   )
+}
+
+function AddOnRow({ icon, title, hint, children }: { icon: React.ReactNode; title: string; hint: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/5 text-ink-200">{icon}</div>
+      <div className="min-w-0 flex-1">
+        <p className="font-semibold">{title}</p>
+        <p className="text-xs text-ink-400">{hint}</p>
+      </div>
+      {children}
+    </div>
+  )
+}
+
+function Owned() {
+  return <span className="inline-flex items-center gap-1 text-sm font-semibold text-lime-glow"><Check className="h-4 w-4" /> Active</span>
 }
 
 /** Compact plan status for the tournament overview. */
@@ -112,23 +236,34 @@ export function PlanCard() {
   const { t } = useTournament()
   const { openUpgrade } = useUpgrade()
   const info = t.planInfo
-  const isPro = info.plan === 'PRO'
+  const full = info.plan === 'PRO'
+  const items = [
+    { label: 'Teams', value: `${t.teams.length}/${info.limits.maxTeams}`, ok: true },
+    { label: 'Theme', value: info.limits.customTheme ? 'Custom' : 'Default', ok: info.limits.customTheme },
+    { label: `Auction #${info.sequence || 1}`, value: info.limits.auctionFeeDue ? 'Fee due' : 'Free', ok: !info.limits.auctionFeeDue },
+  ]
   return (
-    <Card className={`p-6 ${isPro ? 'border-gold/30' : ''}`}>
-      <div className="flex items-center justify-between">
-        <h3 className="flex items-center gap-2 font-semibold"><Crown className={`h-4 w-4 ${isPro ? 'text-gold' : 'text-ink-400'}`} /> {isPro ? 'Pro' : 'Free plan'}</h3>
-        {!isPro && <Button size="sm" variant="gold" onClick={() => openUpgrade()}>Upgrade</Button>}
+    <Card className={cn('p-6', full && 'border-gold/30')}>
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="flex items-center gap-2 font-semibold"><Crown className={cn('h-4 w-4', full ? 'text-gold' : 'text-ink-400')} /> {full ? 'Everything unlocked' : 'Pay as you go'}</h3>
+        {!full && <Button size="sm" variant="gold" onClick={() => openUpgrade()}>Add-ons</Button>}
       </div>
       <p className="mt-1 text-sm text-ink-400">
-        {info.source === 'SEASON_PASS' && info.seasonPassUntil
-          ? `Season Pass active until ${new Date(info.seasonPassUntil).toLocaleDateString(undefined, { dateStyle: 'medium' })}`
-          : isPro
-            ? 'All features unlocked for this tournament.'
-            : `Up to ${info.limits.maxTeams} teams and ${info.limits.maxPlayers} players. Remote bidding and branding need Pro.`}
+        {full
+          ? info.source === 'PLAN_CODE'
+            ? 'Your plan code unlocks every add-on.'
+            : info.source === 'SEASON_PASS' && info.seasonPassUntil
+              ? `Full access until ${new Date(info.seasonPassUntil).toLocaleDateString(undefined, { dateStyle: 'medium' })}`
+              : 'All add-ons unlocked for this auction.'
+          : `${info.limits.includedTeams} teams, players, live screen and phone bidding are free. Pay only for extras.`}
       </p>
-      <div className="mt-4 grid grid-cols-2 gap-2 text-center text-xs">
-        <div className="rounded-xl bg-white/[0.03] p-2"><p className="font-display text-lg font-bold">{t.teams.length}/{info.limits.maxTeams}</p><p className="text-ink-400">teams</p></div>
-        <div className="rounded-xl bg-white/[0.03] p-2"><p className="font-display text-lg font-bold">{t.stats.players}/{info.limits.maxPlayers}</p><p className="text-ink-400">players</p></div>
+      <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
+        {items.map((x) => (
+          <div key={x.label} className="rounded-xl bg-white/[0.03] p-2">
+            <p className={cn('font-display text-base font-bold', !x.ok && 'text-gold')}>{x.value}</p>
+            <p className="text-ink-400">{x.label}</p>
+          </div>
+        ))}
       </div>
     </Card>
   )

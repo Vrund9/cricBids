@@ -4,11 +4,34 @@ export type PlayerOrder = 'RANDOM' | 'CATEGORY_RANDOM' | 'SEQUENTIAL'
 export type PlanName = 'FREE' | 'PRO'
 import type { ThemeConfig } from './themes'
 
+export interface Pricing {
+  perExtraTeam: number
+  themeUnlock: number
+  auctionFee: number
+  randomAuction: number
+  pro: number
+  freeAuctions: number
+}
+
+/** Pay-per-use: `plan` is PRO only with full access (legacy Pro, admin grant or plan code). */
 export interface PlanInfo {
   plan: PlanName
-  source: 'FREE' | 'TOURNAMENT' | 'SEASON_PASS'
+  source: 'FREE' | 'TOURNAMENT' | 'SEASON_PASS' | 'PLAN_CODE'
   seasonPassUntil: string | null
-  limits: { maxTeams: number; maxPlayers: number; remoteBidding: boolean; customTheme: boolean; hideBranding: boolean }
+  limits: {
+    maxTeams: number
+    includedTeams: number
+    teamCap: number
+    maxPlayers: number
+    remoteBidding: boolean
+    customTheme: boolean
+    hideBranding: boolean
+    auctionFeeDue: boolean
+    randomAuction: boolean
+  }
+  purchases: { extraTeams: number; themeUnlocked: boolean; auctionFeePaid: boolean; randomUnlocked: boolean }
+  sequence: number
+  pricing: Pricing
   billingMode: 'demo' | 'disabled'
 }
 
@@ -23,6 +46,10 @@ export interface User {
   hasPassword?: boolean
   /** Platform admin — can open /admin. */
   isAdmin?: boolean
+  /** Earned from feedback, spent as a discount */
+  rewardPoints?: number
+  /** Everything unlocked via a plan code */
+  fullAccess?: boolean
 }
 
 export interface IncrementTier {
@@ -80,6 +107,8 @@ export interface Player {
   soldTeamId?: string | null
   soldPrice?: number | null
   soldAt?: string | null
+  /** Kept by a team before the auction */
+  retained?: boolean
   createdAt: string
 }
 
@@ -161,6 +190,8 @@ export interface PublicPlayer {
   soldTeamId?: string | null
   soldPrice?: number | null
   soldAt?: string | null
+  /** Kept by a team before the auction */
+  retained?: boolean
 }
 
 export interface SnapshotTeam {

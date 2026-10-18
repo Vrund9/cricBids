@@ -51,7 +51,7 @@ export default function AdminUsersPage() {
                     <div className="min-w-0">
                       <p className="flex items-center gap-2 truncate font-medium hover:text-lime-glow">
                         {u.name}
-                        {u.isAdmin && <Badge color="#c8ff2e">Admin</Badge>}
+                        {u.isAdmin && <Badge color="var(--color-lime-glow)">Admin</Badge>}
                         {u.suspendedAt && <Badge color="#ff4d6d">Suspended</Badge>}
                       </p>
                       <p className="truncate text-xs text-ink-400">{u.email}</p>

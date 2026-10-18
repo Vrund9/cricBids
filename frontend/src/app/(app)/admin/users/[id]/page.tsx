@@ -54,7 +54,7 @@ export default function AdminUserPage() {
           <div className="min-w-0 flex-1">
             <h1 className="flex flex-wrap items-center gap-2 font-display text-2xl font-bold">
               {u.name}
-              {u.isAdmin && <Badge color="#c8ff2e">Admin</Badge>}
+              {u.isAdmin && <Badge color="var(--color-lime-glow)">Admin</Badge>}
               {u.suspendedAt && <Badge color="#ff4d6d">Suspended</Badge>}
               {u.seasonPassActive && <Badge color="#ffb020">Season Pass</Badge>}
             </h1>

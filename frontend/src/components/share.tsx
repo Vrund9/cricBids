@@ -104,7 +104,7 @@ export function ShareLink({ url, title, message, className, compact }: { url: st
           <p className="-mt-3 mb-6 self-start text-sm text-ink-300">Scan with any phone camera to open. Show it on the venue screen or print it.</p>
           <div className="relative">
             <div className="absolute -inset-6 rounded-[2.5rem] bg-lime-glow/15 blur-2xl" aria-hidden />
-            <div className="relative rounded-3xl bg-snow p-4 shadow-[0_20px_60px_-20px_rgba(200,255,46,0.45)] ring-1 ring-black/5 sm:p-5">
+            <div className="relative rounded-3xl bg-snow p-4 shadow-[0_20px_60px_-20px_color-mix(in_oklab,var(--color-lime-bright)_45%,transparent)] ring-1 ring-black/5 sm:p-5">
               <QRCodeSVG
                 id={qrId}
                 value={url}

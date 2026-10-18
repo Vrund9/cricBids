@@ -60,7 +60,52 @@ function presetIncrements(mode: 'flat' | 'tiered', base: number): IncrementTier[
 const QUESTIONS = ['teams', 'purse', 'base', 'squad', 'increments', 'order', 'extras', 'review'] as const
 type Q = (typeof QUESTIONS)[number]
 
-export default function SetupWizard() {
+export default function SetupPage() {
+  const { t } = useTournament()
+  return t.status === 'COMPLETED' ? <RulesSummary /> : <SetupWizard />
+}
+
+const ORDER_LABEL: Record<PlayerOrder, string> = {
+  RANDOM: 'Random order',
+  CATEGORY_RANDOM: 'Random within each category',
+  SEQUENTIAL: 'In list order',
+}
+
+/** After the auction the rules are history: one read-only summary, no wizard steps. */
+function RulesSummary() {
+  const { t } = useTournament()
+  const cur = t.currency
+  const cats = Object.entries(t.categoryBasePrices ?? {})
+  const rows: [string, React.ReactNode][] = [
+    ['Teams', t.teams.length],
+    ['Purse per team', money(t.teamPurse, cur)],
+    ['Base price', money(t.basePrice, cur)],
+    ...(cats.length ? [['Category base prices', cats.map(([k, v]) => `${k}: ${moneyShort(v, cur)}`).join(' · ')] as [string, React.ReactNode]] : []),
+    ['Squad size', `${t.minSquad} – ${t.maxSquad} players`],
+    ['Bid steps', t.bidIncrements.map((x) => (x.from ? `+${moneyShort(x.step, cur)} from ${moneyShort(x.from, cur)}` : `+${moneyShort(x.step, cur)}`)).join(' · ')],
+    ['Player order', ORDER_LABEL[t.playerOrder]],
+    ['Bid timer', t.bidTimerSec ? `${t.bidTimerSec} seconds` : 'Off'],
+    ['Remote bidding', t.remoteBidding ? 'On — owners bid from their phones' : 'Off'],
+  ]
+  return (
+    <div className="mx-auto max-w-3xl">
+      <div className="mb-6">
+        <h2 className="font-display text-2xl font-bold">Auction rules</h2>
+        <p className="text-sm text-ink-400">The rules this auction ran with. It’s complete, so they can’t be changed.</p>
+      </div>
+      <Card className="divide-y divide-white/5">
+        {rows.map(([label, value]) => (
+          <div key={label} className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 px-6 py-4">
+            <dt className="text-sm text-ink-400">{label}</dt>
+            <dd className="text-right text-sm font-semibold">{value}</dd>
+          </div>
+        ))}
+      </Card>
+    </div>
+  )
+}
+
+function SetupWizard() {
   const { t, update, reload } = useTournament()
   const router = useRouter()
   const [sug, setSug] = useState<Suggestions | null>(null)

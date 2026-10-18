@@ -66,15 +66,81 @@ model User {
   /// Suspended accounts can't sign in or use the API.
   suspendedAt     DateTime?
   lastLoginAt     DateTime?
+  /// Bumped on every sign-in; tokens carry it, so signing in on a new device signs the old one out.
+  sessionVersion  Int          @default(0)
+  /// Reward points balance: earned by sending feedback, spent as a discount on plans.
+  rewardPoints    Int          @default(0)
+  /// Auctions ever created (deleting one doesn't lower it): the 4th onwards carry an auction fee.
+  auctionsCreated Int          @default(0)
+  /// Everything unlocked for free — set by redeeming a plan code, cleared when the code is revoked.
+  fullAccess      Boolean      @default(false)
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
   tournaments     Tournament[]
   payments        Payment[]
+  feedback        Feedback[]
+  planCode        PlanCode?    @relation("RedeemedCode")
+}
+
+/// One-time codes an admin hands out to give an account full access (early customers, exceptions).
+model PlanCode {
+  id           String    @id @default(cuid())
+  code         String    @unique
+  note         String?
+  createdById  String?
+  redeemedById String?   @unique
+  redeemedBy   User?     @relation("RedeemedCode", fields: [redeemedById], references: [id], onDelete: SetNull)
+  redeemedAt   DateTime?
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now())
+}
+
+enum FeedbackType {
+  SUGGESTION
+  BUG
+}
+
+enum FeedbackStatus {
+  NEW
+  REVIEWED
+  RESOLVED
+  /// Rejected as spam: the points it earned are taken back.
+  REJECTED
+}
+
+/// Suggestions and bug reports sent from the account page. Each one earns reward points.
+model Feedback {
+  id         String         @id @default(cuid())
+  userId     String
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       FeedbackType
+  title      String
+  message    String
+  /// Page the user was on, or any context they added
+  page       String?
+  status     FeedbackStatus @default(NEW)
+  /// Points awarded for this entry (taken back if rejected)
+  points     Int            @default(0)
+  adminNote  String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@index([userId])
+  @@index([createdAt])
 }
 
 enum PaymentKind {
+  /// Legacy plans, kept for payment history
   TOURNAMENT_PRO
   SEASON_PASS
+  /// Pay-per-use: teams above the free 6
+  EXTRA_TEAMS
+  /// Pay-per-use: theme, colour and background customisation
+  THEME_UNLOCK
+  /// Pay-per-use: the 4th and later auctions
+  AUCTION_FEE
+  /// Pay-per-use: one-click random auction by grade
+  RANDOM_AUCTION
 }
 
 enum PaymentSource {
@@ -99,6 +165,14 @@ model Payment {
   currency     String        @default("INR")
   source       PaymentSource
   note         String?
+  /// List price in whole rupees before any reward discount
+  listPrice    Int           @default(0)
+  /// Reward discount applied, e.g. 10 for 10% off
+  discountPct  Int           @default(0)
+  /// Reward points spent on this purchase
+  pointsUsed   Int           @default(0)
+  /// Units bought, e.g. number of extra teams
+  quantity     Int           @default(1)
   createdAt    DateTime      @default(now())
 
   @@index([userId])
@@ -139,8 +213,19 @@ model Tournament {
   auctionDate     DateTime?
   currency        String           @default("INR")
   status          TournamentStatus @default(DRAFT)
+  /// PRO = everything unlocked (legacy purchases and admin grants)
   plan            TournamentPlan   @default(FREE)
   planActivatedAt DateTime?
+  /// This is the owner's Nth auction (1-based), fixed at creation
+  sequence        Int              @default(0)
+  /// Paid teams on top of the free allowance
+  extraTeams      Int              @default(0)
+  /// Paid theme customisation
+  themeUnlocked   Boolean          @default(false)
+  /// Paid auction fee (needed from the owner's 4th auction)
+  auctionFeePaid  Boolean          @default(false)
+  /// Paid one-click random auction
+  randomUnlocked  Boolean          @default(false)
   /// Look of the public screens: { preset, accent?, hideBranding? }
   theme           Json?
 
@@ -218,6 +303,8 @@ model Player {
   photoUrl     String?
   /// Overrides tournament/category base price when set
   basePrice    Int?
+  /// Kept by a team before the auction (never goes under the hammer)
+  retained     Boolean      @default(false)
   /// Any additional columns from Excel or custom registration answers
   extra        Json?
   approved     Boolean      @default(true)

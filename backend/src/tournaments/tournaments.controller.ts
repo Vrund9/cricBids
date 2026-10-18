@@ -4,7 +4,7 @@ import { TournamentsService } from './tournaments.service'
 import { TeamsService } from './teams.service'
 import { PlayersService } from './players.service'
 import {
-  BulkApproveDto, BulkCategoryDto, CreateTournamentDto, ImportPlayersDto, PlayerInputDto, RotateTokenDto,
+  BulkApproveDto, BulkCategoryDto, CreateTournamentDto, ImportPlayersDto, PlayerInputDto, RetainDto, RotateTokenDto,
   TeamCountDto, TeamDto, UpdatePlayerDto, UpdateTeamDto, UpdateTournamentDto,
 } from './tournament.dto'
 
@@ -85,6 +85,17 @@ export class TournamentsController {
   @HttpCode(200)
   rotateTeamToken(@CurrentUser() u: AuthUser, @Param('id') id: string, @Param('teamId') teamId: string) {
     return this.teams.rotateBidToken(id, teamId, u.id)
+  }
+
+  @Post(':id/teams/:teamId/retain')
+  @HttpCode(200)
+  retain(@CurrentUser() u: AuthUser, @Param('id') id: string, @Param('teamId') teamId: string, @Body() dto: RetainDto) {
+    return this.teams.retain(id, teamId, u.id, dto)
+  }
+
+  @Delete(':id/teams/:teamId/retain/:playerId')
+  release(@CurrentUser() u: AuthUser, @Param('id') id: string, @Param('teamId') teamId: string, @Param('playerId') playerId: string) {
+    return this.teams.release(id, teamId, playerId, u.id)
   }
 
   // ── Players ──

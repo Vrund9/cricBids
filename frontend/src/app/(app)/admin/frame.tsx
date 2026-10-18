@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { CreditCard, History, LayoutDashboard, Settings, ShieldCheck, Trophy, Users } from 'lucide-react'
+import { CreditCard, History, KeyRound, LayoutDashboard, MessageSquareHeart, Settings, ShieldCheck, Trophy, Users } from 'lucide-react'
 import { EmptyState } from '@/components/ui'
 import { useAuth } from '@/lib/auth'
 import { cn } from '@/lib/cn'
@@ -12,6 +12,8 @@ const NAV = [
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/tournaments', label: 'Tournaments', icon: Trophy },
   { href: '/admin/payments', label: 'Payments', icon: CreditCard },
+  { href: '/admin/feedback', label: 'Feedback', icon: MessageSquareHeart },
+  { href: '/admin/plan-codes', label: 'Plan codes', icon: KeyRound },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
   { href: '/admin/activity', label: 'Activity log', icon: History },
 ]

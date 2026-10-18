@@ -1,3 +1,4 @@
+import { Throttle } from '@nestjs/throttler'
 import { BadRequestException, Body, Controller, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { diskStorage } from 'multer'
@@ -30,6 +31,7 @@ export function publicUrl(file?: Express.Multer.File) {
 }
 
 @Controller('uploads')
+@Throttle({ default: { limit: 30, ttl: 60_000 } })
 export class UploadsController {
   @Post()
   @UseGuards(JwtAuthGuard)

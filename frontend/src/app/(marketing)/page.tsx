@@ -93,7 +93,7 @@ export default function Home() {
                 </p>
               </Reveal>
               <Reveal delay={0.15} className="mt-9 flex flex-wrap items-center gap-3">
-                <Link href="/signup" className="group inline-flex h-12 items-center gap-2 rounded-xl bg-lime-bright px-6 font-semibold text-on-accent shadow-[0_8px_40px_-8px_rgba(200,255,46,0.6)] hover:bg-[#d6ff5c]">
+                <Link href="/signup" className="group inline-flex h-12 items-center gap-2 rounded-xl bg-lime-bright px-6 font-semibold text-on-accent shadow-[0_8px_40px_-8px_color-mix(in_oklab,var(--color-lime-bright)_60%,transparent)] hover:bg-lime-hover">
                   Create your auction <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
                 </Link>
                 <Link href="/pricing" className="inline-flex h-12 items-center rounded-xl border border-white/15 px-6 font-semibold text-white hover:bg-white/5">
@@ -135,7 +135,7 @@ export default function Home() {
               </div>
             </Reveal>
             <Reveal delay={0.08}>
-              <div className="card h-full border-lime-glow/20 p-7 shadow-[0_0_80px_-30px_rgba(200,255,46,0.4)]">
+              <div className="card h-full border-lime-glow/20 p-7 shadow-[0_0_80px_-30px_color-mix(in_oklab,var(--color-lime-bright)_40%,transparent)]">
                 <p className="text-sm font-semibold uppercase tracking-widest text-lime-glow">With BidWicket</p>
                 <ul className="mt-5 space-y-4 text-ink-100">
                   {[

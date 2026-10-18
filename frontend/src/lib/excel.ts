@@ -35,30 +35,132 @@ const IGNORE = ['', 'timestamp', 'sr no', 'sr', 's no', 'serial', 'serial no', '
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
 
-/** Guess which player field each column holds. Works for most Google Forms / hand-made sheets. */
-export function autoMap(headers: string[]): Record<string, TargetKey> {
-  const scores: { header: string; key: Exclude<TargetKey, 'extra' | 'ignore'>; score: number }[] = []
+/** How a column was matched, so the import screen can say how sure it is. */
+export type MatchHow = 'exact' | 'similar' | 'content' | 'remembered' | 'none'
+
+type FieldKey = Exclude<TargetKey, 'extra' | 'ignore'>
+
+/** Edit distance, for typos like "Plyer Nme" or "Mobil No". */
+function lev(a: string, b: string) {
+  const d = Array.from({ length: b.length + 1 }, (_, i) => i)
+  for (let i = 1; i <= a.length; i++) {
+    let prev = d[0]
+    d[0] = i
+    for (let j = 1; j <= b.length; j++) {
+      const tmp = d[j]
+      d[j] = Math.min(d[j] + 1, d[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1))
+      prev = tmp
+    }
+  }
+  return d[b.length]
+}
+
+/** 0–100: how much a header looks like a synonym (exact, whole-word, word overlap or a typo). */
+function headerScore(n: string, syn: string) {
+  if (n === syn) return 100
+  if (new RegExp(`\\b${syn}\\b`).test(n)) return 60 + Math.min(syn.length, 20)
+  const a = new Set(n.split(' '))
+  const b = syn.split(' ')
+  const overlap = b.filter((w) => a.has(w) || [...a].some((x) => x.length > 3 && w.length > 3 && lev(x, w) <= 1)).length
+  if (overlap === b.length) return 55
+  const dist = lev(n, syn)
+  const ratio = 1 - dist / Math.max(n.length, syn.length)
+  return ratio >= 0.75 && syn.length >= 4 ? Math.round(ratio * 50) : 0
+}
+
+const ROLE_WORDS = /^(bat|batsman|batter|batting|bowl|bowler|bowling|all ?rounder|ar|wk|keeper|wicket ?keeper|wicketkeeper)\b/i
+
+/** Guess a column from its values when the header says nothing useful ("Column 3", "Q4", "Info"). */
+function contentGuess(values: string[]): FieldKey | null {
+  const v = values.map((x) => x.trim()).filter(Boolean).slice(0, 40)
+  if (v.length < 2) return null
+  const share = (re: RegExp) => v.filter((x) => re.test(x)).length / v.length
+  if (share(/^\S+@\S+\.\S+$/) > 0.7) return 'email'
+  if (share(/^https?:\/\//i) > 0.7) return 'photoUrl'
+  if (share(/^\+?[\d\s-]{10,15}$/) > 0.7) return 'phone'
+  if (share(ROLE_WORDS) > 0.6) return 'role'
+  if (share(/^(left|right|lh|rh)/i) > 0.6) return /bowl|arm|spin|pace|medium|fast/i.test(v.join(' ')) ? 'bowlingStyle' : 'battingStyle'
+  if (share(/^\d{1,2}$/) > 0.8 && v.every((x) => !/^\d+$/.test(x) || (Number(x) >= 5 && Number(x) <= 90))) return 'age'
+  // Category values look like tiers (A, B+, Marquee, Gold), not just any short word like jersey sizes.
+  if (share(/^(marquee|icon|elite|platinum|gold|silver|bronze|[a-e]\+?|[1-5])$/i) > 0.8) return 'category'
+  if (share(/^[A-Za-z][A-Za-z.' -]{2,40}$/) > 0.8 && v.some((x) => x.includes(' ')) && new Set(v).size > v.length * 0.8) return 'name'
+  return null
+}
+
+const MEMORY_KEY = 'cricbid.import-mapping'
+
+/** Mappings the organiser corrected by hand are remembered per header text for next time. */
+export function rememberMapping(mapping: Record<string, TargetKey>) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(MEMORY_KEY) || '{}') as Record<string, TargetKey>
+    for (const [h, v] of Object.entries(mapping)) saved[norm(h)] = v
+    localStorage.setItem(MEMORY_KEY, JSON.stringify(saved))
+  } catch {}
+}
+
+function remembered(): Record<string, TargetKey> {
+  try {
+    return JSON.parse(localStorage.getItem(MEMORY_KEY) || '{}')
+  } catch {
+    return {}
+  }
+}
+
+/**
+ * Guess which player field each column holds, in order of confidence:
+ * the organiser's own earlier choice → header text (exact, word, typo-tolerant) → the values themselves.
+ * Anything still unknown is kept as "extra info", so no data is ever dropped silently.
+ */
+export function autoMap(headers: string[], rows: Record<string, unknown>[] = []): { mapping: Record<string, TargetKey>; how: Record<string, MatchHow> } {
+  const mapping: Record<string, TargetKey> = {}
+  const how: Record<string, MatchHow> = {}
+  const used = new Set<string>()
+  const memory = remembered()
+
   for (const h of headers) {
+    const m = memory[norm(h)]
+    if (m && (m === 'extra' || m === 'ignore' || !used.has(m))) {
+      mapping[h] = m
+      how[h] = 'remembered'
+      if (m !== 'extra' && m !== 'ignore') used.add(m)
+    }
+  }
+
+  const scores: { header: string; key: FieldKey; score: number }[] = []
+  for (const h of headers) {
+    if (mapping[h]) continue
     const n = norm(h)
-    for (const [key, syns] of Object.entries(SYNONYMS) as [Exclude<TargetKey, 'extra' | 'ignore'>, string[]][]) {
-      let score = 0
-      for (const s of syns) {
-        if (n === s) score = Math.max(score, 100)
-        else if (new RegExp(`\\b${s}\\b`).test(n)) score = Math.max(score, 50 + s.length)
-      }
-      if (score) scores.push({ header: h, key, score })
+    for (const [key, syns] of Object.entries(SYNONYMS) as [FieldKey, string[]][]) {
+      const score = Math.max(...syns.map((syn) => headerScore(n, syn)))
+      if (score >= 35) scores.push({ header: h, key, score })
     }
   }
   scores.sort((a, b) => b.score - a.score)
-  const map: Record<string, TargetKey> = {}
-  const used = new Set<string>()
   for (const s of scores) {
-    if (map[s.header] || used.has(s.key)) continue
-    map[s.header] = s.key
+    if (mapping[s.header] || used.has(s.key)) continue
+    mapping[s.header] = s.key
+    how[s.header] = s.score >= 60 ? 'exact' : 'similar'
     used.add(s.key)
   }
-  for (const h of headers) if (!map[h]) map[h] = IGNORE.includes(norm(h)) ? 'ignore' : 'extra'
-  return map
+
+  for (const h of headers) {
+    if (mapping[h]) continue
+    if (IGNORE.includes(norm(h))) {
+      mapping[h] = 'ignore'
+      how[h] = 'exact'
+      continue
+    }
+    const guess = contentGuess(rows.map((r) => (r[h] instanceof Date ? '' : String(r[h] ?? ''))))
+    if (guess && !used.has(guess)) {
+      mapping[h] = guess
+      how[h] = 'content'
+      used.add(guess)
+    } else {
+      mapping[h] = 'extra'
+      how[h] = 'none'
+    }
+  }
+  return { mapping, how }
 }
 
 export interface Sheet {
@@ -132,7 +234,7 @@ export async function downloadTemplate(fields: RegField[], tournamentName: strin
       return ''
     })
   const ws = XLSX.utils.aoa_to_sheet([cols, sample(0), sample(1)])
-  ws['!cols'] = cols.map((c) => ({ wch: Math.max(14, c.length + 4) }))
+  ws['!cols'] = cols.map((c) => ({ wch: Math.max(18, c.length + 6) }))
   const help = XLSX.utils.aoa_to_sheet([
     ['How to fill this sheet'],
     ['• One player per row. Only the name is required.'],
@@ -172,7 +274,7 @@ export async function exportPlayers(players: Player[], teams: Team[], tournament
     ...Object.fromEntries(extraKeys.map((k) => [k, p.extra?.[k] ?? ''])),
   }))
   const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Players')
+  XLSX.utils.book_append_sheet(wb, sheet(XLSX, rows), 'Players')
   XLSX.writeFile(wb, `${safeName(tournament.name)}_players.xlsx`)
 }
 
@@ -193,18 +295,37 @@ export async function exportResults(players: Player[], teams: Team[], tournament
       'Most expensive': top ? `${top.name} (${top.soldPrice})` : '',
     }
   })
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary), 'Summary')
+  XLSX.utils.book_append_sheet(wb, sheet(XLSX, summary), 'Summary')
   for (const t of teams) {
     const rows = sold
       .filter((p) => p.soldTeamId === t.id)
       .sort((a, b) => (b.soldPrice ?? 0) - (a.soldPrice ?? 0))
       .map((p, i) => ({ '#': i + 1, Player: p.name, Role: p.role, Price: p.soldPrice, Mobile: p.phone ?? '', Category: p.category ?? '' }))
     const sheetName = t.name.replace(/[\\/?*[\]:]/g, '').slice(0, 31) || t.shortName
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows.length ? rows : [{ Player: 'No players bought' }]), uniqueSheet(wb, sheetName))
+    XLSX.utils.book_append_sheet(wb, sheet(XLSX, rows.length ? rows : [{ Player: 'No players bought' }]), uniqueSheet(wb, sheetName))
   }
   const unsold = players.filter((p) => p.status !== 'SOLD').map((p) => ({ '#': p.serial, Player: p.name, Role: p.role, Status: p.status, Mobile: p.phone ?? '' }))
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(unsold.length ? unsold : [{ Player: 'Everyone was sold 🎉' }]), 'Unsold')
+  XLSX.utils.book_append_sheet(wb, sheet(XLSX, unsold.length ? unsold : [{ Player: 'Everyone was sold 🎉' }]), 'Unsold')
   XLSX.writeFile(wb, `${safeName(tournament.name)}_auction_results.xlsx`)
+}
+
+/**
+ * Column widths from the content (Excel's default is ~8 characters, which cut off every name).
+ * Each column is as wide as its longest value, within sensible bounds.
+ */
+function autoWidth(ws: Record<string, unknown>, rows: Record<string, unknown>[], min = 12, max = 60) {
+  const keys = [...new Set(rows.flatMap((r) => Object.keys(r)))]
+  ws['!cols'] = keys.map((k) => {
+    const longest = Math.max(k.length, ...rows.map((r) => String(r[k] ?? '').length))
+    return { wch: Math.min(max, Math.max(min, longest + 3)) }
+  })
+  return ws
+}
+
+function sheet(XLSX: typeof import('xlsx'), rows: Record<string, unknown>[]) {
+  const ws = XLSX.utils.json_to_sheet(rows)
+  autoWidth(ws as unknown as Record<string, unknown>, rows)
+  return ws
 }
 
 function uniqueSheet(wb: { SheetNames: string[] }, name: string) {

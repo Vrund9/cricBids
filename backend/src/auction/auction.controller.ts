@@ -1,6 +1,6 @@
 import { Body, Controller, Get, HttpCode, Param, Post, UseGuards } from '@nestjs/common'
 import { IsInt, IsOptional, IsString, Min } from 'class-validator'
-import { SkipThrottle } from '@nestjs/throttler'
+import { Throttle } from '@nestjs/throttler'
 import { AuthUser, CurrentUser, JwtAuthGuard } from '../auth/jwt.guard'
 import { TournamentsService } from '../tournaments/tournaments.service'
 import { AuctionService } from './auction.service'
@@ -18,7 +18,8 @@ class BidDto {
 /** Organiser control room. Every action broadcasts a fresh snapshot to all viewers. */
 @Controller('tournaments/:id/auction')
 @UseGuards(JwtAuthGuard)
-@SkipThrottle()
+// Auctioneers click fast (bids, undo, next); generous per-second burst, still stops runaway scripts.
+@Throttle({ default: { limit: 60, ttl: 10_000 } })
 export class AuctionController {
   constructor(
     private readonly auction: AuctionService,
@@ -96,6 +97,11 @@ export class AuctionController {
   @Post('finish') @HttpCode(200)
   finish(@CurrentUser() u: AuthUser, @Param('id') id: string) {
     return this.auction.finish(id, u.id)
+  }
+
+  @Post('random') @HttpCode(200)
+  random(@CurrentUser() u: AuthUser, @Param('id') id: string) {
+    return this.auction.randomAuction(id, u.id)
   }
 
   @Post('reset') @HttpCode(200)

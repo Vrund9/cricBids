@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Check, Download, FileSpreadsheet, ImagePlus, Pencil, Plus, Search, Tag, Trash2, UserPlus, Users, X } from 'lucide-react'
+import { Check, Download, FileSpreadsheet, ImagePlus, Pencil, Plus, Search, Tag, Trash2, UserPlus, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTournament } from '@/components/tournament-context'
 import { ImportWizard } from '@/components/import-wizard'
+import { PlayersNav } from '@/components/players-nav'
+import { CricketScene } from '@/components/cricket-scene'
 import { Avatar, Badge, Button, Card, EmptyState, Field, Input, Modal, PageLoader, Select, StatusBadge } from '@/components/ui'
 import { api, uploadImage } from '@/lib/api'
 import { downloadTemplate, exportPlayers } from '@/lib/excel'
@@ -13,11 +15,13 @@ import { money, roleMeta } from '@/lib/format'
 import { useLiveAuction } from '@/lib/live'
 import type { Player } from '@/lib/types'
 import { cn } from '@/lib/cn'
+import { useConfirm } from '@/components/confirm'
 
 const ROLES = ['Batsman', 'Bowler', 'All-rounder', 'Wicket-keeper']
 
 export default function PlayersPage() {
   const { t, reload: reloadT } = useTournament()
+  const confirm = useConfirm()
   const [players, setPlayers] = useState<Player[] | null>(null)
   const [q, setQ] = useState('')
   const [role, setRole] = useState('')
@@ -27,6 +31,16 @@ export default function PlayersPage() {
   const [editing, setEditing] = useState<Player | 'new' | null>(null)
   const [catOpen, setCatOpen] = useState(false)
   const started = ['LIVE', 'PAUSED', 'COMPLETED'].includes(t.status)
+  // After the auction the list is a record: view and export only.
+  const readOnly = t.status === 'COMPLETED'
+
+  // The overview's "Upload Excel" link lands here with #import.
+  useEffect(() => {
+    if (!readOnly && window.location.hash === '#import') {
+      setImporting(true)
+      history.replaceState(null, '', window.location.pathname)
+    }
+  }, [readOnly])
 
   const load = useCallback(async () => {
     try {
@@ -87,7 +101,7 @@ export default function PlayersPage() {
   }
 
   const remove = async (p: Player) => {
-    if (!confirm(`Remove ${p.name}?`)) return
+    if (!(await confirm({ title: `Remove ${p.name}?`, message: 'They’re taken off the player list and won’t come up in the auction.', confirmLabel: 'Remove player', danger: true }))) return
     try {
       await api(`/tournaments/${t.id}/players/${p.id}`, { method: 'DELETE' })
       toast.success('Player removed')
@@ -100,44 +114,56 @@ export default function PlayersPage() {
   if (!players) return <PageLoader />
 
   return (
+    <div>
+      <PlayersNav />
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="font-display text-2xl font-bold">Players</h2>
           <p className="text-sm text-ink-400">
-            {players.length} total · {players.filter((p) => p.source === 'FORM').length} from registration form{t.stats.pendingApproval ? ` · ${t.stats.pendingApproval} awaiting approval` : ''}
+            {readOnly
+              ? `${players.length} total · ${players.filter((p) => p.status === 'SOLD').length} sold · auction complete, view only`
+              : `${players.length} total · ${players.filter((p) => p.source === 'FORM').length} from registration form${t.stats.pendingApproval ? ` · ${t.stats.pendingApproval} awaiting approval` : ''}`}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="ghost" size="sm" onClick={() => downloadTemplate(t.registrationFields, t.name)}>
-            <Download className="h-4 w-4" /> Excel template
-          </Button>
+          {!readOnly && (
+            <Button variant="ghost" size="sm" onClick={() => downloadTemplate(t.registrationFields, t.name)}>
+              <Download className="h-4 w-4" /> Excel template
+            </Button>
+          )}
           {players.length > 0 && (
             <Button variant="ghost" size="sm" onClick={() => exportPlayers(players, t.teams, t)}>
               <FileSpreadsheet className="h-4 w-4" /> Export
             </Button>
           )}
-          <Button variant="secondary" size="sm" onClick={() => setEditing('new')}>
-            <UserPlus className="h-4 w-4" /> Add player
-          </Button>
-          <Button size="sm" onClick={() => setImporting(true)}>
-            <FileSpreadsheet className="h-4 w-4" /> Upload Excel
-          </Button>
+          {!readOnly && (
+            <>
+              <Button variant="secondary" size="sm" onClick={() => setEditing('new')}>
+                <UserPlus className="h-4 w-4" /> Add player
+              </Button>
+              <Button size="sm" onClick={() => setImporting(true)}>
+                <FileSpreadsheet className="h-4 w-4" /> Upload Excel
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
       {players.length === 0 ? (
         <EmptyState
-          icon={<Users className="h-6 w-6" />}
+          art={<CricketScene variant="bowled" />}
           title="No players yet"
           action={
-            <div className="flex flex-wrap justify-center gap-2">
-              <Button onClick={() => setImporting(true)}><FileSpreadsheet className="h-4 w-4" /> Upload Excel</Button>
-              <Button variant="secondary" onClick={() => (window.location.href = `/t/${t.id}/registration`)}>Share registration link</Button>
-            </div>
+            readOnly ? undefined : (
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button onClick={() => setImporting(true)}><FileSpreadsheet className="h-4 w-4" /> Upload Excel</Button>
+                <Button variant="secondary" onClick={() => (window.location.href = `/t/${t.id}/registration`)}>Share registration link</Button>
+              </div>
+            )
           }
         >
-          Upload the Excel you already have (Google Forms exports work), or let players register themselves through a link.
+          {readOnly ? 'This auction finished without any players.' : 'Two ways in: upload the Excel you already have (Google Forms exports work), or share the registration link and players add themselves.'}
         </EmptyState>
       ) : (
         <Card className="overflow-hidden">
@@ -177,8 +203,8 @@ export default function PlayersPage() {
             <table className="w-full min-w-[760px] text-sm">
               <thead className="text-left text-xs text-ink-400">
                 <tr className="border-b border-white/5">
-                  <th className="w-10 px-4 py-3">
-                    <input type="checkbox" className="accent-lime-glow" checked={allSelected} onChange={() => setSelected(allSelected ? new Set() : new Set(filtered.map((p) => p.id)))} aria-label="Select all" />
+                  <th className={cn('px-4 py-3', readOnly ? 'w-2 px-1' : 'w-10')}>
+                    {!readOnly && <input type="checkbox" className="accent-lime-glow" checked={allSelected} onChange={() => setSelected(allSelected ? new Set() : new Set(filtered.map((p) => p.id)))} aria-label="Select all" />}
                   </th>
                   <th className="px-2 py-3 font-medium">Player</th>
                   <th className="px-2 py-3 font-medium">Role</th>
@@ -194,8 +220,8 @@ export default function PlayersPage() {
                   const team = p.soldTeamId ? t.teams.find((x) => x.id === p.soldTeamId) : null
                   return (
                     <tr key={p.id} className={cn('transition hover:bg-white/[0.02]', selected.has(p.id) && 'bg-lime-glow/[0.03]')}>
-                      <td className="px-4 py-2.5">
-                        <input type="checkbox" className="accent-lime-glow" checked={selected.has(p.id)} onChange={() => toggle(p.id)} aria-label={`Select ${p.name}`} />
+                      <td className={cn('py-2.5', readOnly ? 'px-1' : 'px-4')}>
+                        {!readOnly && <input type="checkbox" className="accent-lime-glow" checked={selected.has(p.id)} onChange={() => toggle(p.id)} aria-label={`Select ${p.name}`} />}
                       </td>
                       <td className="px-2 py-2.5">
                         <div className="flex items-center gap-3">
@@ -213,18 +239,18 @@ export default function PlayersPage() {
                         {!p.approved ? (
                           <Badge color="#ffb020">pending</Badge>
                         ) : p.status === 'SOLD' ? (
-                          <span className="text-xs"><b className="text-gold">{money(p.soldPrice, t.currency)}</b> <span className="text-ink-400">· {team?.shortName}</span></span>
+                          <span className="text-xs"><b className="text-gold">{money(p.soldPrice, t.currency)}</b> <span className="text-ink-400">· {team?.shortName}{p.retained ? ' · retained' : ''}</span></span>
                         ) : (
                           <StatusBadge status={p.status} />
                         )}
                       </td>
                       <td className="px-2 py-2.5 text-right">
-                        <div className="flex justify-end gap-1">
+                        {!readOnly && <div className="flex justify-end gap-1">
                           <button className="rounded-lg p-2 text-ink-400 hover:bg-white/5 hover:text-white" onClick={() => setEditing(p)} aria-label={`Edit ${p.name}`}><Pencil className="h-4 w-4" /></button>
                           {p.status !== 'SOLD' && p.status !== 'LIVE' && (
                             <button className="rounded-lg p-2 text-ink-400 hover:bg-rose-hot/10 hover:text-rose-hot" onClick={() => remove(p)} aria-label={`Remove ${p.name}`}><Trash2 className="h-4 w-4" /></button>
                           )}
-                        </div>
+                        </div>}
                       </td>
                     </tr>
                   )
@@ -236,9 +262,12 @@ export default function PlayersPage() {
         </Card>
       )}
 
+      {!readOnly && <>
       <ImportWizard open={importing} onClose={() => setImporting(false)} tournamentId={t.id} hasPlayers={players.length > 0} locked={started} onImported={refresh} />
       <PlayerModal player={editing} onClose={() => setEditing(null)} tournamentId={t.id} onSaved={refresh} />
       <CategoryModal open={catOpen} onClose={() => setCatOpen(false)} ids={[...selected]} tournamentId={t.id} existing={t.categories.map((c) => c.name)} onSaved={() => { setSelected(new Set()); refresh() }} />
+      </>}
+    </div>
     </div>
   )
 }

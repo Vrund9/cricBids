@@ -6,8 +6,9 @@ import { ArrowLeft, CheckCircle2, FileSpreadsheet, Sparkles, UploadCloud } from 
 import { toast } from 'sonner'
 import { Button, Modal, Select } from './ui'
 import { api } from '@/lib/api'
-import { autoMap, readWorkbook, TARGETS, toPlayers, type Sheet, type TargetKey } from '@/lib/excel'
+import { autoMap, readWorkbook, rememberMapping, TARGETS, toPlayers, type MatchHow, type Sheet, type TargetKey } from '@/lib/excel'
 import { cn } from '@/lib/cn'
+import { useConfirm } from '@/components/confirm'
 
 type Step = 'pick' | 'map' | 'done'
 
@@ -16,11 +17,13 @@ export function ImportWizard({ open, onClose, tournamentId, hasPlayers, locked, 
   const [sheet, setSheet] = useState<Sheet | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [mapping, setMapping] = useState<Record<string, TargetKey>>({})
+  const [how, setHow] = useState<Record<string, MatchHow>>({})
   const [mode, setMode] = useState<'append' | 'replace'>('append')
   const [busy, setBusy] = useState(false)
   const [drag, setDrag] = useState(false)
   const [result, setResult] = useState<{ created: number; duplicates: number; total: number } | null>(null)
   const input = useRef<HTMLInputElement>(null)
+  const confirm = useConfirm()
 
   const reset = () => {
     setStep('pick')
@@ -45,7 +48,9 @@ export function ImportWizard({ open, onClose, tournamentId, hasPlayers, locked, 
       if (!s.rows.length) throw new Error('That sheet has no rows')
       setFile(f)
       setSheet(s)
-      setMapping(autoMap(s.headers))
+      const guess = autoMap(s.headers, s.rows)
+      setMapping(guess.mapping)
+      setHow(guess.how)
       setStep('map')
     } catch (e) {
       toast.error((e as Error).message || 'Could not read that file')
@@ -57,12 +62,15 @@ export function ImportWizard({ open, onClose, tournamentId, hasPlayers, locked, 
   const players = useMemo(() => (sheet ? toPlayers(sheet.rows, mapping) : []), [sheet, mapping])
   const nameMapped = Object.values(mapping).includes('name')
   const autoCount = Object.values(mapping).filter((v) => v !== 'extra' && v !== 'ignore').length
+  const unsure = Object.entries(how).filter(([h, v]) => (v === 'similar' || v === 'content') && mapping[h] !== 'extra' && mapping[h] !== 'ignore').length
+  const unmatched = Object.entries(how).filter(([h, v]) => v === 'none' && mapping[h] === 'extra').length
 
   const submit = async () => {
-    if (mode === 'replace' && !confirm('Replace will delete all current players first. Continue?')) return
+    if (mode === 'replace' && !(await confirm({ title: 'Replace all players?', message: 'Every current player is deleted first, then this file is imported.', confirmLabel: 'Replace players', danger: true }))) return
     setBusy(true)
     try {
       const res = await api<{ created: number; duplicates: number; total: number }>(`/tournaments/${tournamentId}/players/import`, { body: { players, mode } })
+      rememberMapping(mapping)
       setResult(res)
       setStep('done')
       onImported()
@@ -118,6 +126,18 @@ export function ImportWizard({ open, onClose, tournamentId, hasPlayers, locked, 
               )}
             </div>
 
+            {(unsure > 0 || unmatched > 0 || !nameMapped) && (
+              <div className="rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-ink-100">
+                <p className="font-semibold text-gold">Your columns don’t all use our names — that’s fine.</p>
+                <ul className="mt-1 list-disc space-y-0.5 pl-5 text-ink-200">
+                  {!nameMapped && <li>Choose which column holds the <b>player name</b> — it’s the only one we need.</li>}
+                  {unsure > 0 && <li>{unsure} column{unsure > 1 ? 's were' : ' was'} matched by a similar name or by the values inside (marked <b>check</b>). Have a quick look.</li>}
+                  {unmatched > 0 && <li>{unmatched} column{unmatched > 1 ? 's' : ''} didn’t match a player field and will be kept as <b>extra info</b> on each player — nothing is lost. Pick a field from the dropdown to change that.</li>}
+                </ul>
+                <p className="mt-1 text-xs text-ink-400">Your choices are remembered, so the next file with the same headers maps itself.</p>
+              </div>
+            )}
+
             <div className="overflow-hidden rounded-xl border border-white/10">
               <div className="scroll-thin max-h-[46vh] overflow-auto">
                 <table className="w-full text-sm">
@@ -134,7 +154,14 @@ export function ImportWizard({ open, onClose, tournamentId, hasPlayers, locked, 
                       const v = mapping[h]
                       return (
                         <tr key={h} className={cn(v === 'ignore' && 'opacity-50')}>
-                          <td className="max-w-48 truncate px-4 py-2 font-medium">{h}</td>
+                          <td className="max-w-48 px-4 py-2 font-medium">
+                            <span className="block truncate">{h}</span>
+                            {how[h] && how[h] !== 'none' && v !== 'extra' && v !== 'ignore' && (
+                              <span className={cn('mt-0.5 inline-block rounded-full px-1.5 text-[10px] font-bold uppercase tracking-wide', how[h] === 'similar' || how[h] === 'content' ? 'bg-gold/15 text-gold' : 'bg-lime-glow/10 text-lime-glow')}>
+                                {how[h] === 'similar' ? 'check · similar name' : how[h] === 'content' ? 'check · from values' : how[h] === 'remembered' ? 'remembered' : 'matched'}
+                              </span>
+                            )}
+                          </td>
                           <td className="max-w-56 truncate px-4 py-2 text-ink-400">{sample instanceof Date ? sample.toLocaleDateString() : String(sample ?? '—')}</td>
                           <td className="px-4 py-2">
                             <Select
@@ -149,6 +176,7 @@ export function ImportWizard({ open, onClose, tournamentId, hasPlayers, locked, 
                                   copy[h] = next
                                   return copy
                                 })
+                                setHow((x) => ({ ...x, [h]: 'remembered' }))
                               }}
                             >
                               {TARGETS.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}

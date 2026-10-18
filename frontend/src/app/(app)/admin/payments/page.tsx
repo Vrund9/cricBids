@@ -7,7 +7,7 @@ import { Badge, EmptyState, PageLoader, Select } from '@/components/ui'
 import { money } from '@/lib/format'
 import { AdminPayment, PAYMENT_KIND_LABEL, PAYMENT_SOURCE_META, Paged, useAdmin } from '@/lib/admin'
 
-type Kind = 'all' | 'TOURNAMENT_PRO' | 'SEASON_PASS'
+type Kind = 'all' | AdminPayment['kind']
 
 interface PaymentsResponse extends Paged<AdminPayment> {
   amount: number
@@ -28,9 +28,9 @@ export default function AdminPaymentsPage() {
 
       {data && (
         <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Collected" value={money(data.breakdown.reduce((s, b) => s + b.amount, 0))} hint="Real payments only" accent="#c8ff2e" />
-          <StatCard label="Pro tournaments" value={sum((b) => b.kind === 'TOURNAMENT_PRO')} hint="activations" accent="#ffb020" />
-          <StatCard label="Season Passes" value={sum((b) => b.kind === 'SEASON_PASS')} hint="activations" accent="#38bdf8" />
+          <StatCard label="Collected" value={money(data.breakdown.reduce((s, b) => s + b.amount, 0))} hint="Real payments only" accent="var(--color-lime-glow)" />
+          <StatCard label="Extra teams" value={sum((b) => b.kind === 'EXTRA_TEAMS')} hint="purchases" accent="#ffb020" />
+          <StatCard label="Themes · auction fees" value={`${sum((b) => b.kind === 'THEME_UNLOCK')} · ${sum((b) => b.kind === 'AUCTION_FEE')}`} hint="purchases" accent="#38bdf8" />
           <StatCard label="Admin grants" value={sum((b) => b.source === 'ADMIN')} hint={`${sum((b) => b.source === 'DEMO')} demo upgrades`} accent="#a78bfa" />
         </div>
       )}
@@ -41,8 +41,10 @@ export default function AdminPaymentsPage() {
           onChange={(v) => { setKind(v); setPage(1) }}
           options={[
             { value: 'all', label: 'All' },
-            { value: 'TOURNAMENT_PRO', label: 'Tournament Pro' },
-            { value: 'SEASON_PASS', label: 'Season Pass' },
+            { value: 'EXTRA_TEAMS', label: 'Extra teams' },
+            { value: 'THEME_UNLOCK', label: 'Theme' },
+            { value: 'AUCTION_FEE', label: 'Auction fee' },
+            { value: 'TOURNAMENT_PRO', label: 'Pro' },
           ]}
         />
         <Select value={source} onChange={(e) => { setSource(e.target.value); setPage(1) }} className="w-40">
@@ -78,7 +80,10 @@ export default function AdminPaymentsPage() {
                 </td>
                 <td className="px-4 py-3"><Badge color={PAYMENT_SOURCE_META[p.source].color}>{PAYMENT_SOURCE_META[p.source].label}</Badge></td>
                 <td className="max-w-56 truncate px-4 py-3 text-xs text-ink-400">{p.note ?? '—'}</td>
-                <td className="px-4 py-3 text-right font-semibold tabular-nums">{money(p.amount, p.currency)}</td>
+                <td className="px-4 py-3 text-right tabular-nums">
+                  <p className="font-semibold">{money(p.amount, p.currency)}</p>
+                  {p.listPrice > 0 && p.amount !== p.listPrice && <p className="text-[11px] text-ink-400">list {money(p.listPrice, p.currency)}{p.discountPct ? ` · −${p.discountPct}%` : ''}</p>}
+                </td>
               </tr>
             ))}
           </Table>

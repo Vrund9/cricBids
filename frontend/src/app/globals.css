@@ -26,9 +26,11 @@
   /* Solid accent fills (buttons). Same as the accents in dark mode; stay bright in light mode
      where the accents above darken for readable text. */
   --color-lime-bright: #c8ff2e;
+  --color-lime-hover: #d6ff5c;
   --color-gold-bright: #ffb020;
   /* Text on accent fills, and true white for things that must stay white (QR codes, avatar initials). */
   --color-on-accent: #05070c;
+  --color-on-gold: #05070c;
   --color-snow: #ffffff;
 
   --radius-xl2: 1.25rem;
@@ -84,8 +86,13 @@
     --color-ink-200: #2f374b;
     --color-ink-100: #161c2c;
     --color-white: #0d1324;
-    /* Accents tuned for text on white: a crisp pitch green with the brand lime kept for fills. */
-    --color-lime-glow: #2f8a12;
+    /* No neon on white: accents become a deep pitch green (text and fills) with white text on fills. */
+    --color-lime-glow: #15803d;
+    --color-lime-deep: #166534;
+    --color-lime-bright: #15803d;
+    --color-lime-hover: #166534;
+    --color-on-accent: #ffffff;
+    --color-gold-bright: #f59e0b;
     --color-gold: #b45309;
     --color-rose-hot: #d61f4b;
     --color-sky-live: #0a6fb0;
@@ -102,8 +109,8 @@
   }
   :root[data-theme='light'] body {
     background:
-      radial-gradient(1100px 560px at 88% -12%, rgb(200 255 46 / 0.22), transparent 62%),
-      radial-gradient(900px 520px at -12% 6%, rgb(56 189 248 / 0.12), transparent 60%),
+      radial-gradient(1100px 560px at 88% -12%, rgb(21 128 61 / 0.10), transparent 62%),
+      radial-gradient(900px 520px at -12% 6%, rgb(14 165 233 / 0.10), transparent 60%),
       var(--bg);
   }
 
@@ -127,7 +134,7 @@
 
   * { border-color: var(--border); }
 
-  ::selection { background: rgb(200 255 46 / 0.35); color: white; }
+  ::selection { background: color-mix(in oklab, var(--color-lime-glow) 35%, transparent); color: var(--fg); }
 
   :focus-visible {
     outline: 2px solid var(--color-lime-glow);
@@ -149,6 +156,13 @@
     border: 1px solid var(--border);
     border-radius: var(--radius-xl2);
     backdrop-filter: blur(12px);
+  }
+
+  /* Live screens and the control room repaint constantly; per-card backdrop blur makes every
+     animation frame re-blur the page behind it, so these cards get a near-solid fill instead. */
+  .screen-perf .card {
+    backdrop-filter: none;
+    background: color-mix(in oklab, var(--color-ink-850) 94%, transparent);
   }
 
   .hairline { border: 1px solid var(--border); }
