@@ -93,8 +93,9 @@ export class AuctionGateway implements OnGatewayInit, OnGatewayDisconnect, OnMod
   async joinOwner(@ConnectedSocket() client: Socket, @MessageBody() body: { tournamentId?: string; token?: string }) {
     try {
       const payload = await this.jwt.verifyAsync<JwtPayload>(String(body?.token || ''))
-      const t = await this.prisma.tournament.findUnique({ where: { id: String(body?.tournamentId || '') }, select: { id: true, ownerId: true } })
+      const t = await this.prisma.tournament.findUnique({ where: { id: String(body?.tournamentId || '') }, select: { id: true, ownerId: true, owner: { select: { sessionVersion: true } } } })
       if (!t || t.ownerId !== payload.sub) return { ok: false, error: 'Forbidden' }
+      if ((payload.sv ?? 0) !== t.owner.sessionVersion) return { ok: false, error: 'You signed in on another device' }
       await client.join([room(t.id), ownerRoom(t.id)])
       client.data.tournamentId = t.id
       this.emitViewers(t.id)

@@ -6,6 +6,7 @@ import { adminEmails, isAdminUser } from '../common/admin'
 import { loadSettings, PlatformSettings, settings, validateSetting } from '../common/settings'
 import { billingMode } from '../common/plans'
 import type { Prisma } from '../generated/prisma/client'
+import type { PaymentKind } from '../generated/prisma/enums'
 
 const DAY = 24 * 60 * 60 * 1000
 const PAGE_SIZE = 25
@@ -270,7 +271,7 @@ export class AdminService implements OnModuleInit {
 
   async payments(kind?: string, source?: string, pageNo?: number) {
     const where: Prisma.PaymentWhereInput = {}
-    if (kind === 'TOURNAMENT_PRO' || kind === 'SEASON_PASS') where.kind = kind
+    if (kind && ['TOURNAMENT_PRO', 'SEASON_PASS', 'EXTRA_TEAMS', 'THEME_UNLOCK', 'AUCTION_FEE'].includes(kind)) where.kind = kind as PaymentKind
     if (source === 'DEMO' || source === 'ADMIN' || source === 'GATEWAY') where.source = source
     const { skip, take, page: p } = page(pageNo)
     const [total, rows, sum, byKind] = await Promise.all([

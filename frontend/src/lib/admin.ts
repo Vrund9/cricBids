@@ -31,11 +31,15 @@ export interface AdminUserRow {
 
 export interface AdminPayment {
   id: string
-  kind: 'TOURNAMENT_PRO' | 'SEASON_PASS'
+  kind: 'TOURNAMENT_PRO' | 'SEASON_PASS' | 'EXTRA_TEAMS' | 'THEME_UNLOCK' | 'AUCTION_FEE'
   amount: number
   currency: string
   source: 'DEMO' | 'ADMIN' | 'GATEWAY'
   note: string | null
+  listPrice: number
+  discountPct: number
+  pointsUsed: number
+  quantity: number
   createdAt: string
   user: { id: string; name: string; email: string }
   tournament: { id: string; name: string } | null
@@ -127,11 +131,17 @@ export function useAdmin<T>(path: string | null) {
   return { data, error, reload, setData }
 }
 
-export const PAYMENT_KIND_LABEL: Record<AdminPayment['kind'], string> = { TOURNAMENT_PRO: 'Tournament Pro', SEASON_PASS: 'Season Pass' }
+export const PAYMENT_KIND_LABEL: Record<AdminPayment['kind'], string> = {
+  TOURNAMENT_PRO: 'Pro (one auction)',
+  SEASON_PASS: 'Season Pass (legacy)',
+  EXTRA_TEAMS: 'Extra teams',
+  THEME_UNLOCK: 'Theme customisation',
+  AUCTION_FEE: 'Auction fee',
+}
 export const PAYMENT_SOURCE_META: Record<AdminPayment['source'], { label: string; color: string }> = {
   DEMO: { label: 'Demo', color: '#8a94ad' },
   ADMIN: { label: 'Admin grant', color: '#a78bfa' },
-  GATEWAY: { label: 'Paid', color: '#c8ff2e' },
+  GATEWAY: { label: 'Paid', color: 'var(--color-lime-glow)' },
 }
 
 const ACTION_LABEL: Record<string, string> = {
@@ -146,5 +156,32 @@ const ACTION_LABEL: Record<string, string> = {
   'tournament.upgrade': 'Upgraded tournament to Pro',
   'tournament.downgrade': 'Moved tournament to Free',
   'settings.update': 'Changed settings',
+  'feedback.update': 'Updated feedback',
+  'plan_code.create': 'Created plan code',
+  'plan_code.revoke': 'Revoked plan code',
+  'plan_code.restore': 'Restored plan code',
 }
 export const actionLabel = (a: string) => ACTION_LABEL[a] ?? a
+
+export interface AdminFeedback {
+  id: string
+  type: 'SUGGESTION' | 'BUG'
+  title: string
+  message: string
+  page: string | null
+  status: 'NEW' | 'REVIEWED' | 'RESOLVED' | 'REJECTED'
+  points: number
+  adminNote: string | null
+  createdAt: string
+  user: { id: string; name: string; email: string; rewardPoints: number }
+}
+
+export interface AdminPlanCode {
+  id: string
+  code: string
+  note: string | null
+  redeemedAt: string | null
+  revokedAt: string | null
+  createdAt: string
+  redeemedBy: { id: string; name: string; email: string } | null
+}

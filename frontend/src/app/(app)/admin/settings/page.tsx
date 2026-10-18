@@ -107,11 +107,11 @@ export default function AdminSettingsPage() {
         <Card className="p-6">
           <h2 className="mb-1 flex items-center gap-2 font-semibold"><SlidersHorizontal className="h-4 w-4 text-[#a78bfa]" /> Plan limits</h2>
           <p className="mb-4 text-sm text-ink-300">Enforced immediately on every tournament. Remember to update the pricing page copy if you change these.</p>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Field label="Free · max teams"><Input min={2} max={64} {...num('freeMaxTeams')} /></Field>
-            <Field label="Free · max players"><Input min={10} max={5000} {...num('freeMaxPlayers')} /></Field>
-            <Field label="Pro · max teams"><Input min={2} max={64} {...num('proMaxTeams')} /></Field>
-            <Field label="Pro · max players"><Input min={10} max={5000} {...num('proMaxPlayers')} /></Field>
+          {/* Pay-per-use: the free allowance, then hard caps for every auction. Prices are set in backend/src/common/plans.ts. */}
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Field label="Teams included free" hint="Each team above this is a paid add-on"><Input min={2} max={64} {...num('freeMaxTeams')} /></Field>
+            <Field label="Max teams per auction" hint="Paid or with a plan code"><Input min={2} max={64} {...num('proMaxTeams')} /></Field>
+            <Field label="Max players per auction"><Input min={10} max={5000} {...num('proMaxPlayers')} /></Field>
           </div>
         </Card>
       </div>

@@ -25,13 +25,13 @@ export class CreateTournamentDto {
   @IsOptional() @IsString() @MaxLength(120)
   venue?: string
 
-  @IsOptional() @IsDateString()
-  auctionDate?: string
+  @IsDateString({}, { message: 'Pick the auction date' })
+  auctionDate: string
 
   @IsOptional() @IsIn(CURRENCIES)
   currency?: string
 
-  @IsOptional() @IsUrl({ require_tld: false })
+  @IsOptional() @IsString() @MaxLength(1000)
   logoUrl?: string
 }
 
@@ -95,6 +95,16 @@ export class UpdateTournamentDto {
 
   @IsOptional() @IsObject()
   theme?: Record<string, unknown>
+}
+
+export class RetainDto {
+  @IsString() playerId: string
+
+  @IsInt() @Min(0) @Max(2_000_000_000)
+  price: number
+
+  @IsBoolean()
+  deductFromPurse: boolean
 }
 
 export class RotateTokenDto {

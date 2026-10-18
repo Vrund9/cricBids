@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { CalendarDays, Crown, Maximize2, Minimize2, Pause, Trophy, Users, Volume2, VolumeX } from 'lucide-react'
 import { LogoMark } from '@/components/brand'
 import { Avatar, Card } from '@/components/ui'
-import { BidDisplay, BidHistory, ConnIndicator, HammerOverlay, LiveDot, PlayerSpotlight, RecentSales, TeamPurses } from '@/components/auction'
+import { BidDisplay, BidHistory, ConnIndicator, HammerOverlay, LiveDot, PlayerSpotlight, PurseBoard, RecentSales, TeamPurses } from '@/components/auction'
 import { RoleAura, RoleIntro, useAuctionAudio } from '@/components/effects'
 import { unlock } from '@/lib/sound'
 import { themeStyle } from '@/lib/themes'
@@ -60,8 +60,8 @@ export function LiveView({ token, initial }: { token: string; initial: Snapshot 
   const running = t.status === 'LIVE' || t.status === 'PAUSED'
 
   return (
-    <div className="relative min-h-dvh overflow-hidden" style={themeStyle(t.theme)}>
-      <div className="grid-bg pointer-events-none absolute inset-0 opacity-50" />
+    <div className="screen-perf relative min-h-dvh overflow-hidden" style={themeStyle(t.theme)}>
+      {(t.theme?.background ?? 'glow') === 'glow' && <div className="grid-bg pointer-events-none absolute inset-0 opacity-50" />}
       <header className="relative z-10 border-b border-white/5 bg-ink-900/70 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-[1600px] items-center gap-3 px-4 sm:px-6">
           {t.logoUrl ? <Avatar src={t.logoUrl} name={t.name} size={36} rounded="xl" /> : <LogoMark />}
@@ -92,7 +92,7 @@ export function LiveView({ token, initial }: { token: string; initial: Snapshot 
       </header>
       <div className="sm:hidden">{conn !== 'live' && <div className="flex justify-center py-2"><ConnIndicator conn={conn} viewers={viewers} /></div>}</div>
 
-      <main className="relative z-10 mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:py-8">
+      <main className="relative z-10 mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:py-6">
         {tab === 'squads' ? (
           <Squads token={token} snap={snap} />
         ) : !running && t.status !== 'COMPLETED' ? (
@@ -100,6 +100,11 @@ export function LiveView({ token, initial }: { token: string; initial: Snapshot 
         ) : t.status === 'COMPLETED' ? (
           <Finished snap={snap} token={token} />
         ) : (
+          <>
+          {/* Wide screens: every purse in a couple of rows above the auction, never in a scrolling list. */}
+          <div className="mb-6 hidden lg:block">
+            <PurseBoard snap={snap} highlightId={snap.current?.leadingTeamId} className="grid-cols-[repeat(auto-fill,minmax(150px,1fr))]" />
+          </div>
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1.65fr)_minmax(340px,1fr)]">
             <section className={cn('space-y-6', tab !== 'live' && 'hidden lg:block')}>
               {t.status === 'PAUSED' && (
@@ -109,7 +114,7 @@ export function LiveView({ token, initial }: { token: string; initial: Snapshot 
               )}
               {snap.current ? (
                 <>
-                  <Card className="relative overflow-hidden p-5 sm:p-10">
+                  <Card className="relative overflow-hidden p-5 sm:p-8">
                     <RoleAura role={snap.current.player.role} />
                     <AnimatePresence mode="wait">
                       <PlayerSpotlight key={snap.current.player.id} player={snap.current.player} basePrice={snap.current.basePrice} currency={t.currency} size={wide ? 'xl' : 'md'} />
@@ -128,16 +133,17 @@ export function LiveView({ token, initial }: { token: string; initial: Snapshot 
                   <BidHistory snap={snap} limit={6} />
                 </Card>
               )}
-              <Card className="p-5">
+              <Card className="p-5 lg:hidden">
                 <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-ink-400">Team purses</h3>
                 <TeamPurses snap={snap} compact highlightId={snap.current?.leadingTeamId} />
               </Card>
-              <Card className="p-5 lg:hidden">
+              <Card className="p-5">
                 <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-ink-400">Recent sales</h3>
                 <RecentSales snap={snap} />
               </Card>
             </aside>
           </div>
+          </>
         )}
       </main>
 

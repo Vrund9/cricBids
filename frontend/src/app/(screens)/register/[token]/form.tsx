@@ -72,7 +72,7 @@ export function RegistrationForm({ token, config }: { token: string; config: For
 
   return (
     <main className="relative min-h-dvh px-4 py-10" style={themeStyle(config.theme)}>
-      <div className="grid-bg pointer-events-none absolute inset-0 -z-10" />
+      {(config.theme?.background ?? 'glow') === 'glow' && <div className="grid-bg pointer-events-none absolute inset-0 -z-10" />}
       <div className="mx-auto max-w-xl">
         <motion.header initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="text-center">
           {t.logoUrl ? <Avatar src={t.logoUrl} name={t.name} size={84} rounded="xl" className="mx-auto rounded-3xl" /> : <LogoMark className="mx-auto h-14 w-14" />}

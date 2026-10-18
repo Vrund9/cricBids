@@ -3,7 +3,9 @@ import { PrismaService } from '../prisma/prisma.service'
 import { RealtimeService } from '../realtime/realtime.service'
 import { TournamentsService } from '../tournaments/tournaments.service'
 import { basePriceFor, maxBidFor, nextBidAmount, parseIncrements } from '../common/auction-rules'
-import { shuffle } from '../common/util'
+import { ordinal, shuffle } from '../common/util'
+import { planLimit, PRICING } from '../common/plans'
+import { resetPurses } from '../tournaments/retention'
 import type { AuctionState, Prisma, Tournament } from '../generated/prisma/client'
 import type { BidSource } from '../generated/prisma/enums'
 
@@ -135,6 +137,14 @@ export class AuctionService {
     const t0 = await this.tournaments.owned(tournamentId, userId)
     if (t0.status === 'LIVE' || t0.status === 'PAUSED') throw new BadRequestException('The auction is already running')
     if (t0.status === 'COMPLETED') throw new BadRequestException('This auction is complete. Reset it to run again.')
+    // One organiser runs one auction at a time: finish the running one before starting another.
+    const running = await this.prisma.tournament.findFirst({
+      where: { ownerId: t0.ownerId, id: { not: tournamentId }, status: { in: ['LIVE', 'PAUSED'] } },
+      select: { name: true },
+    })
+    if (running) throw new ConflictException(`“${running.name}” is still live. Finish that auction before starting another one.`)
+    const { limits, sequence } = await this.tournaments.plan(tournamentId)
+    if (limits.auctionFeeDue) planLimit(`This is your auction #${sequence}. Your first ${PRICING.freeAuctions} are free; from your ${ordinal(PRICING.freeAuctions + 1)} on, each auction is ₹${PRICING.auctionFee}.`)
     await this.withLock(tournamentId, () =>
       this.prisma.$transaction(async (tx) => {
         const t = await tx.tournament.findUniqueOrThrow({ where: { id: tournamentId } })
@@ -146,7 +156,7 @@ export class AuctionService {
         })
         if (!players.length) throw new BadRequestException('Add or approve at least one player before starting')
         await tx.bid.deleteMany({ where: { tournamentId } })
-        await tx.team.updateMany({ where: { tournamentId }, data: { purse: t.teamPurse } })
+        await resetPurses(tx, tournamentId, t.teamPurse)
         const queue = this.orderPlayers(players, t)
         const state = await tx.auctionState.upsert({
           where: { tournamentId },
@@ -349,6 +359,85 @@ export class AuctionService {
     })
   }
 
+  /**
+   * One-click random auction (paid add-on). No bidding: players are drawn to teams grade by grade
+   * (highest-priced category first, e.g. Marquee → A → B → C, uncategorised last), shuffled within
+   * each grade. Each player goes to the team with the fewest players that can still afford them and
+   * has squad room (ties broken at random), at their base price, which comes out of the purse.
+   * Anyone who can't be placed is left unsold. The auction is complete when it returns.
+   */
+  async randomAuction(tournamentId: string, userId: string) {
+    const t0 = await this.tournaments.owned(tournamentId, userId)
+    if (t0.status !== 'DRAFT' && t0.status !== 'READY') throw new BadRequestException('Random auction can only run before the auction starts')
+    const { limits, sequence } = await this.tournaments.plan(tournamentId)
+    if (!limits.randomAuction) planLimit(`Random auction is a ₹${PRICING.randomAuction} add-on for this auction`)
+    if (limits.auctionFeeDue) planLimit(`This is your auction #${sequence}. Your first ${PRICING.freeAuctions} are free; from your ${ordinal(PRICING.freeAuctions + 1)} on, each auction is ₹${PRICING.auctionFee}.`)
+
+    const summary = await this.withLock(tournamentId, () =>
+      this.prisma.$transaction(
+        async (tx) => {
+          const t = await tx.tournament.findUniqueOrThrow({ where: { id: tournamentId } })
+          const teams = await tx.team.findMany({ where: { tournamentId }, select: { id: true } })
+          if (teams.length < 2) throw new BadRequestException('Add at least 2 teams first')
+          const players = await tx.player.findMany({
+            where: { tournamentId, approved: true, status: 'AVAILABLE' },
+            select: { id: true, serial: true, category: true, basePrice: true },
+          })
+          if (!players.length) throw new BadRequestException('Add or approve at least one player first')
+
+          await tx.bid.deleteMany({ where: { tournamentId } })
+          await resetPurses(tx, tournamentId, t.teamPurse)
+          const fresh = await tx.team.findMany({ where: { tournamentId }, select: { id: true, purse: true, _count: { select: { players: true } } } })
+          const book = new Map(fresh.map((x) => [x.id, { purse: x.purse, squad: x._count.players }]))
+
+          const prices = (t.categoryBasePrices || {}) as Record<string, number>
+          const grades = [...new Set(players.map((p) => p.category ?? ''))].sort((a, b) => {
+            if (!a) return 1
+            if (!b) return -1
+            return (prices[b] ?? 0) - (prices[a] ?? 0) || a.localeCompare(b)
+          })
+
+          const now = new Date()
+          let sold = 0
+          let unsold = 0
+          for (const grade of grades) {
+            for (const p of shuffle(players.filter((x) => (x.category ?? '') === grade))) {
+              const price = basePriceFor(p, t)
+              const options = shuffle(fresh.map((x) => x.id)).filter((id) => {
+                const b = book.get(id)!
+                return b.squad < t.maxSquad && b.purse >= price
+              })
+              const teamId = options.sort((a, b) => book.get(a)!.squad - book.get(b)!.squad)[0]
+              if (!teamId) {
+                await tx.player.update({ where: { id: p.id }, data: { status: 'UNSOLD' } })
+                unsold++
+                continue
+              }
+              const b = book.get(teamId)!
+              b.squad++
+              b.purse -= price
+              await tx.player.update({ where: { id: p.id }, data: { status: 'SOLD', soldTeamId: teamId, soldPrice: price, soldAt: new Date(now.getTime() + sold) } })
+              sold++
+            }
+          }
+          for (const [id, b] of book) await tx.team.update({ where: { id }, data: { purse: b.purse } })
+
+          const lastEvent = { type: 'COMPLETED', at: Date.now(), random: true }
+          await tx.auctionState.upsert({
+            where: { tournamentId },
+            create: { tournamentId, queue: [], round: 1, startedAt: now, lastEvent },
+            update: { queue: [], round: 1, startedAt: now, currentPlayerId: null, currentBid: null, leadingTeamId: null, timerEndsAt: null, lastEvent, version: { increment: 1 } },
+          })
+          await tx.tournament.update({ where: { id: tournamentId }, data: { status: 'COMPLETED', setupComplete: true } })
+          return { sold, unsold }
+        },
+        { timeout: 60_000 },
+      ),
+    )
+    this.realtime.stateChanged(tournamentId)
+    return summary
+  }
+
   /** Wipe all results and return to the pre-auction state. */
   async reset(tournamentId: string, userId: string) {
     await this.tournaments.owned(tournamentId, userId)
@@ -356,11 +445,12 @@ export class AuctionService {
       this.prisma.$transaction(async (tx) => {
         const t = await tx.tournament.findUniqueOrThrow({ where: { id: tournamentId } })
         await tx.bid.deleteMany({ where: { tournamentId } })
+        // Retained players stay with their teams; everyone else goes back in the pool.
         await tx.player.updateMany({
-          where: { tournamentId },
+          where: { tournamentId, retained: false },
           data: { status: 'AVAILABLE', soldTeamId: null, soldPrice: null, soldAt: null },
         })
-        await tx.team.updateMany({ where: { tournamentId }, data: { purse: t.teamPurse } })
+        await resetPurses(tx, tournamentId, t.teamPurse)
         await tx.auctionState.deleteMany({ where: { tournamentId } })
         await tx.tournament.update({ where: { id: tournamentId }, data: { status: t.setupComplete ? 'READY' : 'DRAFT' } })
       }),

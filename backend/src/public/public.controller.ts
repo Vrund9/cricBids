@@ -11,7 +11,7 @@ import { AuctionService } from '../auction/auction.service'
 import { PlayersService } from '../tournaments/players.service'
 import { parseSubmission, RegField } from '../common/registration'
 import { imageUpload, publicUrl } from '../uploads/uploads'
-import { planInfo, publicTheme } from '../common/plans'
+import { planInfo, PLAN_OWNER_SELECT, publicTheme } from '../common/plans'
 
 class RemoteBidDto {
   /** The price the team owner saw on screen; rejected if someone bid in between. */
@@ -31,7 +31,7 @@ export class PublicController {
   ) {}
 
   private async byLiveToken(token: string) {
-    const t = await this.prisma.tournament.findUnique({ where: { liveToken: token }, include: { owner: { select: { seasonPassUntil: true } } } })
+    const t = await this.prisma.tournament.findUnique({ where: { liveToken: token }, include: { owner: { select: PLAN_OWNER_SELECT } } })
     if (!t) throw new NotFoundException('This live link is invalid or has been reset')
     return t
   }
@@ -88,7 +88,7 @@ export class PublicController {
   // ── Player self-registration ──
 
   private async byRegToken(token: string) {
-    const t = await this.prisma.tournament.findUnique({ where: { registrationToken: token }, include: { owner: { select: { seasonPassUntil: true } } } })
+    const t = await this.prisma.tournament.findUnique({ where: { registrationToken: token }, include: { owner: { select: PLAN_OWNER_SELECT } } })
     if (!t) throw new NotFoundException('This registration link is invalid or has been reset')
     return t
   }

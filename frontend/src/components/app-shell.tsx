@@ -4,13 +4,13 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Compass, Info, LayoutGrid, LogOut, ShieldCheck, TriangleAlert, UserRound, X } from 'lucide-react'
+import { BadgeIndianRupee, Compass, Info, LayoutGrid, LogOut, Route, ShieldCheck, TriangleAlert, UserRound, X } from 'lucide-react'
 import { Logo } from './brand'
 import { Avatar, PageLoader } from './ui'
 import { resetTours } from './tour'
 import { ThemeToggle } from './theme-toggle'
 import { useRequireAuth } from '@/lib/auth'
-import { api } from '@/lib/api'
+import { api, setToken } from '@/lib/api'
 
 interface Announcement { text: string; tone: 'info' | 'success' | 'warning' }
 
@@ -60,7 +60,7 @@ function AnnouncementBar() {
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, loading, signOut } = useRequireAuth()
+  const { user, loading } = useRequireAuth()
   const router = useRouter()
   const [menu, setMenu] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -82,6 +82,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Link href="/dashboard" className="hidden items-center gap-2 rounded-xl px-3 py-2 text-sm text-ink-200 hover:bg-white/5 hover:text-white sm:inline-flex">
               <LayoutGrid className="h-4 w-4" /> Tournaments
             </Link>
+            <Link href="/how-it-works" className="hidden items-center gap-2 rounded-xl px-3 py-2 text-sm text-ink-200 hover:bg-white/5 hover:text-white md:inline-flex">
+              <Route className="h-4 w-4" /> How it works
+            </Link>
+            <Link href="/plans" className="hidden items-center gap-2 rounded-xl px-3 py-2 text-sm text-ink-200 hover:bg-white/5 hover:text-white md:inline-flex">
+              <BadgeIndianRupee className="h-4 w-4" /> Pricing
+            </Link>
             {user.isAdmin && (
               <Link href="/admin" className="hidden items-center gap-2 rounded-xl px-3 py-2 text-sm text-lime-glow hover:bg-lime-glow/10 sm:inline-flex">
                 <ShieldCheck className="h-4 w-4" /> Admin
@@ -98,6 +104,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <div className="px-3 py-2 text-xs text-ink-400">{user.email}</div>
                     <Link href="/account" onClick={() => setMenu(false)} className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-white/5">
                       <UserRound className="h-4 w-4" /> Account
+                    </Link>
+                    <Link href="/how-it-works" onClick={() => setMenu(false)} className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-white/5 md:hidden">
+                      <Route className="h-4 w-4" /> How it works
+                    </Link>
+                    <Link href="/plans" onClick={() => setMenu(false)} className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-white/5 md:hidden">
+                      <BadgeIndianRupee className="h-4 w-4" /> Pricing
                     </Link>
                     <button
                       onClick={() => {
@@ -117,8 +129,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     )}
                     <button
                       onClick={() => {
-                        signOut()
-                        router.replace('/login')
+                        // Clear the session and land on the home page. Leaving with a full page load
+                        // (instead of clearing `user` first) stops the auth guard bouncing to /login.
+                        setToken(null)
+                        window.location.replace('/')
                       }}
                       className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-rose-hot hover:bg-rose-hot/10"
                     >

@@ -55,11 +55,17 @@ export async function api<T = unknown>(path: string, opts: { method?: string; bo
   if (!res.ok) {
     const msg = (data as any)?.message
     const message = Array.isArray(msg) ? msg[0] : msg || res.statusText || 'Something went wrong'
+    const code = (data as any)?.code as string | undefined
     if (res.status === 401 && token && typeof window !== 'undefined') {
       setToken(null)
+      // One session per account: tell this device why it was signed out (shown on the login page).
+      if (code === 'SIGNED_IN_ELSEWHERE') {
+        try {
+          sessionStorage.setItem('cricbid.signed-out-reason', message)
+        } catch {}
+      }
       window.dispatchEvent(new Event('cricbid:logout'))
     }
-    const code = (data as any)?.code as string | undefined
     if (code === 'PLAN_LIMIT' && typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('cricbid:plan-limit', { detail: message }))
     throw new ApiError(res.status, message, code)
   }

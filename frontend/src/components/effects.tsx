@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { roleMeta } from '@/lib/format'
 import { sfx } from '@/lib/sound'
-import { useCountdown } from '@/lib/live'
 import type { PublicPlayer, Snapshot } from '@/lib/types'
+import { isRecordSale } from './auction'
 
 type RoleKind = 'bat' | 'bowl' | 'keep' | 'all'
 
@@ -135,6 +135,12 @@ function Scene({ kind, color }: { kind: RoleKind; color: string }) {
 export function RoleIntro({ snap, sound, compact }: { snap: Snapshot | null; sound?: boolean; compact?: boolean }) {
   const [show, setShow] = useState<PublicPlayer | null>(null)
   const last = useRef<number | null>(null)
+  // The hide timer lives in a ref, not in the effect cleanup: a bid arriving mid-intro re-runs the
+  // effect, and clearing the timer there left the overlay stuck on screen (the "frozen" auction).
+  const hide = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => () => {
+    if (hide.current) clearTimeout(hide.current)
+  }, [])
   useEffect(() => {
     const e = snap?.lastEvent
     const p = snap?.current?.player
@@ -145,11 +151,14 @@ export function RoleIntro({ snap, sound, compact }: { snap: Snapshot | null; sou
     }
     if (e.at === last.current) return
     last.current = e.at
+    if (hide.current) clearTimeout(hide.current)
     if ((e.type === 'NEXT' || e.type === 'STARTED' || e.type === 'REAUCTION') && p && p.id === e.playerId) {
       setShow(p)
       if (sound) sfx.intro(p.role)
-      const id = setTimeout(() => setShow(null), compact ? 1400 : 2000)
-      return () => clearTimeout(id)
+      hide.current = setTimeout(() => setShow(null), compact ? 1400 : 2000)
+    } else {
+      // Anything else (a bid, a sale) means the moment has passed.
+      setShow(null)
     }
   }, [snap?.lastEvent, snap?.current?.player, sound, compact])
 
@@ -159,7 +168,8 @@ export function RoleIntro({ snap, sound, compact }: { snap: Snapshot | null; sou
     <AnimatePresence>
       {show && (
         <motion.div className="pointer-events-none fixed inset-0 z-40 grid place-items-center overflow-hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.35 } }}>
-          <div className="absolute inset-0 bg-ink-950/80 backdrop-blur-sm" />
+          {/* Solid scrim, no backdrop blur: blurring the whole screen while animating stutters on projector laptops. */}
+          <div className="absolute inset-0 bg-ink-950/90" />
           <motion.div className="absolute inset-0" style={{ background: `radial-gradient(circle at 50% 45%, ${color}33, transparent 60%)` }} initial={{ scale: 0.6 }} animate={{ scale: 1.2 }} transition={{ duration: 1.6 }} />
           <div className="relative flex w-full max-w-3xl flex-col items-center px-6">
             <svg viewBox="0 0 600 400" className={compact ? 'w-[min(80vw,420px)]' : 'w-[min(90vw,640px)]'} aria-hidden>
@@ -216,25 +226,22 @@ export function useAuctionAudio(enabled: boolean, snap: Snapshot | null, skew: n
     if (e.at === last.current) return
     last.current = e.at
     if (e.type === 'BID') sfx.bid()
-    else if (e.type === 'SOLD') {
-      const others = snap!.sold.filter((p) => p.id !== e.playerId).map((p) => p.soldPrice ?? 0)
-      sfx.sold((e.amount ?? 0) > 0 && (e.amount ?? 0) >= Math.max(0, ...others) && others.length > 0)
-    } else if (e.type === 'UNSOLD') sfx.unsold()
+    else if (e.type === 'SOLD') sfx.sold(isRecordSale(snap!, e.playerId, e.amount))
+    else if (e.type === 'UNSOLD') sfx.unsold()
     else if (e.type === 'PAUSED') sfx.pause()
   }, [snap?.lastEvent, snap, enabled])
 
+  // "Going once / twice" ticks are scheduled as timeouts instead of reading a 10×/second countdown,
+  // which used to re-render the whole control room / big screen ten times a second.
   const live = snap?.current?.player.status === 'LIVE' && snap?.current?.currentBid !== null
-  const left = useCountdown(live ? snap?.current?.timerEndsAt : null, skew)
-  const ticked = useRef<number | null>(null)
+  const endsAt = live ? snap?.current?.timerEndsAt : null
   useEffect(() => {
-    if (!enabled || left === null) {
-      ticked.current = null
-      return
-    }
-    const s = Math.ceil(left)
-    if (left > 0 && s <= 3 && ticked.current !== s) {
-      ticked.current = s
-      sfx.tick(s === 1)
-    }
-  }, [left, enabled])
+    if (!enabled || !endsAt) return
+    const msLeft = new Date(endsAt).getTime() - (Date.now() + skew)
+    const ids = [3, 2, 1]
+      .map((s) => ({ s, at: msLeft - s * 1000 }))
+      .filter((x) => x.at >= 0)
+      .map((x) => setTimeout(() => sfx.tick(x.s === 1), x.at))
+    return () => ids.forEach(clearTimeout)
+  }, [enabled, endsAt, skew])
 }

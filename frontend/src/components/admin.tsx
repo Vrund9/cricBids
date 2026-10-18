@@ -17,7 +17,7 @@ export function AdminHeader({ title, subtitle, action }: { title: string; subtit
   )
 }
 
-export function StatCard({ label, value, hint, icon, accent = '#c8ff2e' }: { label: string; value: React.ReactNode; hint?: React.ReactNode; icon?: React.ReactNode; accent?: string }) {
+export function StatCard({ label, value, hint, icon, accent = 'var(--color-lime-glow)' }: { label: string; value: React.ReactNode; hint?: React.ReactNode; icon?: React.ReactNode; accent?: string }) {
   return (
     <Card className="relative overflow-hidden p-5">
       <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-20 blur-2xl" style={{ background: accent }} />
@@ -32,7 +32,7 @@ export function StatCard({ label, value, hint, icon, accent = '#c8ff2e' }: { lab
 }
 
 /** Small dependency-free bar chart for daily counts. */
-export function BarChart({ data, color = '#c8ff2e', label }: { data: { date: string; count: number }[]; color?: string; label: string }) {
+export function BarChart({ data, color = 'var(--color-lime-glow)', label }: { data: { date: string; count: number }[]; color?: string; label: string }) {
   const max = Math.max(1, ...data.map((d) => d.count))
   const total = data.reduce((s, d) => s + d.count, 0)
   return (

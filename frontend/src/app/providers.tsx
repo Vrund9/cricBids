@@ -3,12 +3,13 @@
 import { MotionConfig } from 'motion/react'
 import { Toaster } from 'sonner'
 import { AuthProvider } from '@/lib/auth'
+import { ConfirmProvider } from '@/components/confirm'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <MotionConfig reducedMotion="user">
       <AuthProvider>
-        {children}
+        <ConfirmProvider>{children}</ConfirmProvider>
         <Toaster
           theme="dark"
           position="top-center"

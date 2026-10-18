@@ -10,12 +10,12 @@ import { initials } from '@/lib/format'
 // ───────────────────────── Button ─────────────────────────
 
 const variants = {
-  primary: 'bg-lime-bright text-on-accent hover:bg-[#d6ff5c] shadow-[0_0_0_1px_rgba(200,255,46,0.4),0_8px_30px_-8px_rgba(200,255,46,0.55)]',
+  primary: 'bg-lime-bright text-on-accent hover:bg-lime-hover shadow-[0_0_0_1px_color-mix(in_oklab,var(--color-lime-bright)_40%,transparent),0_8px_30px_-8px_color-mix(in_oklab,var(--color-lime-bright)_55%,transparent)]',
   secondary: 'bg-white/[0.07] text-white hover:bg-white/[0.12] border border-white/10',
   ghost: 'text-ink-200 hover:text-white hover:bg-white/[0.06]',
   outline: 'border border-white/15 text-white hover:bg-white/[0.06]',
   danger: 'bg-rose-hot/15 text-rose-hot border border-rose-hot/30 hover:bg-rose-hot/25',
-  gold: 'bg-gold-bright text-on-accent hover:bg-[#ffc24d] shadow-[0_8px_30px_-8px_rgba(255,176,32,0.6)]',
+  gold: 'bg-gold-bright text-on-gold hover:brightness-110 shadow-[0_8px_30px_-8px_rgba(255,176,32,0.6)]',
 } as const
 
 const sizes = {
@@ -142,7 +142,7 @@ export function Badge({ children, className, color }: { children: React.ReactNod
   return (
     <span
       className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide', className)}
-      style={color ? { color: `color-mix(in oklab, ${color} var(--tint-strength), black)`, borderColor: `${color}55`, background: `${color}14` } : undefined}
+      style={color ? { color: `color-mix(in oklab, ${color} var(--tint-strength), black)`, borderColor: `color-mix(in oklab, ${color} 33%, transparent)`, background: `color-mix(in oklab, ${color} 8%, transparent)` } : undefined}
     >
       {children}
     </span>
@@ -152,7 +152,7 @@ export function Badge({ children, className, color }: { children: React.ReactNod
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: '#8a94ad',
   READY: '#38bdf8',
-  LIVE: '#c8ff2e',
+  LIVE: 'var(--color-lime-glow)',
   PAUSED: '#ffb020',
   COMPLETED: '#a78bfa',
   AVAILABLE: '#8a94ad',
@@ -187,10 +187,11 @@ export function PageLoader() {
   )
 }
 
-export function EmptyState({ icon, title, children, action }: { icon?: React.ReactNode; title: string; children?: React.ReactNode; action?: React.ReactNode }) {
+/** `art` is a larger illustration (e.g. <CricketScene />) shown instead of the small icon tile. */
+export function EmptyState({ icon, art, title, children, action }: { icon?: React.ReactNode; art?: React.ReactNode; title: string; children?: React.ReactNode; action?: React.ReactNode }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-white/10 px-6 py-14 text-center">
-      {icon && <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/5 text-ink-200">{icon}</div>}
+      {art ?? (icon && <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/5 text-ink-200">{icon}</div>)}
       <h3 className="font-display text-lg font-semibold">{title}</h3>
       {children && <p className="max-w-md text-sm text-ink-300">{children}</p>}
       {action}

@@ -103,7 +103,7 @@ export function useCountdown(endsAt: string | null | undefined, skew: number) {
     const end = new Date(endsAt).getTime()
     const tick = () => setLeft(Math.max(0, (end - (Date.now() + skew)) / 1000))
     tick()
-    const id = setInterval(tick, 100)
+    const id = setInterval(tick, 200)
     return () => clearInterval(id)
   }, [endsAt, skew])
   return left

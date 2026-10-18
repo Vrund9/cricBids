@@ -58,3 +58,10 @@ export const ROLE_META: Record<string, { short: string; color: string }> = {
 export function roleMeta(role: string) {
   return ROLE_META[role] ?? { short: role.slice(0, 4).toUpperCase(), color: '#8a94ad' }
 }
+
+/** 1 → "1st", 2 → "2nd", 3 → "3rd", 4 → "4th", 11 → "11th" */
+export function ordinal(n: number) {
+  const v = n % 100
+  const suffix = v >= 11 && v <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'
+  return `${n}${suffix}`
+}

@@ -81,3 +81,10 @@ export function cleanStr(value: unknown, max = 200): string | undefined {
   const s = String(value).trim()
   return s ? s.slice(0, max) : undefined
 }
+
+/** 1 → "1st", 2 → "2nd", 3 → "3rd", 4 → "4th", 11 → "11th" */
+export function ordinal(n: number) {
+  const v = n % 100
+  const suffix = v >= 11 && v <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'
+  return `${n}${suffix}`
+}

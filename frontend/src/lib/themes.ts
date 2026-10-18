@@ -4,6 +4,44 @@ export interface ThemeConfig {
   preset: ThemePreset
   accent?: string
   hideBranding?: boolean
+  background?: ThemeBackground
+  /** Used when background is 'image' */
+  backgroundImage?: string
+}
+
+export type ThemeBackground = 'glow' | 'stadium' | 'pitch' | 'stars' | 'grid' | 'solid' | 'image'
+
+export const BACKGROUNDS: { id: ThemeBackground; name: string; vibe: string }[] = [
+  { id: 'glow', name: 'Glow', vibe: 'Soft colour wash' },
+  { id: 'stadium', name: 'Stadium lights', vibe: 'Floodlight beams over the ground' },
+  { id: 'pitch', name: 'Pitch stripes', vibe: 'Mown outfield stripes' },
+  { id: 'stars', name: 'Night sky', vibe: 'Day-night match under the stars' },
+  { id: 'grid', name: 'Scoreboard grid', vibe: 'Clean broadcast grid' },
+  { id: 'solid', name: 'Solid', vibe: 'Plain, no distractions' },
+  { id: 'image', name: 'Your image', vibe: 'Upload a poster or ground photo' },
+]
+
+/** CSS background for a theme's backdrop. Images get a dark wash so text stays readable. */
+export function themeBackground(theme: Partial<ThemeConfig> | null | undefined, p: Palette & { accent: string }) {
+  const [i950, i900] = p.ink
+  switch (theme?.background) {
+    case 'stadium':
+      return `radial-gradient(ellipse 45% 70% at 8% -12%, ${p.accent}2e, transparent 65%), radial-gradient(ellipse 45% 70% at 92% -12%, ${p.second}26, transparent 65%), radial-gradient(ellipse 80% 40% at 50% 115%, #1f7a3a55, transparent 70%), linear-gradient(180deg, ${i950}, ${i900})`
+    case 'pitch':
+      return `radial-gradient(900px 500px at 50% -10%, ${p.accent}1a, transparent 60%), repeating-linear-gradient(90deg, #2ea04314 0 90px, #2ea04308 90px 180px), linear-gradient(180deg, ${i900}, #07170e)`
+    case 'stars':
+      return `radial-gradient(1.5px 1.5px at 12% 18%, #ffffffaa, transparent), radial-gradient(1px 1px at 28% 62%, #ffffff88, transparent), radial-gradient(1.5px 1.5px at 47% 12%, #ffffffaa, transparent), radial-gradient(1px 1px at 63% 44%, #ffffff77, transparent), radial-gradient(1.5px 1.5px at 81% 22%, #ffffffaa, transparent), radial-gradient(1px 1px at 91% 70%, #ffffff88, transparent), radial-gradient(1px 1px at 6% 82%, #ffffff77, transparent), radial-gradient(1200px 600px at 85% -10%, ${p.accent}14, transparent 60%), ${i950}`
+    case 'grid':
+      return `linear-gradient(${p.accent}0d 1px, transparent 1px) 0 0 / 48px 48px, linear-gradient(90deg, ${p.accent}0d 1px, transparent 1px) 0 0 / 48px 48px, radial-gradient(1000px 500px at 50% -10%, ${p.accent}17, transparent 60%), ${i900}`
+    case 'solid':
+      return i900
+    case 'image':
+      return theme.backgroundImage
+        ? `linear-gradient(${i950}c7, ${i950}e6), url("${theme.backgroundImage.replace(/"/g, '%22')}") center / cover no-repeat fixed, ${i900}`
+        : i900
+    default:
+      return `radial-gradient(1200px 600px at 85% -10%, ${p.accent}17, transparent 60%), radial-gradient(900px 500px at -10% 10%, ${p.second}12, transparent 60%), ${i900}`
+  }
 }
 
 export type ThemePreset = 'floodlight' | 'royal' | 'crimson' | 'emerald' | 'saffron' | 'violet' | 'ocean'
@@ -56,8 +94,11 @@ export function themeStyle(theme?: Partial<ThemeConfig> | null): CSSProperties {
     '--color-white': '#ffffff',
     '--color-rose-hot': '#ff4d6d',
     '--color-lime-bright': p.accent,
+    '--color-lime-hover': p.accent,
+    '--color-lime-deep': p.accent,
     '--color-gold-bright': p.gold,
     '--color-on-accent': i950,
+    '--color-on-gold': i950,
     '--border': 'rgb(255 255 255 / 0.08)',
     '--border-strong': 'rgb(255 255 255 / 0.14)',
     '--tint-strength': '100%',
@@ -66,7 +107,9 @@ export function themeStyle(theme?: Partial<ThemeConfig> | null): CSSProperties {
     '--avatar-bg': 'linear-gradient(135deg, #34405a, #34405a88)',
     '--avatar-fg': '#ffffff',
     '--gradient-end': '#e9ff9a',
+    '--fg': '#ffffff',
     colorScheme: 'dark',
-    background: `radial-gradient(1200px 600px at 85% -10%, ${p.accent}17, transparent 60%), radial-gradient(900px 500px at -10% 10%, ${p.second}12, transparent 60%), ${i900}`,
+    color: '#ffffff',
+    background: themeBackground(theme, p),
   } as CSSProperties
 }

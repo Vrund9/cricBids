@@ -158,6 +158,16 @@ function LoginInner() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Arrived here because this account signed in on another device.
+  useEffect(() => {
+    try {
+      const why = sessionStorage.getItem('cricbid.signed-out-reason')
+      if (why) {
+        sessionStorage.removeItem('cricbid.signed-out-reason')
+        setError(why)
+      }
+    } catch {}
+  }, [])
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)

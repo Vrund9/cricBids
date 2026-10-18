@@ -11,6 +11,7 @@ import { isAdminUser } from '../common/admin'
 import { settings } from '../common/settings'
 import { ChangePasswordDto, GoogleLoginDto, LoginDto, ResetPasswordDto, SignupDto, UpdateProfileDto } from './auth.dto'
 import type { User } from '../generated/prisma/client'
+import { loginGuard } from './login-guard'
 
 const RESET_TTL_MS = 60 * 60 * 1000
 
@@ -38,14 +39,17 @@ export class AuthService {
     return {
       id: u.id, name: u.name, email: u.email, avatarUrl: u.avatarUrl, createdAt: u.createdAt, seasonPassUntil: u.seasonPassUntil,
       hasPassword: !!u.passwordHash,
+      rewardPoints: u.rewardPoints,
+      fullAccess: u.fullAccess,
       isAdmin: isAdminUser(u),
     }
   }
 
   private async session(u: User) {
     if (u.suspendedAt) throw new ForbiddenException('This account has been suspended. Contact support if you think this is a mistake.')
-    const user = await this.prisma.user.update({ where: { id: u.id }, data: { lastLoginAt: new Date() } })
-    const token = await this.jwt.signAsync({ sub: user.id, email: user.email })
+    // One active session per account: the new version invalidates every token issued before it.
+    const user = await this.prisma.user.update({ where: { id: u.id }, data: { lastLoginAt: new Date(), sessionVersion: { increment: 1 } } })
+    const token = await this.jwt.signAsync({ sub: user.id, email: user.email, sv: user.sessionVersion })
     return { token, user: this.publicUser(user) }
   }
 
@@ -66,8 +70,13 @@ export class AuthService {
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({ where: { email: dto.email } })
     // Always run bcrypt so response time doesn't reveal whether the email exists.
+    loginGuard.check(dto.email)
     const ok = await bcrypt.compare(dto.password, user?.passwordHash ?? DUMMY_HASH)
-    if (!user || !ok) throw new UnauthorizedException('Incorrect email or password')
+    if (!user || !ok) {
+      loginGuard.fail(dto.email)
+      throw new UnauthorizedException('Incorrect email or password')
+    }
+    loginGuard.reset(dto.email)
     return this.session(user)
   }
 

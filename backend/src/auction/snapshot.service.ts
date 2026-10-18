@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 import { basePriceFor, maxBidFor, nextBidAmount, parseIncrements } from '../common/auction-rules'
-import { planInfo, publicTheme } from '../common/plans'
+import { planInfo, PLAN_OWNER_SELECT, publicTheme } from '../common/plans'
 
 /** Fields that are safe to show on a public screen — never phone, email or custom answers. */
 export const PUBLIC_PLAYER_SELECT = {
@@ -20,7 +20,11 @@ export const PUBLIC_PLAYER_SELECT = {
   soldTeamId: true,
   soldPrice: true,
   soldAt: true,
+  retained: true,
 } as const
+
+/** Sales included in each snapshot (newest first). Squads come from their own endpoint. */
+const RECENT_SALES = 20
 
 /**
  * Builds the single public "state of the auction" payload that every screen renders:
@@ -31,7 +35,7 @@ export class SnapshotService {
   constructor(private readonly prisma: PrismaService) {}
 
   async build(tournamentId: string) {
-    const t = await this.prisma.tournament.findUnique({ where: { id: tournamentId }, include: { state: true, owner: { select: { seasonPassUntil: true } } } })
+    const t = await this.prisma.tournament.findUnique({ where: { id: tournamentId }, include: { state: true, owner: { select: PLAN_OWNER_SELECT } } })
     if (!t) return null
     const state = t.state
     const [teams, sold, counts, current, bids, bidCount] = await Promise.all([
@@ -61,6 +65,8 @@ export class SnapshotService {
     const isLive = current?.status === 'LIVE'
     const nextBid = isLive ? nextBidAmount(state!.currentBid, base, tiers) : null
     const count = (s: string) => counts.find((c) => c.status === s)?._count ?? 0
+    // Retained players count towards squads and purses, but they weren't sold under the hammer.
+    const auctioned = sold.filter((p) => !p.retained)
     const totalSpent = sold.reduce((a, p) => a + (p.soldPrice ?? 0), 0)
     const plan = planInfo(t, t.owner)
 
@@ -125,8 +131,9 @@ export class SnapshotService {
         bids: bidCount,
       },
       totalSpent,
-      sold,
-      topBuys: [...sold].sort((a, b) => (b.soldPrice ?? 0) - (a.soldPrice ?? 0)).slice(0, 5),
+      // Screens only show recent sales; sending all of them on every bid made big auctions sluggish.
+      sold: auctioned.slice(0, RECENT_SALES),
+      topBuys: [...auctioned].sort((a, b) => (b.soldPrice ?? 0) - (a.soldPrice ?? 0)).slice(0, 5),
       lastEvent: (state?.lastEvent as Record<string, unknown> | null) ?? null,
     }
   }

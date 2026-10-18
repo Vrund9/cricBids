@@ -13,6 +13,7 @@
     "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "seed": "tsx prisma/seed.ts",
+    "seed:bulk": "tsx prisma/seed-bulk.ts",
     "db:local": "node scripts/local-db.mjs"
   },
   "dependencies": {

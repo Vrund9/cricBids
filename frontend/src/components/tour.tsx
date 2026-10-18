@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { ArrowLeft, ArrowRight, X } from 'lucide-react'
 import { Button } from './ui'
 import { useAuth } from '@/lib/auth'
+import { uiFlags } from '@/lib/flags'
 
 export interface TourStep {
   /** Matches an element's `data-tour` attribute. Omit for a centred intro/outro card. */
@@ -48,6 +49,8 @@ export function Tour({ id, steps, when = true, onlyNewUsers = false }: { id: str
     // "New" = joined in the last 3 days, so existing organisers aren't interrupted after an update.
     const isNew = Date.now() - new Date(user.createdAt).getTime() < 3 * 24 * 60 * 60 * 1000
     const replay = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('tour')
+    // Arriving to buy add-ons (pricing calculator link) — don't cover the checkout with the tour.
+    if (window.location.hash.startsWith('#addons') || uiFlags.checkoutFromLink) return
     if (!seen && (!onlyNewUsers || isNew || replay)) {
       const t = setTimeout(() => setActive(true), 600)
       return () => clearTimeout(t)
@@ -120,7 +123,7 @@ export function Tour({ id, steps, when = true, onlyNewUsers = false }: { id: str
           initial={false}
           animate={{ left: rect.left - PAD, top: rect.top - PAD, width: rect.width + PAD * 2, height: rect.height + PAD * 2 }}
           transition={{ type: 'spring', stiffness: 260, damping: 30 }}
-          style={{ boxShadow: '0 0 0 9999px rgba(5,7,12,0.72), 0 0 40px rgba(200,255,46,0.35)' }}
+          style={{ boxShadow: '0 0 0 9999px rgba(5,7,12,0.72), 0 0 40px color-mix(in oklab, var(--color-lime-bright) 35%, transparent)' }}
         />
       )}
       <AnimatePresence mode="wait">

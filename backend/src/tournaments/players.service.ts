@@ -61,11 +61,11 @@ export class PlayersService {
    * concurrent form submissions, so retry on a unique-constraint clash.
    */
   async insertMany(tournamentId: string, players: NewPlayer[], source: PlayerSource) {
-    const { limits, plan } = await this.tournaments.plan(tournamentId)
+    const { limits } = await this.tournaments.plan(tournamentId)
     const existing = await this.prisma.player.count({ where: { tournamentId } })
     if (existing + players.length > limits.maxPlayers) {
       if (source === 'FORM') planLimit('Registrations for this tournament are full. Please contact the organiser.')
-      planLimit(`The ${plan === 'FREE' ? 'Free' : 'Pro'} plan allows up to ${limits.maxPlayers} players (you have ${existing}, adding ${players.length})`)
+      throw new BadRequestException(`An auction can have up to ${limits.maxPlayers} players (you have ${existing}, adding ${players.length})`)
     }
     for (let attempt = 0; attempt < 5; attempt++) {
       try {
@@ -105,14 +105,14 @@ export class PlayersService {
   }
 
   async create(tournamentId: string, userId: string, dto: PlayerInputDto) {
-    await this.tournaments.owned(tournamentId, userId)
+    await this.tournaments.editable(tournamentId, userId)
     const [player] = await this.insertMany(tournamentId, [dto], 'MANUAL')
     this.realtime.stateChanged(tournamentId)
     return player
   }
 
   async import(tournamentId: string, userId: string, dto: ImportPlayersDto) {
-    const t = await this.tournaments.owned(tournamentId, userId)
+    const t = await this.tournaments.editable(tournamentId, userId)
     if (dto.mode === 'replace') {
       if (isStarted(t)) throw new BadRequestException('Players cannot be replaced after the auction has started')
       await this.prisma.player.deleteMany({ where: { tournamentId } })
@@ -137,7 +137,7 @@ export class PlayersService {
   }
 
   private async ownedPlayer(tournamentId: string, playerId: string, userId: string) {
-    const t = await this.tournaments.owned(tournamentId, userId)
+    const t = await this.tournaments.editable(tournamentId, userId)
     const player = await this.prisma.player.findFirst({ where: { id: playerId, tournamentId } })
     if (!player) throw new NotFoundException('Player not found')
     return { t, player }
@@ -180,7 +180,7 @@ export class PlayersService {
   }
 
   async bulkApprove(tournamentId: string, userId: string, ids: string[], approved: boolean) {
-    await this.tournaments.owned(tournamentId, userId)
+    await this.tournaments.editable(tournamentId, userId)
     const targets = await this.prisma.player.findMany({
       where: { tournamentId, id: { in: ids }, approved: !approved, status: 'AVAILABLE' },
       select: { id: true },
@@ -192,7 +192,7 @@ export class PlayersService {
   }
 
   async bulkCategory(tournamentId: string, userId: string, ids: string[], category: string | null) {
-    await this.tournaments.owned(tournamentId, userId)
+    await this.tournaments.editable(tournamentId, userId)
     const res = await this.prisma.player.updateMany({
       where: { tournamentId, id: { in: ids } },
       data: { category: cleanStr(category, 30)?.toUpperCase() ?? null },
