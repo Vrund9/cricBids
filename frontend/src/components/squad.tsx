@@ -147,7 +147,7 @@ function FieldPlayer({ p, color, currency, tag }: { p: Player; color: string; cu
           </span>
         )}
       </div>
-      <span className="mt-1.5 line-clamp-2 max-w-full rounded-md px-2 py-0.5 text-center text-[11px] font-semibold leading-tight sm:text-xs" style={{ background: 'rgba(10,14,22,0.82)', color: ON_FIELD }}>
+      <span title={p.name} className="mt-1.5 block max-w-full truncate rounded-md px-2 py-0.5 text-center text-[11px] font-semibold leading-tight sm:text-xs" style={{ background: 'rgba(10,14,22,0.82)', color: ON_FIELD }}>
         {p.name}
       </span>
       <span className="mt-0.5 font-mono text-[11px] font-bold" style={{ color: ON_FIELD }}>
