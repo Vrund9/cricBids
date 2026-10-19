@@ -12,6 +12,7 @@ import { CricketScene } from '@/components/cricket-scene'
 import { api, uploadImage } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import { CURRENCIES, moneyShort } from '@/lib/format'
+import { CategoryModePicker, type CategoryChoice } from '@/components/categories'
 import type { TournamentSummary } from '@/lib/types'
 import { cn } from '@/lib/cn'
 
@@ -21,6 +22,7 @@ export default function Dashboard() {
   const [items, setItems] = useState<TournamentSummary[] | null>(null)
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({ name: '', venue: '', auctionDate: '', currency: 'INR', logoUrl: '' })
+  const [cats, setCats] = useState<CategoryChoice>({ useCategories: false, categoryList: [] })
   const [creating, setCreating] = useState(false)
   const [uploading, setUploading] = useState(false)
 
@@ -39,7 +41,7 @@ export default function Dashboard() {
     setCreating(true)
     try {
       const t = await api<{ id: string }>('/tournaments', {
-        body: { name: form.name, venue: form.venue || undefined, currency: form.currency, auctionDate: new Date(form.auctionDate).toISOString(), logoUrl: form.logoUrl || undefined },
+        body: { name: form.name, venue: form.venue || undefined, currency: form.currency, auctionDate: new Date(form.auctionDate).toISOString(), logoUrl: form.logoUrl || undefined, ...cats },
       })
       router.push(`/t/${t.id}`)
     } catch (err) {
@@ -141,6 +143,9 @@ export default function Dashboard() {
             <Select id="cur" value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })}>
               {CURRENCIES.map((c) => <option key={c}>{c}</option>)}
             </Select>
+          </Field>
+          <Field label="How are players grouped?">
+            <CategoryModePicker value={cats} onChange={setCats} />
           </Field>
           <Button type="submit" size="lg" className="w-full" loading={creating} disabled={uploading}>Create &amp; add players</Button>
         </form>

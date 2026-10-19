@@ -12,7 +12,9 @@ import { useConfirm } from '@/components/confirm'
 
 type Step = 'pick' | 'map' | 'done'
 
-export function ImportWizard({ open, onClose, tournamentId, hasPlayers, locked, onImported }: { open: boolean; onClose: () => void; tournamentId: string; hasPlayers: boolean; locked: boolean; onImported: () => void }) {
+export function ImportWizard({ open, onClose, tournamentId, hasPlayers, locked, useCategories, onImported }: { open: boolean; onClose: () => void; tournamentId: string; hasPlayers: boolean; locked: boolean; useCategories: boolean; onImported: () => void }) {
+  // Without categories a "category" column is kept as extra info rather than offered as a field.
+  const targets = useCategories ? TARGETS : TARGETS.filter((x) => x.key !== 'category')
   const [step, setStep] = useState<Step>('pick')
   const [sheet, setSheet] = useState<Sheet | null>(null)
   const [file, setFile] = useState<File | null>(null)
@@ -49,6 +51,7 @@ export function ImportWizard({ open, onClose, tournamentId, hasPlayers, locked, 
       setFile(f)
       setSheet(s)
       const guess = autoMap(s.headers, s.rows)
+      if (!useCategories) for (const h of Object.keys(guess.mapping)) if (guess.mapping[h] === 'category') guess.mapping[h] = 'extra'
       setMapping(guess.mapping)
       setHow(guess.how)
       setStep('map')
@@ -179,7 +182,7 @@ export function ImportWizard({ open, onClose, tournamentId, hasPlayers, locked, 
                                 setHow((x) => ({ ...x, [h]: 'remembered' }))
                               }}
                             >
-                              {TARGETS.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+                              {targets.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
                               <option value="extra">Keep as extra info</option>
                               <option value="ignore">Ignore</option>
                             </Select>

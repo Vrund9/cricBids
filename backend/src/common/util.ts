@@ -42,6 +42,17 @@ export function shortNameFor(name: string) {
   return name.trim().slice(0, 3).toUpperCase() || 'TM'
 }
 
+/** Categories are short labels stored upper-case: "a" and "A" are the same category. */
+export function cleanCategory(raw: unknown): string | null {
+  return cleanStr(raw, 30)?.toUpperCase() ?? null
+}
+
+/** An organiser's category list: cleaned, de-duplicated, order kept, at most 20. */
+export function cleanCategoryList(list: unknown): string[] {
+  if (!Array.isArray(list)) return []
+  return [...new Set(list.map(cleanCategory).filter((c): c is string => !!c))].slice(0, 20)
+}
+
 export const ROLES = ['Batsman', 'Bowler', 'All-rounder', 'Wicket-keeper'] as const
 
 /** Map the many ways organisers write a role ("bat", "WK", "allrounder", "Batter") to a canonical role. */

@@ -26,6 +26,7 @@ export default function PlayersPage() {
   const [q, setQ] = useState('')
   const [role, setRole] = useState('')
   const [status, setStatus] = useState('')
+  const [cat, setCat] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [importing, setImporting] = useState(false)
   const [editing, setEditing] = useState<Player | 'new' | null>(null)
@@ -75,10 +76,11 @@ export default function PlayersPage() {
     return players.filter((p) => {
       if (role && p.role !== role) return false
       if (status === 'PENDING' ? p.approved : status && p.status !== status) return false
+      if (cat && (cat === '-' ? p.category : p.category !== cat)) return false
       if (!term) return true
       return [p.name, p.phone, p.city, p.category, String(p.serial)].some((v) => v?.toLowerCase().includes(term))
     })
-  }, [players, q, role, status])
+  }, [players, q, role, status, cat])
 
   const toggle = (id: string) =>
     setSelected((s) => {
@@ -128,7 +130,7 @@ export default function PlayersPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           {!readOnly && (
-            <Button variant="ghost" size="sm" onClick={() => downloadTemplate(t.registrationFields, t.name)}>
+            <Button variant="ghost" size="sm" onClick={() => downloadTemplate(t.registrationFields, t.name, t.useCategories ? t.categoryList : null)}>
               <Download className="h-4 w-4" /> Excel template
             </Button>
           )}
@@ -183,6 +185,13 @@ export default function PlayersPage() {
               <option value="SOLD">Sold</option>
               <option value="UNSOLD">Unsold</option>
             </Select>
+            {t.useCategories && (
+              <Select className="h-10 w-auto" value={cat} onChange={(e) => setCat(e.target.value)} aria-label="Filter by category">
+                <option value="">All categories</option>
+                {t.categoryList.map((c) => <option key={c} value={c}>Category {c}</option>)}
+                <option value="-">No category</option>
+              </Select>
+            )}
           </div>
 
           <AnimatePresence>
@@ -192,7 +201,7 @@ export default function PlayersPage() {
                   <b>{selected.size} selected</b>
                   <Button size="sm" variant="secondary" onClick={() => bulk(true)}><Check className="h-3.5 w-3.5" /> Approve</Button>
                   <Button size="sm" variant="ghost" onClick={() => bulk(false)}>Mark pending</Button>
-                  <Button size="sm" variant="ghost" onClick={() => setCatOpen(true)}><Tag className="h-3.5 w-3.5" /> Set category</Button>
+                  {t.useCategories && <Button size="sm" variant="ghost" onClick={() => setCatOpen(true)}><Tag className="h-3.5 w-3.5" /> Set category</Button>}
                   <button className="ml-auto text-ink-400 hover:text-white" onClick={() => setSelected(new Set())} aria-label="Clear selection"><X className="h-4 w-4" /></button>
                 </div>
               </motion.div>
@@ -208,7 +217,7 @@ export default function PlayersPage() {
                   </th>
                   <th className="px-2 py-3 font-medium">Player</th>
                   <th className="px-2 py-3 font-medium">Role</th>
-                  <th className="px-2 py-3 font-medium">Category</th>
+                  {t.useCategories && <th className="px-2 py-3 font-medium">Category</th>}
                   <th className="px-2 py-3 font-medium">Mobile</th>
                   <th className="px-2 py-3 font-medium">Status</th>
                   <th className="px-2 py-3 font-medium" />
@@ -233,7 +242,7 @@ export default function PlayersPage() {
                         </div>
                       </td>
                       <td className="px-2 py-2.5"><Badge color={rm.color}>{rm.short}</Badge></td>
-                      <td className="px-2 py-2.5 text-ink-200">{p.category || '—'}</td>
+                      {t.useCategories && <td className="px-2 py-2.5">{p.category ? <Badge color="#ffb020">{p.category}</Badge> : <span className="text-ink-400">—</span>}</td>}
                       <td className="px-2 py-2.5 text-ink-300">{p.phone || '—'}</td>
                       <td className="px-2 py-2.5">
                         {!p.approved ? (
@@ -263,9 +272,9 @@ export default function PlayersPage() {
       )}
 
       {!readOnly && <>
-      <ImportWizard open={importing} onClose={() => setImporting(false)} tournamentId={t.id} hasPlayers={players.length > 0} locked={started} onImported={refresh} />
-      <PlayerModal player={editing} onClose={() => setEditing(null)} tournamentId={t.id} onSaved={refresh} />
-      <CategoryModal open={catOpen} onClose={() => setCatOpen(false)} ids={[...selected]} tournamentId={t.id} existing={t.categories.map((c) => c.name)} onSaved={() => { setSelected(new Set()); refresh() }} />
+      <ImportWizard open={importing} onClose={() => setImporting(false)} tournamentId={t.id} hasPlayers={players.length > 0} locked={started} useCategories={t.useCategories} onImported={refresh} />
+      <PlayerModal player={editing} onClose={() => setEditing(null)} tournamentId={t.id} categories={t.useCategories ? t.categoryList : null} onSaved={refresh} />
+      <CategoryModal open={catOpen} onClose={() => setCatOpen(false)} ids={[...selected]} tournamentId={t.id} existing={t.categoryList} onSaved={() => { setSelected(new Set()); refresh() }} />
       </>}
     </div>
     </div>
@@ -286,14 +295,14 @@ function CategoryModal({ open, onClose, ids, tournamentId, existing, onSaved }: 
   }
   return (
     <Modal open={open} onClose={onClose} title={`Set category for ${ids.length} players`}>
-      <p className="text-sm text-ink-300">Categories (e.g. Marquee, A, B, C) let you set different base prices and auction them group by group.</p>
+      <p className="text-sm text-ink-300">Categories let you set different base prices and auction players group by group.</p>
       <div className="mt-4 flex flex-wrap gap-2">
-        {[...new Set([...existing, 'MARQUEE', 'A', 'B', 'C'])].map((c) => (
+        {existing.map((c) => (
           <Button key={c} size="sm" variant="secondary" onClick={() => save(c)}>{c}</Button>
         ))}
       </div>
       <form className="mt-4 flex gap-2" onSubmit={(e) => { e.preventDefault(); if (value.trim()) void save(value.trim()) }}>
-        <Input placeholder="Custom category" value={value} onChange={(e) => setValue(e.target.value)} maxLength={30} />
+        <Input placeholder="New category (added to the list)" value={value} onChange={(e) => setValue(e.target.value)} maxLength={30} />
         <Button type="submit">Set</Button>
       </form>
       <button className="mt-4 text-sm text-ink-400 hover:text-white" onClick={() => save(null)}>Clear category</button>
@@ -301,7 +310,8 @@ function CategoryModal({ open, onClose, ids, tournamentId, existing, onSaved }: 
   )
 }
 
-function PlayerModal({ player, onClose, tournamentId, onSaved }: { player: Player | 'new' | null; onClose: () => void; tournamentId: string; onSaved: () => void }) {
+/** `categories` is null for tournaments without categories: the field is hidden. */
+function PlayerModal({ player, onClose, tournamentId, categories, onSaved }: { player: Player | 'new' | null; onClose: () => void; tournamentId: string; categories: string[] | null; onSaved: () => void }) {
   const isNew = player === 'new'
   const p = player && player !== 'new' ? player : null
   const empty = { name: '', role: 'Batsman', category: '', phone: '', email: '', city: '', age: '', battingStyle: '', bowlingStyle: '', photoUrl: '', basePrice: '' }
@@ -325,7 +335,7 @@ function PlayerModal({ player, onClose, tournamentId, onSaved }: { player: Playe
     const body: Record<string, unknown> = {
       name: form.name,
       role: form.role,
-      category: form.category || null,
+      ...(categories ? { category: form.category || null } : {}),
       phone: form.phone,
       email: form.email,
       city: form.city,
@@ -384,13 +394,20 @@ function PlayerModal({ player, onClose, tournamentId, onSaved }: { player: Playe
           <Field label="Role">
             <Select value={form.role} onChange={set('role')}>{ROLES.map((r) => <option key={r}>{r}</option>)}</Select>
           </Field>
-          <Field label="Category"><Input placeholder="A, B, Marquee…" value={form.category} onChange={set('category')} /></Field>
+          {categories && (
+            <Field label="Category">
+              <Select value={form.category} onChange={set('category')}>
+                <option value="">No category</option>
+                {[...new Set([...categories, ...(form.category ? [form.category] : [])])].map((c) => <option key={c} value={c}>Category {c}</option>)}
+              </Select>
+            </Field>
+          )}
           <Field label="Mobile"><Input type="tel" value={form.phone} onChange={set('phone')} /></Field>
           <Field label="Age"><Input type="number" min={5} max={90} value={form.age} onChange={set('age')} /></Field>
           <Field label="Batting style"><Input value={form.battingStyle} onChange={set('battingStyle')} /></Field>
           <Field label="Bowling style"><Input value={form.bowlingStyle} onChange={set('bowlingStyle')} /></Field>
           <Field label="City"><Input value={form.city} onChange={set('city')} /></Field>
-          <Field label="Own base price" hint="Overrides category/default"><Input type="number" min={0} value={form.basePrice} onChange={set('basePrice')} /></Field>
+          <Field label="Own base price" hint={categories ? 'Overrides category/default' : 'Overrides the default'}><Input type="number" min={0} value={form.basePrice} onChange={set('basePrice')} /></Field>
         </div>
         {p?.extra && Object.keys(p.extra).length > 0 && (
           <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3 text-xs">

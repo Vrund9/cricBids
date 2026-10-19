@@ -38,8 +38,8 @@ export default function TeamsPage() {
         </div>
         <motion.div variants={stagger} initial="hidden" animate="show" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {t.teams.map((team) => (
-            <motion.div key={team.id} variants={fadeUp}>
-              <Card className="overflow-hidden">
+            <motion.div key={team.id} variants={fadeUp} className="h-full">
+              <Card className="flex h-full flex-col overflow-hidden">
                 <div className="h-1.5" style={{ background: team.color }} />
                 <div className="flex items-center gap-4 p-5">
                   <Avatar src={team.logoUrl} name={team.name} size={56} rounded="xl" color={team.color} />
@@ -48,7 +48,7 @@ export default function TeamsPage() {
                     <p className="truncate text-xs text-ink-400">{team.ownerName ? `Owner: ${team.ownerName}` : 'No owner set'}</p>
                   </div>
                 </div>
-                <dl className="grid grid-cols-3 border-t border-white/5 text-center text-xs">
+                <dl className="mt-auto grid grid-cols-3 border-t border-white/5 text-center text-xs">
                   <div className="p-3"><dt className="text-ink-400">Players</dt><dd className="mt-0.5 font-display text-lg font-bold">{team.squadSize ?? 0}</dd></div>
                   <div className="border-x border-white/5 p-3"><dt className="text-ink-400">Spent</dt><dd className="mt-0.5 font-display text-lg font-bold text-gold">{moneyShort(t.teamPurse - team.purse, t.currency)}</dd></div>
                   <div className="p-3"><dt className="text-ink-400">Left</dt><dd className="mt-0.5 font-display text-lg font-bold">{moneyShort(team.purse, t.currency)}</dd></div>
@@ -107,7 +107,7 @@ export default function TeamsPage() {
       ) : (
         <motion.div variants={stagger} initial="hidden" animate="show" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {t.teams.map((team) => (
-            <motion.div key={team.id} variants={fadeUp}>
+            <motion.div key={team.id} variants={fadeUp} className="h-full">
               <TeamCard team={team} tournamentId={t.id} currency={t.currency} started={started} remote={t.remoteBidding} onChange={reload}>
                 {!started && <Retained team={team} t={t} players={players} onChange={refresh} />}
               </TeamCard>
@@ -161,9 +161,9 @@ function TeamCard({ team, tournamentId, currency, started, remote, onChange, chi
   const bidUrl = `${origin}/bid/${team.bidToken}`
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="flex h-full flex-col overflow-hidden">
       <div className="h-1.5" style={{ background: form.color }} />
-      <div className="space-y-4 p-5">
+      <div className="flex flex-1 flex-col gap-4 p-5">
         <div className="flex items-center gap-4">
           <label className="group relative cursor-pointer" aria-label="Upload team logo">
             <Avatar src={form.logoUrl} name={form.name} size={60} rounded="xl" color={form.color} />
@@ -221,9 +221,9 @@ function TeamCard({ team, tournamentId, currency, started, remote, onChange, chi
           </div>
         )}
         {children}
-        <SquadLink tournamentId={tournamentId} teamId={team.id} label={started ? 'Squad & analysis' : 'Squad planner'} className="-mx-5 border-t" />
+        <SquadLink tournamentId={tournamentId} teamId={team.id} label={started ? 'Squad & analysis' : 'Squad planner'} className="-mx-5 mt-auto border-t" />
         {!started && (
-          <button onClick={remove} className="inline-flex items-center gap-1 text-xs text-ink-400 hover:text-rose-hot">
+          <button onClick={remove} className="inline-flex self-start items-center gap-1 text-xs text-ink-400 hover:text-rose-hot">
             <Trash2 className="h-3.5 w-3.5" /> Remove team
           </button>
         )}

@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common'
-import { cleanStr, normalizePhotoUrl, normalizeRole, ROLES, toInt } from './util'
+import { cleanCategory, cleanStr, normalizePhotoUrl, normalizeRole, ROLES, toInt } from './util'
 
 export type FieldType = 'text' | 'textarea' | 'number' | 'tel' | 'email' | 'select' | 'photo'
 
@@ -17,12 +17,14 @@ export interface RegField {
 }
 
 /** Player columns a built-in field writes to. */
-export const BUILTIN_KEYS = ['name', 'phone', 'role', 'photoUrl', 'battingStyle', 'bowlingStyle', 'age', 'city', 'email'] as const
+export const BUILTIN_KEYS = ['name', 'phone', 'role', 'category', 'photoUrl', 'battingStyle', 'bowlingStyle', 'age', 'city', 'email'] as const
 
 export const DEFAULT_REG_FIELDS: RegField[] = [
   { key: 'name', label: 'Full name', type: 'text', required: true, enabled: true, builtin: true, locked: true },
   { key: 'phone', label: 'Mobile number', type: 'tel', required: true, enabled: true, builtin: true },
   { key: 'role', label: 'Playing role', type: 'select', required: true, enabled: true, builtin: true, locked: true, options: [...ROLES] },
+  // Only shown for category-wise tournaments; its options always come from the tournament's category list.
+  { key: 'category', label: 'Category', type: 'select', required: false, enabled: true, builtin: true, options: [] },
   { key: 'photoUrl', label: 'Photo', type: 'photo', required: false, enabled: true, builtin: true },
   { key: 'battingStyle', label: 'Batting style', type: 'select', required: false, enabled: true, builtin: true, options: ['Right-hand bat', 'Left-hand bat'] },
   {
@@ -66,6 +68,23 @@ export function sanitizeFields(input: unknown): RegField[] {
 }
 
 /**
+ * The form as it applies right now: the category question appears only for category-wise
+ * tournaments (with their current categories as options). Forms saved before categories
+ * existed get the question slotted in after the playing role.
+ */
+export function fieldsFor(t: { registrationFields: unknown; useCategories: boolean; categoryList: string[] }): RegField[] {
+  const stored = (Array.isArray(t.registrationFields) ? t.registrationFields : DEFAULT_REG_FIELDS) as RegField[]
+  const fields = [...stored]
+  if (!fields.some((f) => f.key === 'category')) {
+    const at = fields.findIndex((f) => f.key === 'role') + 1
+    fields.splice(at, 0, DEFAULT_REG_FIELDS.find((f) => f.key === 'category')!)
+  }
+  return fields
+    .filter((f) => f.key !== 'category' || (t.useCategories && t.categoryList.length > 0))
+    .map((f) => (f.key === 'category' ? { ...f, options: t.categoryList } : f))
+}
+
+/**
  * Validate a registration submission against the form config and split it into
  * Player columns + `extra` answers.
  */
@@ -100,9 +119,11 @@ export function parseSubmission(fields: RegField[], body: Record<string, unknown
   }
   if (out.age !== undefined && (out.age < 5 || out.age > 90)) throw new BadRequestException('Please enter a valid age')
   out.role = normalizeRole(out.role)
+  if (out.category !== undefined) out.category = cleanCategory(out.category)
   return { ...out, extra: Object.keys(extra).length ? extra : undefined } as {
     name: string
     role: string
+    category?: string | null
     phone?: string
     photoUrl?: string
     battingStyle?: string

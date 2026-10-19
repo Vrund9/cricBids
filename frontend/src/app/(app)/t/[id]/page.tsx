@@ -6,6 +6,7 @@ import { motion } from 'motion/react'
 import { ArrowRight, Check, ClipboardList, Crown, FileDown, FileSpreadsheet, Gavel, ImagePlus, ListChecks, Pencil, Radio, Shield, Trash2, Trophy, Users } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { CategoryModePicker, type CategoryChoice } from '@/components/categories'
 import { useTournament } from '@/components/tournament-context'
 import { Avatar, Button, Card, Field, Input, Modal, Select, Textarea, fadeUp, stagger } from '@/components/ui'
 import { ShareLink } from '@/components/share'
@@ -331,6 +332,7 @@ function DetailsCard({ onEdit }: { onEdit?: () => void }) {
         <div className="flex justify-between gap-4"><dt className="text-ink-400">Venue</dt><dd className="text-right">{t.venue || '—'}</dd></div>
         <div className="flex justify-between gap-4"><dt className="text-ink-400">Auction date</dt><dd className="text-right">{t.auctionDate ? new Date(t.auctionDate).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '—'}</dd></div>
         <div className="flex justify-between gap-4"><dt className="text-ink-400">Currency</dt><dd>{t.currency}</dd></div>
+        <div className="flex justify-between gap-4"><dt className="text-ink-400">Players</dt><dd className="text-right">{t.useCategories ? `Category-wise · ${t.categoryList.join(', ')}` : 'Without categories'}</dd></div>
       </dl>
       {!onEdit && (
         <button onClick={remove} className="mt-4 inline-flex items-center gap-1 text-xs text-ink-400 hover:text-rose-hot">
@@ -347,15 +349,26 @@ function DetailsModal({ open, onClose, update }: { open: boolean; onClose: () =>
   const confirm = useConfirm()
   const toLocal = (d?: string | null) => (d ? new Date(new Date(d).getTime() - new Date(d).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '')
   const [form, setForm] = useState({ name: t.name, venue: t.venue ?? '', description: t.description ?? '', currency: t.currency, auctionDate: toLocal(t.auctionDate), logoUrl: t.logoUrl ?? '' })
+  const [cats, setCats] = useState<CategoryChoice>({ useCategories: t.useCategories, categoryList: t.categoryList })
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const started = !['DRAFT', 'READY'].includes(t.status)
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.auctionDate) return toast.error('Pick the auction date')
+    // Players in a category that is switched off or removed lose it — say so before saving.
+    const dropped = t.categories.filter((c) => !cats.useCategories || !cats.categoryList.includes(c.name))
+    const affected = dropped.reduce((a, c) => a + c.count, 0)
+    if (affected && !(await confirm({
+      title: cats.useCategories ? `Remove ${dropped.map((c) => c.name).join(', ')}?` : 'Switch off categories?',
+      message: `${affected} player${affected > 1 ? 's' : ''} will lose their category${dropped.length > 1 ? ' and those category base prices are cleared' : ''}.`,
+      confirmLabel: 'Save anyway',
+      danger: true,
+    }))) return
     setSaving(true)
     try {
-      await update({ ...form, logoUrl: form.logoUrl || null, auctionDate: new Date(form.auctionDate).toISOString() })
+      await update({ ...form, ...(started ? {} : cats), logoUrl: form.logoUrl || null, auctionDate: new Date(form.auctionDate).toISOString() })
       toast.success('Saved')
       onClose()
     } catch (err) {
@@ -414,6 +427,9 @@ function DetailsModal({ open, onClose, update }: { open: boolean; onClose: () =>
           <Select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })}>
             {CURRENCIES.map((c) => <option key={c}>{c}</option>)}
           </Select>
+        </Field>
+        <Field label="How are players grouped?" hint={started ? 'Categories are locked once the auction has started.' : undefined}>
+          <CategoryModePicker value={cats} onChange={setCats} disabled={started} />
         </Field>
         <Field label="Description" hint="Shown on the registration form.">
           <Textarea maxLength={500} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
