@@ -205,7 +205,7 @@ export function Switch({ checked, onChange, label, description, disabled }: { ch
         <motion.span
           layout
           transition={{ type: 'spring', stiffness: 600, damping: 35 }}
-          className={cn('absolute top-0.5 h-5 w-5 rounded-full shadow', checked ? 'right-0.5 bg-ink-950' : 'left-0.5 bg-white')}
+          className={cn('absolute top-0.5 h-5 w-5 rounded-full shadow', checked ? 'right-0.5 bg-ink-950' : 'left-0.5 bg-snow')}
         />
       </button>
     </label>

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Gavel, Smartphone, Wifi, WifiOff } from 'lucide-react'
 import { AnimatedNumber, Avatar, Badge } from './ui'
-import { money, moneyShort, roleMeta } from '@/lib/format'
+import { money, moneyShort, roleMeta, tintText } from '@/lib/format'
 import { useCountdown, type ConnState } from '@/lib/live'
 import type { AuctionEvent, PublicPlayer, Snapshot, SnapshotTeam } from '@/lib/types'
 import { cn } from '@/lib/cn'
@@ -95,7 +95,7 @@ export function BidDisplay({ snap, skew, size = 'lg' }: { snap: Snapshot; skew: 
           {leader ? (
             <motion.div key={leader.id + String(c.currentBid)} initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -16, opacity: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 24 }} className="inline-flex items-center gap-3 rounded-2xl py-1.5 pl-1.5 pr-4" style={{ background: `${leader.color}22` }}>
               <Avatar src={leader.logoUrl} name={leader.shortName} size={size === 'xl' ? 44 : 34} rounded="xl" color={leader.color} />
-              <span className={cn('font-bold', size === 'xl' ? 'text-2xl' : 'text-lg')} style={{ color: leader.color }}>{leader.name}</span>
+              <span className={cn('font-bold', size === 'xl' ? 'text-2xl' : 'text-lg')} style={{ color: tintText(leader.color) }}>{leader.name}</span>
               {c.bids[0]?.source === 'REMOTE' && <Smartphone className="h-4 w-4 text-ink-300" aria-label="Bid from phone" />}
             </motion.div>
           ) : (
@@ -215,7 +215,7 @@ export function RecentSales({ snap, limit = 6 }: { snap: Snapshot; limit?: numbe
               <Avatar src={p.photoUrl} name={p.name} size={32} />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{p.name}</p>
-                <p className="truncate text-[11px]" style={{ color: t?.color }}>{t?.name}</p>
+                <p className="truncate text-[11px]" style={{ color: t?.color && tintText(t.color) }}>{t?.name}</p>
               </div>
               <span className="font-mono text-sm font-semibold text-gold">{moneyShort(p.soldPrice, snap.tournament.currency)}</span>
             </motion.li>

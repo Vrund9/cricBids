@@ -55,6 +55,14 @@ export const ROLE_META: Record<string, { short: string; color: string }> = {
   'Wicket-keeper': { short: 'WK', color: '#ffb020' },
 }
 
+/**
+ * A role or team colour used as text. Full strength on dark backgrounds; in light mode it is
+ * mixed with black (like Badge) so pale colours such as the all-rounder lime stay readable.
+ */
+export function tintText(color: string) {
+  return `color-mix(in oklab, ${color} var(--tint-strength), black)`
+}
+
 export function roleMeta(role: string) {
   return ROLE_META[role] ?? { short: role.slice(0, 4).toUpperCase(), color: '#8a94ad' }
 }

@@ -11,7 +11,7 @@ import { ConnIndicator } from '@/components/auction'
 import { FieldView, NeedCallout, ROLE_LABEL, ROLES, RoleBalance, normRole, squadNeeds, type Role } from '@/components/squad'
 import { Avatar, Badge, Button, Card, EmptyState, PageLoader } from '@/components/ui'
 import { api } from '@/lib/api'
-import { money, moneyShort, roleMeta } from '@/lib/format'
+import { money, moneyShort, roleMeta, tintText } from '@/lib/format'
 import { useLiveAuction } from '@/lib/live'
 import type { Player, Team, Tournament } from '@/lib/types'
 import { cn } from '@/lib/cn'
@@ -106,7 +106,7 @@ export default function TeamSquadPage() {
           <div className="min-w-0 flex-1">
             <p className="text-xs uppercase tracking-[0.2em] text-ink-400">On the block now</p>
             <p className="truncate font-semibold">
-              {onBlock.player.name} <span className="text-xs font-bold" style={{ color: roleMeta(onBlock.player.role).color }}>{roleMeta(onBlock.player.role).short}</span>
+              {onBlock.player.name} <span className="text-xs font-bold" style={{ color: tintText(roleMeta(onBlock.player.role).color) }}>{roleMeta(onBlock.player.role).short}</span>
             </p>
           </div>
           <p className={cn('text-sm font-semibold', blockNeed?.gap ? 'text-lime-glow' : 'text-ink-400')}>
@@ -208,7 +208,7 @@ function PlayerCard({ p, color, currency }: { p: Player; color: string; currency
   return (
     <div className="group relative h-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] transition hover:-translate-y-0.5 hover:border-white/20">
       <div className="relative grid place-items-center px-3 pb-3 pt-5" style={{ background: `linear-gradient(160deg, ${color}40, ${rm.color}14 70%, transparent)` }}>
-        <span className="absolute left-2.5 top-2.5 rounded-md px-1.5 py-0.5 text-[10px] font-black tracking-wider" style={{ background: `${rm.color}26`, color: rm.color }}>{rm.short}</span>
+        <span className="absolute left-2.5 top-2.5 rounded-md px-1.5 py-0.5 text-[10px] font-black tracking-wider" style={{ background: `${rm.color}26`, color: tintText(rm.color) }}>{rm.short}</span>
         {p.category && <span className="absolute right-2.5 top-2.5 rounded-md bg-gold/15 px-1.5 py-0.5 text-[10px] font-bold text-gold">Cat {p.category}</span>}
         <Avatar src={p.photoUrl} name={p.name} size={84} color={color} className="shadow-xl ring-4 ring-white/10" />
         {p.retained && (

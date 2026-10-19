@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { motion } from 'motion/react'
 import { AlertTriangle, CheckCircle2, Shuffle } from 'lucide-react'
 import { Avatar, Button } from './ui'
-import { moneyShort, roleMeta } from '@/lib/format'
+import { moneyShort, roleMeta, tintText } from '@/lib/format'
 import type { Player } from '@/lib/types'
 import { cn } from '@/lib/cn'
 
@@ -174,17 +174,17 @@ export function FieldView({ squad, color, currency, maxSquad }: { squad: Player[
         </Button>
       </div>
       <div
-        className="relative overflow-hidden rounded-[2rem] px-2 py-6 sm:px-6"
-        style={{ background: 'repeating-linear-gradient(90deg, #2f7a3a 0 44px, #2a7034 44px 88px)', boxShadow: 'inset 0 0 120px rgba(0,0,0,0.35)' }}
+        className="relative mx-auto flex min-h-[620px] max-w-3xl flex-col overflow-hidden rounded-[2.5rem] px-2 py-10 sm:min-h-[760px] sm:px-8 sm:py-12"
+        style={{ background: 'repeating-linear-gradient(180deg, #2f7a3a 0 56px, #2a7034 56px 112px)', boxShadow: 'inset 0 0 140px rgba(0,0,0,0.35)' }}
       >
         {/* Boundary rope and the pitch strip in the middle. */}
-        <div className="pointer-events-none absolute inset-3 rounded-[50%] border-2 border-dashed" style={{ borderColor: 'rgba(255,255,255,0.18)' }} />
-        <div className="pointer-events-none absolute left-1/2 top-[22%] h-[56%] w-[70px] -translate-x-1/2 rounded-sm sm:w-[110px]" style={{ background: 'rgba(214,196,150,0.32)' }}>
+        <div className="pointer-events-none absolute inset-4 rounded-[50%] border-2 border-dashed" style={{ borderColor: 'rgba(255,255,255,0.18)' }} />
+        <div className="pointer-events-none absolute left-1/2 top-1/2 h-[46%] w-[64px] -translate-x-1/2 -translate-y-1/2 rounded-md sm:w-[96px]" style={{ background: 'rgba(214,196,150,0.32)' }}>
           <div className="absolute inset-x-2 top-[8%] h-px" style={{ background: 'rgba(255,255,255,0.45)' }} />
           <div className="absolute inset-x-2 bottom-[8%] h-px" style={{ background: 'rgba(255,255,255,0.45)' }} />
         </div>
 
-        <div className="relative space-y-5">
+        <div className="relative flex flex-1 flex-col justify-around gap-6">
           {xi.rows.map(({ role, players }) => (
             <section key={role} aria-label={ROLE_LABEL[role]}>
               <p className="mb-2 text-center text-[11px] font-bold uppercase tracking-[0.25em]" style={{ color: 'rgba(255,255,255,0.7)' }}>
@@ -213,7 +213,7 @@ export function FieldView({ squad, color, currency, maxSquad }: { squad: Player[
               <span key={p.id} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] py-1 pl-1 pr-3 text-xs">
                 <Avatar src={p.photoUrl} name={p.name} size={22} />
                 {p.name}
-                <span className="font-bold" style={{ color: roleMeta(p.role).color }}>{roleMeta(p.role).short}</span>
+                <span className="font-bold" style={{ color: tintText(roleMeta(p.role).color) }}>{roleMeta(p.role).short}</span>
               </span>
             ))}
           </div>

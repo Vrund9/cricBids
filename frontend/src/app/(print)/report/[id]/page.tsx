@@ -86,7 +86,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
                       <span className="rank">#{i + 1}</span>
                       <Photo src={p.photoUrl} name={p.name} size={64} />
                       <b className="tname">{p.name}</b>
-                      <span className="small" style={{ color: tm?.color }}>{tm?.name}</span>
+                      <span className="small" style={{ color: tm?.color && `color-mix(in oklab, ${tm.color} 58%, black)` }}>{tm?.name}</span>
                       <span className="price">{money(p.soldPrice, cur)}</span>
                     </li>
                   )
@@ -137,7 +137,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
                     <tr key={p.id}>
                       <td className="muted">{i + 1}</td>
                       <td><div className="pl"><Photo src={p.photoUrl} name={p.name} size={30} /><span>{p.name}{p.retained && <em className="small"> · retained</em>}</span></div></td>
-                      <td><span className="role" style={{ color: roleMeta(p.role).color, borderColor: roleMeta(p.role).color }}>{p.role}</span></td>
+                      <td><span className="role" style={{ color: `color-mix(in oklab, ${roleMeta(p.role).color} 58%, black)`, borderColor: roleMeta(p.role).color }}>{p.role}</span></td>
                       <td>{p.category || '—'}</td>
                       <td className="num strong">{money(p.soldPrice, cur)}</td>
                     </tr>

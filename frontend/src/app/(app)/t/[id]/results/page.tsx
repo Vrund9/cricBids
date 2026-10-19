@@ -10,7 +10,7 @@ import { CricketScene } from '@/components/cricket-scene'
 import { Avatar, Badge, Button, Card, EmptyState, PageLoader, Select, fadeUp, stagger } from '@/components/ui'
 import { api } from '@/lib/api'
 import { exportResults } from '@/lib/excel'
-import { money, moneyShort, roleMeta } from '@/lib/format'
+import { money, moneyShort, roleMeta, tintText } from '@/lib/format'
 import type { Player, Team, Tournament } from '@/lib/types'
 
 interface Results {
@@ -74,7 +74,7 @@ export default function ResultsPage() {
                     <p className="absolute left-4 top-4 font-display text-2xl font-black text-white/10">#{i + 1}</p>
                     <Avatar src={p.photoUrl} name={p.name} size={76} rounded="xl" className="mx-auto" />
                     <p className="mt-3 truncate font-semibold">{p.name}</p>
-                    <p className="truncate text-xs" style={{ color: tm?.color }}>{tm?.name}</p>
+                    <p className="truncate text-xs" style={{ color: tm?.color && tintText(tm.color) }}>{tm?.name}</p>
                     <p className="mt-2 font-display text-2xl font-black text-gold">{moneyShort(p.soldPrice, cur)}</p>
                   </Card>
                 </motion.div>
@@ -100,7 +100,7 @@ export default function ResultsPage() {
                       <li key={p.id} className="flex items-center gap-3 px-4 py-2">
                         <Avatar src={p.photoUrl} name={p.name} size={28} />
                         <span className="min-w-0 flex-1 truncate text-sm">{p.name}</span>
-                        <span className="text-[10px] font-bold" style={{ color: roleMeta(p.role).color }}>{roleMeta(p.role).short}</span>
+                        <span className="text-[10px] font-bold" style={{ color: tintText(roleMeta(p.role).color) }}>{roleMeta(p.role).short}</span>
                         <span className="w-20 text-right font-mono text-xs text-gold">{money(p.soldPrice, cur)}</span>
                       </li>
                     ))}
@@ -124,7 +124,7 @@ export default function ResultsPage() {
                 <li key={p.id} className="flex items-center gap-3 border-white/5 px-4 py-2.5 sm:border-b">
                   <Avatar src={p.photoUrl} name={p.name} size={30} />
                   <span className="min-w-0 flex-1 truncate text-sm">{p.name}</span>
-                  <span className="text-[10px] font-bold" style={{ color: roleMeta(p.role).color }}>{roleMeta(p.role).short}</span>
+                  <span className="text-[10px] font-bold" style={{ color: tintText(roleMeta(p.role).color) }}>{roleMeta(p.role).short}</span>
                 </li>
               ))}
             </ul>

@@ -15,7 +15,7 @@ import { PlanCard } from '@/components/upgrade'
 import { CricketScene } from '@/components/cricket-scene'
 import { api, SITE_URL, uploadImage } from '@/lib/api'
 import { exportResults } from '@/lib/excel'
-import { CURRENCIES, money, moneyShort } from '@/lib/format'
+import { CURRENCIES, money, moneyShort, tintText } from '@/lib/format'
 import type { Player, Team, Tournament } from '@/lib/types'
 import { cn } from '@/lib/cn'
 import { useConfirm } from '@/components/confirm'
@@ -249,7 +249,7 @@ function CompletedOverview() {
                     {i === 0 && <Crown className="absolute right-3 top-3 h-4 w-4 text-gold" />}
                     <Avatar src={p.photoUrl} name={p.name} size={56} rounded="xl" className="mx-auto" />
                     <p className="mt-2 truncate text-sm font-semibold">{p.name}</p>
-                    <p className="truncate text-xs" style={{ color: team?.color }}>{team?.name}</p>
+                    <p className="truncate text-xs" style={{ color: team?.color && tintText(team.color) }}>{team?.name}</p>
                     <p className="mt-1 font-display text-xl font-black text-gold">{moneyShort(p.soldPrice, cur)}</p>
                   </motion.li>
                 )
