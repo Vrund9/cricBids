@@ -146,6 +146,10 @@ export interface Tournament {
   basePrice: number
   bidIncrements: IncrementTier[]
   categoryBasePrices?: Record<string, number> | null
+  /** Players are grouped into categories (A, B, C…) */
+  useCategories: boolean
+  /** The categories on offer when `useCategories` is on */
+  categoryList: string[]
   minSquad: number
   maxSquad: number
   playerOrder: PlayerOrder

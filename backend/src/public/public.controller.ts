@@ -9,7 +9,7 @@ import { RealtimeService } from '../realtime/realtime.service'
 import { SnapshotService, PUBLIC_PLAYER_SELECT } from '../auction/snapshot.service'
 import { AuctionService } from '../auction/auction.service'
 import { PlayersService } from '../tournaments/players.service'
-import { parseSubmission, RegField } from '../common/registration'
+import { fieldsFor, parseSubmission } from '../common/registration'
 import { imageUpload, publicUrl } from '../uploads/uploads'
 import { planInfo, PLAN_OWNER_SELECT, publicTheme } from '../common/plans'
 
@@ -101,7 +101,7 @@ export class PublicController {
       tournament: { name: t.name, logoUrl: t.logoUrl, venue: t.venue, auctionDate: t.auctionDate, description: t.description },
       open: t.registrationOpen && t.status !== 'COMPLETED',
       requireApproval: t.requireApproval,
-      fields: (t.registrationFields as unknown as RegField[]).filter((f) => f.enabled),
+      fields: fieldsFor(t).filter((f) => f.enabled),
       registrations: count,
       theme: publicTheme(t.theme, planInfo(t, t.owner).limits),
     }
@@ -113,7 +113,7 @@ export class PublicController {
     const t = await this.byRegToken(token)
     if (!t.registrationOpen || t.status === 'COMPLETED') throw new ForbiddenException('Registrations are closed for this tournament')
     if (!body || typeof body !== 'object') throw new BadRequestException('Invalid submission')
-    const data = parseSubmission(t.registrationFields as unknown as RegField[], body)
+    const data = parseSubmission(fieldsFor(t), body)
     if (data.phone) {
       const digits = data.phone.replace(/\D/g, '').slice(-10)
       const existing = await this.prisma.player.findMany({ where: { tournamentId: t.id, phone: { not: null } }, select: { phone: true, serial: true } })

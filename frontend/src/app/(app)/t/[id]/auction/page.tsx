@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { AlertTriangle, Check, Dices, FastForward, Flag, Gavel, Keyboard, MonitorPlay, Pause, Play, RotateCcw, Rocket, SkipForward, Trophy, Undo2, Volume2, VolumeX, XCircle } from 'lucide-react'
+import { AlertTriangle, Check, Dices, ExternalLink, FastForward, Flag, Gavel, Keyboard, MonitorPlay, Pause, Play, RotateCcw, Rocket, SkipForward, Trophy, Undo2, Volume2, VolumeX, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTournament } from '@/components/tournament-context'
 import { useUpgrade } from '@/components/upgrade'
@@ -350,8 +350,10 @@ export default function ControlRoom() {
               </Card>
               {/* Below the bid buttons so the auctioneer never scrolls past purses to bid. */}
               <Card className="p-3">
-                <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-[0.2em] text-ink-400">Purses</h3>
-                <PurseBoard snap={snap} highlightId={cur?.leadingTeamId} />
+                <h3 className="mb-2 flex items-center justify-between gap-2 px-1 text-xs font-semibold uppercase tracking-[0.2em] text-ink-400">
+                  Purses <span className="normal-case tracking-normal text-ink-400">Tap a team to open its squad in a new tab</span>
+                </h3>
+                <PurseBoard snap={snap} highlightId={cur?.leadingTeamId} teamHref={(id) => `/t/${t.id}/teams/${id}`} />
               </Card>
             </>
           ) : (
@@ -370,6 +372,21 @@ export default function ControlRoom() {
               <BidHistory snap={snap} />
             </Card>
           )}
+          <Card className="p-5">
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-ink-400">Team squads</h3>
+            <ul className="grid grid-cols-2 gap-2">
+              {snap.teams.map((team) => (
+                <li key={team.id}>
+                  <a href={`/t/${t.id}/teams/${team.id}`} target="_blank" rel="noopener" className="flex items-center gap-2 rounded-xl border border-white/10 px-2.5 py-2 text-sm hover:border-white/25 hover:bg-white/[0.03]">
+                    <Avatar src={team.logoUrl} name={team.shortName} size={24} rounded="xl" color={team.color} />
+                    <span className="min-w-0 flex-1 truncate font-semibold">{team.shortName}</span>
+                    <span className="text-[11px] text-ink-400 tabular">{team.squadSize}/{snap.tournament.maxSquad}</span>
+                    <ExternalLink className="h-3 w-3 shrink-0 text-ink-400" />
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </Card>
           <Card className="p-5">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-ink-400">Recent sales</h3>
             <RecentSales snap={snap} />

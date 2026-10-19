@@ -33,6 +33,13 @@ export class CreateTournamentDto {
 
   @IsOptional() @IsString() @MaxLength(1000)
   logoUrl?: string
+
+  /** Players are grouped into categories (A, B, C…) */
+  @IsOptional() @IsBoolean()
+  useCategories?: boolean
+
+  @IsOptional() @IsArray() @ArrayMaxSize(20) @IsString({ each: true }) @MaxLength(30, { each: true })
+  categoryList?: string[]
 }
 
 export class UpdateTournamentDto {
@@ -65,6 +72,13 @@ export class UpdateTournamentDto {
 
   @IsOptional() @IsObject()
   categoryBasePrices?: Record<string, number> | null
+
+  /** Players are grouped into categories (A, B, C…) */
+  @IsOptional() @IsBoolean()
+  useCategories?: boolean
+
+  @IsOptional() @IsArray() @ArrayMaxSize(20) @IsString({ each: true }) @MaxLength(30, { each: true })
+  categoryList?: string[]
 
   @IsOptional() @IsInt() @Min(1) @Max(50)
   minSquad?: number

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Gavel, Smartphone, Wifi, WifiOff } from 'lucide-react'
 import { AnimatedNumber, Avatar, Badge } from './ui'
-import { money, moneyShort, roleMeta } from '@/lib/format'
+import { money, moneyShort, roleMeta, tintText } from '@/lib/format'
 import { useCountdown, type ConnState } from '@/lib/live'
 import type { AuctionEvent, PublicPlayer, Snapshot, SnapshotTeam } from '@/lib/types'
 import { cn } from '@/lib/cn'
@@ -95,7 +95,7 @@ export function BidDisplay({ snap, skew, size = 'lg' }: { snap: Snapshot; skew: 
           {leader ? (
             <motion.div key={leader.id + String(c.currentBid)} initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -16, opacity: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 24 }} className="inline-flex items-center gap-3 rounded-2xl py-1.5 pl-1.5 pr-4" style={{ background: `${leader.color}22` }}>
               <Avatar src={leader.logoUrl} name={leader.shortName} size={size === 'xl' ? 44 : 34} rounded="xl" color={leader.color} />
-              <span className={cn('font-bold', size === 'xl' ? 'text-2xl' : 'text-lg')} style={{ color: leader.color }}>{leader.name}</span>
+              <span className={cn('font-bold', size === 'xl' ? 'text-2xl' : 'text-lg')} style={{ color: tintText(leader.color) }}>{leader.name}</span>
               {c.bids[0]?.source === 'REMOTE' && <Smartphone className="h-4 w-4 text-ink-300" aria-label="Bid from phone" />}
             </motion.div>
           ) : (
@@ -163,7 +163,7 @@ export function TeamPurses({ snap, compact, highlightId }: { snap: Snapshot; com
  * Every team's purse at a glance, as small tiles that wrap into a few rows,
  * so the control room and big screen never need scrolling to compare purses.
  */
-export function PurseBoard({ snap, highlightId, className }: { snap: Snapshot; highlightId?: string | null; className?: string }) {
+export function PurseBoard({ snap, highlightId, className, teamHref }: { snap: Snapshot; highlightId?: string | null; className?: string; teamHref?: (teamId: string) => string }) {
   const cur = snap.tournament.currency
   const full = snap.tournament.teamPurse
   return (
@@ -171,13 +171,17 @@ export function PurseBoard({ snap, highlightId, className }: { snap: Snapshot; h
       {snap.teams.map((t) => {
         const pct = full ? Math.max(0, Math.min(100, (t.purse / full) * 100)) : 0
         const leading = highlightId === t.id
+        const href = teamHref?.(t.id)
+        // With a link, the tile opens that team's squad in a new tab so the auction keeps running here.
+        const Tile = href ? 'a' : 'div'
         return (
           <li
             key={t.id}
-            className={cn('relative overflow-hidden rounded-xl border bg-white/[0.03] px-2.5 py-2 transition-colors', leading ? 'border-2' : 'border-white/[0.07]')}
+            className={cn('relative overflow-hidden rounded-xl border bg-white/[0.03] transition-colors', leading ? 'border-2' : 'border-white/[0.07]', href && 'hover:border-white/25')}
             style={leading ? { borderColor: t.color, background: `color-mix(in oklab, ${t.color} 14%, transparent)` } : undefined}
-            title={`${t.name}: ${money(t.purse, cur)} left · ${t.squadSize}/${snap.tournament.maxSquad} players · max bid ${money(t.maxBid, cur)}`}
+            title={`${t.name}: ${money(t.purse, cur)} left · ${t.squadSize}/${snap.tournament.maxSquad} players · max bid ${money(t.maxBid, cur)}${href ? ' — open squad in a new tab' : ''}`}
           >
+            <Tile {...(href ? { href, target: '_blank', rel: 'noopener' } : {})} className="block px-2.5 py-2">
             <div className="flex items-center gap-1.5">
               <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: t.color }} />
               <span className="min-w-0 flex-1 truncate text-xs font-bold">{t.shortName}</span>
@@ -189,6 +193,7 @@ export function PurseBoard({ snap, highlightId, className }: { snap: Snapshot; h
             <div className="mt-1 h-1 overflow-hidden rounded-full bg-white/5">
               <div className="h-full rounded-full transition-[width] duration-500" style={{ width: `${pct}%`, background: t.color }} />
             </div>
+            </Tile>
           </li>
         )
       })}
@@ -210,7 +215,7 @@ export function RecentSales({ snap, limit = 6 }: { snap: Snapshot; limit?: numbe
               <Avatar src={p.photoUrl} name={p.name} size={32} />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{p.name}</p>
-                <p className="truncate text-[11px]" style={{ color: t?.color }}>{t?.name}</p>
+                <p className="truncate text-[11px]" style={{ color: t?.color && tintText(t.color) }}>{t?.name}</p>
               </div>
               <span className="font-mono text-sm font-semibold text-gold">{moneyShort(p.soldPrice, snap.tournament.currency)}</span>
             </motion.li>

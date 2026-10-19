@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 import { RealtimeService } from '../realtime/realtime.service'
-import { cleanStr, normalizePhotoUrl, normalizeRole } from '../common/util'
+import { cleanCategory, cleanStr, normalizePhotoUrl, normalizeRole } from '../common/util'
 import { isStarted, TournamentsService } from './tournaments.service'
 import { ImportPlayersDto, PlayerInputDto, UpdatePlayerDto } from './tournament.dto'
 import { Prisma } from '../generated/prisma/client'
@@ -39,7 +39,7 @@ export class PlayersService {
     return {
       name: p.name.trim().replace(/\s+/g, ' '),
       role: normalizeRole(p.role),
-      category: cleanStr(p.category, 30)?.toUpperCase() ?? null,
+      category: cleanCategory(p.category),
       battingStyle: cleanStr(p.battingStyle, 60),
       bowlingStyle: cleanStr(p.bowlingStyle, 60),
       phone: cleanStr(p.phone, 30),
@@ -50,6 +50,18 @@ export class PlayersService {
       basePrice: p.basePrice && p.basePrice > 0 ? p.basePrice : null,
       extra: p.extra && Object.keys(p.extra).length ? (p.extra as any) : undefined,
     }
+  }
+
+  /**
+   * Fit incoming categories to the tournament: dropped entirely when it isn't category-wise,
+   * otherwise any new category (from Excel or a manual edit) joins the tournament's list.
+   */
+  private async fitCategories<T extends { category?: string | null }>(tournamentId: string, rows: T[]): Promise<T[]> {
+    const t = await this.prisma.tournament.findUniqueOrThrow({ where: { id: tournamentId }, select: { useCategories: true, categoryList: true } })
+    if (!t.useCategories) return rows.map((r) => (r.category === undefined ? r : { ...r, category: null }))
+    const fresh = [...new Set(rows.map((r) => cleanCategory(r.category)).filter((c): c is string => !!c && !t.categoryList.includes(c)))]
+    if (fresh.length) await this.prisma.tournament.update({ where: { id: tournamentId }, data: { categoryList: [...t.categoryList, ...fresh].slice(0, 40) } })
+    return rows
   }
 
   list(tournamentId: string) {
@@ -67,6 +79,7 @@ export class PlayersService {
       if (source === 'FORM') planLimit('Registrations for this tournament are full. Please contact the organiser.')
       throw new BadRequestException(`An auction can have up to ${limits.maxPlayers} players (you have ${existing}, adding ${players.length})`)
     }
+    players = await this.fitCategories(tournamentId, players)
     for (let attempt = 0; attempt < 5; attempt++) {
       try {
         const created = await this.prisma.$transaction(async (tx) => {
@@ -145,7 +158,8 @@ export class PlayersService {
 
   async update(tournamentId: string, playerId: string, userId: string, dto: UpdatePlayerDto) {
     const { player } = await this.ownedPlayer(tournamentId, playerId, userId)
-    const { approved, ...fields } = dto
+    const { approved, ...input } = dto
+    const [fields] = await this.fitCategories(tournamentId, [input])
     const data: Record<string, unknown> = {}
     const mapped = this.toData({ ...player, ...fields, name: fields.name ?? player.name } as NewPlayer)
     // Keys present in the request are applied; an empty value clears the field.
@@ -192,10 +206,12 @@ export class PlayersService {
   }
 
   async bulkCategory(tournamentId: string, userId: string, ids: string[], category: string | null) {
-    await this.tournaments.editable(tournamentId, userId)
+    const t = await this.tournaments.editable(tournamentId, userId)
+    if (!t.useCategories) throw new BadRequestException('This tournament doesn’t use categories — turn them on in tournament settings first')
+    const [fitted] = await this.fitCategories(tournamentId, [{ category }])
     const res = await this.prisma.player.updateMany({
       where: { tournamentId, id: { in: ids } },
-      data: { category: cleanStr(category, 30)?.toUpperCase() ?? null },
+      data: { category: cleanCategory(fitted.category) },
     })
     return { updated: res.count }
   }

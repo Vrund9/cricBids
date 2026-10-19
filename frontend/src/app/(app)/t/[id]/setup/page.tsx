@@ -346,7 +346,7 @@ function SetupWizard() {
               <Question title="In what order should players come up?" hint="Random order is drawn with a secure shuffle — nobody can predict it, not even you.">
                 <div className="grid gap-3">
                   <OptionCard icon={<Shuffle className="h-5 w-5" />} active={a.playerOrder === 'RANDOM'} onClick={() => set({ playerOrder: 'RANDOM' })} title="Completely random" text="The classic — anyone can come up next." />
-                  <OptionCard icon={<Layers className="h-5 w-5" />} active={a.playerOrder === 'CATEGORY_RANDOM'} onClick={() => set({ playerOrder: 'CATEGORY_RANDOM' })} title="Random within categories" text={sug.categories.length ? `${sug.categories.map((c) => c.name).join(' → ')} — highest base price first, random inside each.` : 'Set categories on the Players tab to use this.'} />
+                  {t.useCategories && <OptionCard icon={<Layers className="h-5 w-5" />} active={a.playerOrder === 'CATEGORY_RANDOM'} onClick={() => set({ playerOrder: 'CATEGORY_RANDOM' })} title="Random within categories" text={`${sug.categories.map((c) => c.name).join(' → ')} — highest base price first, random inside each.`} />}
                   <OptionCard icon={<ListOrdered className="h-5 w-5" />} active={a.playerOrder === 'SEQUENTIAL'} onClick={() => set({ playerOrder: 'SEQUENTIAL' })} title="In list order" text="Same order as your Excel / registrations." />
                 </div>
               </Question>

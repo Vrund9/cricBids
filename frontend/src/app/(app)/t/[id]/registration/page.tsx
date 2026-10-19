@@ -100,7 +100,9 @@ export default function RegistrationPage() {
             <div key={f.key} className="flex flex-wrap items-center gap-3 p-4">
               <div className="min-w-40 flex-1">
                 <Input className="h-9" value={f.label} onChange={(e) => patch(f.key, { label: e.target.value })} aria-label="Field label" />
-                <p className="mt-1 text-[11px] text-ink-400">{TYPE_LABEL[f.type]}{f.options ? ` · ${f.options.length} options` : ''}</p>
+                <p className="mt-1 text-[11px] text-ink-400">
+                  {f.key === 'category' ? `Dropdown · ${f.options?.join(', ')} · players pick their category (change the list in tournament details)` : `${TYPE_LABEL[f.type]}${f.options ? ` · ${f.options.length} options` : ''}`}
+                </p>
               </div>
               {f.locked ? (
                 <span className="inline-flex items-center gap-1 text-xs text-ink-400"><Lock className="h-3 w-3" /> Always required</span>
@@ -217,7 +219,7 @@ export default function RegistrationPage() {
         <Card className="p-6">
           <h3 className="font-semibold">Collecting offline too?</h3>
           <p className="mt-1 text-sm text-ink-400">Download an Excel template with exactly these columns. Fill it in and upload it from the player list — both lists merge cleanly.</p>
-          <Button className="mt-4" variant="secondary" size="sm" onClick={() => downloadTemplate(fields, t.name)}>
+          <Button className="mt-4" variant="secondary" size="sm" onClick={() => downloadTemplate(fields, t.name, t.useCategories ? t.categoryList : null)}>
             <Download className="h-4 w-4" /> Excel template
           </Button>
         </Card>

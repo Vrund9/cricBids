@@ -1,15 +1,16 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'motion/react'
-import { Crown, FileDown, FileSpreadsheet, Trophy } from 'lucide-react'
+import { Crown, FileDown, FileSpreadsheet, LayoutGrid, Trophy } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTournament } from '@/components/tournament-context'
 import { CricketScene } from '@/components/cricket-scene'
 import { Avatar, Badge, Button, Card, EmptyState, PageLoader, Select, fadeUp, stagger } from '@/components/ui'
 import { api } from '@/lib/api'
 import { exportResults } from '@/lib/excel'
-import { money, moneyShort, roleMeta } from '@/lib/format'
+import { money, moneyShort, roleMeta, tintText } from '@/lib/format'
 import type { Player, Team, Tournament } from '@/lib/types'
 
 interface Results {
@@ -73,7 +74,7 @@ export default function ResultsPage() {
                     <p className="absolute left-4 top-4 font-display text-2xl font-black text-white/10">#{i + 1}</p>
                     <Avatar src={p.photoUrl} name={p.name} size={76} rounded="xl" className="mx-auto" />
                     <p className="mt-3 truncate font-semibold">{p.name}</p>
-                    <p className="truncate text-xs" style={{ color: tm?.color }}>{tm?.name}</p>
+                    <p className="truncate text-xs" style={{ color: tm?.color && tintText(tm.color) }}>{tm?.name}</p>
                     <p className="mt-2 font-display text-2xl font-black text-gold">{moneyShort(p.soldPrice, cur)}</p>
                   </Card>
                 </motion.div>
@@ -99,7 +100,7 @@ export default function ResultsPage() {
                       <li key={p.id} className="flex items-center gap-3 px-4 py-2">
                         <Avatar src={p.photoUrl} name={p.name} size={28} />
                         <span className="min-w-0 flex-1 truncate text-sm">{p.name}</span>
-                        <span className="text-[10px] font-bold" style={{ color: roleMeta(p.role).color }}>{roleMeta(p.role).short}</span>
+                        <span className="text-[10px] font-bold" style={{ color: tintText(roleMeta(p.role).color) }}>{roleMeta(p.role).short}</span>
                         <span className="w-20 text-right font-mono text-xs text-gold">{money(p.soldPrice, cur)}</span>
                       </li>
                     ))}
@@ -112,7 +113,7 @@ export default function ResultsPage() {
         </>
       )}
 
-      {team && <TeamDetail team={team} squad={sold.filter((p) => p.soldTeamId === team.id)} currency={cur} />}
+      {team && <TeamDetail team={team} squad={sold.filter((p) => p.soldTeamId === team.id)} currency={cur} href={`/t/${t.id}/teams/${team.id}`} />}
 
       {view === 'unsold' && (
         <Card className="overflow-hidden">
@@ -123,7 +124,7 @@ export default function ResultsPage() {
                 <li key={p.id} className="flex items-center gap-3 border-white/5 px-4 py-2.5 sm:border-b">
                   <Avatar src={p.photoUrl} name={p.name} size={30} />
                   <span className="min-w-0 flex-1 truncate text-sm">{p.name}</span>
-                  <span className="text-[10px] font-bold" style={{ color: roleMeta(p.role).color }}>{roleMeta(p.role).short}</span>
+                  <span className="text-[10px] font-bold" style={{ color: tintText(roleMeta(p.role).color) }}>{roleMeta(p.role).short}</span>
                 </li>
               ))}
             </ul>
@@ -136,7 +137,7 @@ export default function ResultsPage() {
   )
 }
 
-function TeamDetail({ team, squad, currency }: { team: Team; squad: Player[]; currency: string }) {
+function TeamDetail({ team, squad, currency, href }: { team: Team; squad: Player[]; currency: string; href: string }) {
   const spent = squad.reduce((a, p) => a + (p.soldPrice ?? 0), 0)
   const roles = Object.entries(squad.reduce<Record<string, number>>((acc, p) => ({ ...acc, [p.role]: (acc[p.role] ?? 0) + 1 }), {}))
   return (
@@ -151,6 +152,7 @@ function TeamDetail({ team, squad, currency }: { team: Team; squad: Player[]; cu
           <div><dt className="text-xs text-ink-400">Spent</dt><dd className="font-display text-xl font-bold text-gold">{money(spent, currency)}</dd></div>
           <div><dt className="text-xs text-ink-400">Purse left</dt><dd className="font-display text-xl font-bold">{money(team.purse, currency)}</dd></div>
         </dl>
+        <Link href={href} className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/15 px-4 text-sm font-semibold hover:bg-white/5"><LayoutGrid className="h-4 w-4" /> Field view</Link>
       </div>
       {roles.length > 0 && (
         <div className="flex flex-wrap gap-2 border-y border-white/5 px-5 py-3">

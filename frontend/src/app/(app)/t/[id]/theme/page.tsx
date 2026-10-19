@@ -100,7 +100,7 @@ export default function ThemePage() {
                     whileHover={{ y: -3 }}
                     onClick={() => set({ preset: key })}
                     aria-pressed={active}
-                    className={cn('relative overflow-hidden rounded-2xl border-2 text-left transition-colors', active ? '' : 'border-transparent ring-1 ring-white/10 hover:ring-white/25')}
+                    className={cn('tile relative overflow-hidden rounded-2xl border-2 text-left', !active && 'border-transparent')}
                     style={{ borderColor: active ? pal.accent : undefined }}
                   >
                     <div className="h-16 p-3" style={{ background: `radial-gradient(120px 60px at 85% 0%, ${pal.accent}55, transparent 70%), radial-gradient(120px 60px at 0% 100%, ${pal.second}33, transparent 70%), ${pal.ink[1]}` }}>
@@ -109,7 +109,7 @@ export default function ThemePage() {
                       </div>
                       <p className="mt-2 font-display text-lg font-black leading-none" style={{ color: pal.gold }}>₹1.2L</p>
                     </div>
-                    <div className="flex items-center justify-between gap-2 bg-ink-850 px-3 py-2">
+                    <div className="flex items-center justify-between gap-2 border-t border-[var(--border)] bg-ink-850 px-3 py-2">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold">{pal.name}</p>
                         <p className="truncate text-[11px] text-ink-400">{pal.vibe}</p>
@@ -128,14 +128,14 @@ export default function ThemePage() {
               {BACKGROUNDS.map((b) => {
                 const active = (theme.background ?? 'glow') === b.id
                 return (
-                  <button key={b.id} onClick={() => set({ background: b.id })} aria-pressed={active} className={cn('group overflow-hidden rounded-2xl border-2 text-left transition-colors', active ? 'border-lime-glow' : 'border-transparent ring-1 ring-white/10 hover:ring-white/25')}>
+                  <button key={b.id} onClick={() => set({ background: b.id })} aria-pressed={active} className={cn('tile group overflow-hidden rounded-2xl border-2 text-left transition hover:-translate-y-0.5', active ? 'border-lime-glow' : 'border-transparent')}>
                     <div className="relative grid h-20 place-items-center overflow-hidden">
                       {/* Painted at screen size and scaled down, so beams, stripes and stars read like they do on the big screen. */}
                       <div className="pointer-events-none absolute left-0 top-0 h-[400%] w-[400%] origin-top-left scale-[0.25]" style={{ background: themeBackground({ ...theme, background: b.id }, p) }} />
                       {b.id === 'image' && !theme.backgroundImage && <ImagePlus className="h-5 w-5 text-white/60" />}
                       {active && <span className="absolute right-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-lime-bright text-on-accent"><Check className="h-3 w-3" /></span>}
                     </div>
-                    <div className="px-3 py-2">
+                    <div className="border-t border-[var(--border)] px-3 py-2">
                       <p className="text-sm font-semibold">{b.name}</p>
                       <p className="truncate text-[11px] text-ink-400">{b.vibe}</p>
                     </div>
@@ -149,7 +149,7 @@ export default function ThemePage() {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="mt-4 flex cursor-pointer items-center gap-4 overflow-hidden rounded-2xl border-2 border-dashed border-white/15 p-4 hover:border-white/30"
+                  className="mt-4 flex cursor-pointer items-center gap-4 overflow-hidden rounded-2xl border-2 border-dashed border-[var(--border-strong)] p-4 hover:border-lime-glow/50"
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => {
                     e.preventDefault()
@@ -177,12 +177,12 @@ export default function ThemePage() {
               {SWATCHES.map((c) => {
                 const active = (theme.accent ?? '').toLowerCase() === c
                 return (
-                  <button key={c} onClick={() => set({ accent: c })} aria-label={`Accent ${c}`} aria-pressed={active} className={cn('grid h-9 w-9 place-items-center rounded-xl transition hover:scale-110', active && 'ring-2 ring-white/70 ring-offset-2 ring-offset-ink-900')} style={{ background: c }}>
+                  <button key={c} onClick={() => set({ accent: c })} aria-label={`Accent ${c}`} aria-pressed={active} className={cn('grid h-9 w-9 place-items-center rounded-xl shadow-sm ring-1 ring-inset ring-black/10 transition hover:scale-110', active && 'ring-2 ring-white/70 ring-offset-2 ring-offset-ink-850')} style={{ background: c }}>
                     {active && <Check className="h-4 w-4 text-black" />}
                   </button>
                 )
               })}
-              <label className="relative grid h-9 cursor-pointer place-items-center rounded-xl border border-white/15 px-3 text-xs font-semibold hover:bg-white/5">
+              <label className="relative grid h-9 cursor-pointer place-items-center rounded-xl border border-[var(--border-strong)] px-3 text-xs font-semibold hover:bg-white/5">
                 <span className="inline-flex items-center gap-2"><span className="h-4 w-4 rounded-md border border-white/20" style={{ background: p.accent }} /> Custom</span>
                 <input type="color" value={theme.accent || THEMES[theme.preset].accent} onChange={(e) => set({ accent: e.target.value })} className="absolute inset-0 cursor-pointer opacity-0" aria-label="Pick any brand colour" />
               </label>
@@ -192,7 +192,7 @@ export default function ThemePage() {
                 </button>
               )}
             </div>
-            <div className="my-5 h-px bg-white/5" />
+            <div className="my-5 h-px bg-[var(--border)]" />
             <Switch checked={!!theme.hideBranding} onChange={(v) => set({ hideBranding: v })} label="Remove “Powered by BidWicket”" description="White-label the live screen and registration form. Free on every auction." />
           </Section>
         </div>
@@ -201,18 +201,18 @@ export default function ThemePage() {
         <div className="min-w-0 xl:sticky xl:top-24 xl:self-start">
           <div className="mb-3 flex items-center justify-between gap-2">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-400">Live preview</p>
-            <div className="flex rounded-xl border border-white/10 bg-white/[0.03] p-1" role="tablist" aria-label="Preview screen">
+            <div className="flex rounded-xl border border-[var(--border-strong)] bg-ink-850 p-1 shadow-sm" role="tablist" aria-label="Preview screen">
               {([['live', MonitorPlay, 'Big screen'], ['register', ClipboardList, 'Form'], ['paddle', Smartphone, 'Paddle']] as const).map(([id, Icon, label]) => (
-                <button key={id} role="tab" aria-selected={screen === id} onClick={() => setScreen(id)} className={cn('inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors', screen === id ? 'bg-white/10 text-white' : 'text-ink-400 hover:text-white')}>
+                <button key={id} role="tab" aria-selected={screen === id} onClick={() => setScreen(id)} className={cn('inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors', screen === id ? 'bg-lime-glow/12 text-lime-glow' : 'text-ink-400 hover:text-white')}>
                   <Icon className="h-3.5 w-3.5" /> {label}
                 </button>
               ))}
             </div>
           </div>
-          <div className="overflow-hidden rounded-3xl border border-white/10 shadow-2xl">
-            <div className="flex items-center gap-1.5 border-b border-white/10 bg-ink-950 px-4 py-2.5">
+          <div className="overflow-hidden rounded-3xl border border-[var(--border-strong)] shadow-2xl">
+            <div className="flex items-center gap-1.5 border-b border-[var(--border-strong)] bg-ink-700 px-4 py-2.5">
               {['#ff5f57', '#febc2e', '#28c840'].map((c) => <span key={c} className="h-2.5 w-2.5 rounded-full" style={{ background: c }} />)}
-              <span className="ml-3 truncate rounded-md bg-white/5 px-2 py-0.5 font-mono text-[10px] text-ink-400">bidwicket.app/{screen === 'live' ? 'live' : screen === 'register' ? 'register' : 'bid'}/…</span>
+              <span className="ml-3 truncate rounded-md bg-ink-850 px-2 py-0.5 font-mono text-[10px] text-ink-300 ring-1 ring-[var(--border)]">bidwicket.app/{screen === 'live' ? 'live' : screen === 'register' ? 'register' : 'bid'}/…</span>
             </div>
             <motion.div key={`${screen}${theme.preset}${theme.accent}${theme.background}${theme.backgroundImage}`} initial={{ opacity: 0.5 }} animate={{ opacity: 1 }} className="min-h-[440px] p-5" style={themeStyle(theme)}>
               {screen === 'live' && <LivePreview name={t.name} currency={t.currency} />}
@@ -222,8 +222,8 @@ export default function ThemePage() {
             </motion.div>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
-            <a href={`/live/${t.liveToken}`} target="_blank" rel="noopener" className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/10 px-3 text-xs font-semibold hover:bg-white/5"><ExternalLink className="h-3.5 w-3.5" /> Open live screen</a>
-            <a href={`/register/${t.registrationToken}`} target="_blank" rel="noopener" className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/10 px-3 text-xs font-semibold hover:bg-white/5"><ExternalLink className="h-3.5 w-3.5" /> Open registration</a>
+            <a href={`/live/${t.liveToken}`} target="_blank" rel="noopener" className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[var(--border-strong)] bg-ink-850 px-3 text-xs font-semibold shadow-sm hover:bg-white/5"><ExternalLink className="h-3.5 w-3.5" /> Open live screen</a>
+            <a href={`/register/${t.registrationToken}`} target="_blank" rel="noopener" className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[var(--border-strong)] bg-ink-850 px-3 text-xs font-semibold shadow-sm hover:bg-white/5"><ExternalLink className="h-3.5 w-3.5" /> Open registration</a>
           </div>
         </div>
       </div>
@@ -255,7 +255,7 @@ function Section({ n, title, hint, children }: { n: number; title: string; hint:
   return (
     <Card className="p-5 sm:p-6">
       <div className="mb-5 flex items-start gap-3">
-        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white/[0.06] font-display text-sm font-bold">{n}</span>
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-lime-glow/12 font-display text-sm font-bold text-lime-glow ring-1 ring-lime-glow/25">{n}</span>
         <div>
           <h3 className="font-semibold">{title}</h3>
           <p className="text-xs text-ink-400">{hint}</p>

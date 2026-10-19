@@ -234,6 +234,10 @@ model Tournament {
   basePrice          Int         @default(2000)
   /// Array of { from: number, step: number } sorted by `from`. Step that applies is the last tier whose `from` <= current bid.
   bidIncrements      Json
+  /// Players are grouped into categories (A, B, C…): shapes the player list, registration form and Excel template.
+  useCategories      Boolean     @default(false)
+  /// The categories on offer when `useCategories` is on, in display order.
+  categoryList       String[]    @default([])
   /// Optional map of category -> base price, e.g. { "A": 10000, "B": 5000 }
   categoryBasePrices Json?
   minSquad           Int         @default(11)

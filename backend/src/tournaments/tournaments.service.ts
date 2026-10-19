@@ -2,18 +2,41 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { PrismaService } from '../prisma/prisma.service'
 import { RealtimeService } from '../realtime/realtime.service'
 import { DEFAULT_INCREMENTS, maxBidFor } from '../common/auction-rules'
-import { DEFAULT_REG_FIELDS, sanitizeFields } from '../common/registration'
-import { randomToken, slugify } from '../common/util'
+import { DEFAULT_REG_FIELDS, fieldsFor, sanitizeFields } from '../common/registration'
+import { cleanCategoryList, randomToken, slugify } from '../common/util'
 import { resetPurses } from './retention'
 import { planInfo, planLimit, PLAN_OWNER_SELECT, sanitizeTheme } from '../common/plans'
 import { CreateTournamentDto, UpdateTournamentDto } from './tournament.dto'
-import type { Tournament } from '../generated/prisma/client'
+import { Prisma, type Tournament } from '../generated/prisma/client'
 
 /** Statuses where the money side of the auction is locked. */
 export const STARTED = ['LIVE', 'PAUSED', 'COMPLETED'] as const
 
 export function isStarted(t: Pick<Tournament, 'status'>) {
   return (STARTED as readonly string[]).includes(t.status)
+}
+
+/** A category-wise tournament always has at least one category; A, B, C is the usual start. */
+function withDefaultCategories(list?: string[]) {
+  const clean = cleanCategoryList(list)
+  return clean.length ? clean : ['A', 'B', 'C']
+}
+
+/**
+ * Keep players and pricing in line with the category list: players in a category that no longer
+ * exists (or every player, when categories are switched off) lose it, along with its base price.
+ */
+async function applyCategoryList(tx: Prisma.TransactionClient, t: Tournament, list: string[]) {
+  await tx.player.updateMany({ where: { tournamentId: t.id, category: { not: null, notIn: list } }, data: { category: null } })
+  const prices = (t.categoryBasePrices || {}) as Record<string, number>
+  const kept = Object.fromEntries(Object.entries(prices).filter(([k]) => list.includes(k)))
+  await tx.tournament.update({
+    where: { id: t.id },
+    data: {
+      categoryBasePrices: Object.keys(kept).length ? kept : Prisma.DbNull,
+      playerOrder: !list.length && t.playerOrder === 'CATEGORY_RANDOM' ? 'RANDOM' : undefined,
+    },
+  })
 }
 
 @Injectable()
@@ -96,6 +119,8 @@ export class TournamentsService {
         auctionDate: new Date(dto.auctionDate),
         currency: dto.currency ?? 'INR',
         logoUrl: dto.logoUrl,
+        useCategories: !!dto.useCategories,
+        categoryList: dto.useCategories ? withDefaultCategories(dto.categoryList) : [],
         bidIncrements: DEFAULT_INCREMENTS as any,
         registrationFields: DEFAULT_REG_FIELDS as any,
         // Open by default so the first link an organiser shares actually works.
@@ -121,6 +146,7 @@ export class TournamentsService {
     const sum = (pred: (c: (typeof counts)[number]) => boolean) => counts.filter(pred).reduce((a, c) => a + c._count, 0)
     return {
       ...t,
+      registrationFields: fieldsFor(t),
       planInfo: plan,
       teams: teams.map(({ _count, ...team }) => ({
         ...team,
@@ -160,7 +186,11 @@ export class TournamentsService {
     const { limits } = await this.plan(id)
     const theme = dto.theme !== undefined ? sanitizeTheme(dto.theme, limits) : undefined
 
-    const { registrationFields, auctionDate, categoryBasePrices, bidIncrements, theme: _theme, ...rest } = dto
+    const { registrationFields, auctionDate, categoryBasePrices, bidIncrements, theme: _theme, useCategories, categoryList, ...rest } = dto
+    const useCats = useCategories ?? t.useCategories
+    const list = !useCats ? [] : categoryList !== undefined ? withDefaultCategories(categoryList) : t.useCategories ? t.categoryList : withDefaultCategories([])
+    const catsChanged = useCats !== t.useCategories || list.join('|') !== t.categoryList.join('|')
+    if (catsChanged && started) throw new BadRequestException('Categories can’t be changed after the auction has started')
     let cats: Record<string, number> | null | undefined = undefined
     if (categoryBasePrices !== undefined) {
       cats = categoryBasePrices === null ? null : Object.fromEntries(
@@ -179,10 +209,13 @@ export class TournamentsService {
           registrationFields: registrationFields ? (sanitizeFields(registrationFields) as any) : undefined,
           bidIncrements: bidIncrements ? ([...bidIncrements].sort((a, b) => a.from - b.from) as any) : undefined,
           categoryBasePrices: cats === undefined ? undefined : (cats as any) ?? null,
+          useCategories: catsChanged ? useCats : undefined,
+          categoryList: catsChanged ? list : undefined,
           theme: theme as any,
           status: !started && (dto.setupComplete ?? t.setupComplete) ? 'READY' : undefined,
         },
       })
+      if (catsChanged) await applyCategoryList(tx, row, list)
       // Before the auction, every team's purse is the tournament purse minus its retentions.
       if (!started && dto.teamPurse !== undefined) await resetPurses(tx, id, dto.teamPurse)
       return row
@@ -232,7 +265,8 @@ export class TournamentsService {
       maxSquad,
       basePrice,
       teamPurse,
-      categories: categories.filter((c) => c.category).map((c) => ({ name: c.category!, count: c._count })),
+      // Every category on the list (even before players are assigned); none without categories.
+      categories: t.useCategories ? t.categoryList.map((name) => ({ name, count: categories.find((c) => c.category === name)?._count ?? 0 })) : [],
       warnings: [
         players < teamCount * minSquad ? `Only ${players} players for ${teamCount} teams × ${minSquad} minimum. Lower the minimum squad or add players.` : null,
         players === 0 ? 'No approved players yet — upload an Excel or share the registration form first.' : null,

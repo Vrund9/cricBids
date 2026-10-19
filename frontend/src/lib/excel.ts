@@ -216,12 +216,16 @@ export function toPlayers(rows: Record<string, unknown>[], mapping: Record<strin
   return out
 }
 
-/** Template whose columns match the registration form, so offline and online lists merge cleanly. */
-export async function downloadTemplate(fields: RegField[], tournamentName: string) {
+/**
+ * Template whose columns match the registration form, so offline and online lists merge cleanly.
+ * `categories` is null for tournaments without categories, which leaves the Category column out.
+ */
+export async function downloadTemplate(fields: RegField[], tournamentName: string, categories: string[] | null) {
   const XLSX = await import('xlsx')
-  const cols = fields.filter((f) => f.enabled && f.type !== 'photo').map((f) => f.label)
+  const cols = fields.filter((f) => f.enabled && f.type !== 'photo' && f.key !== 'category').map((f) => f.label)
   if (fields.some((f) => f.enabled && f.type === 'photo')) cols.push('Photo URL')
-  cols.push('Category', 'Base Price')
+  if (categories?.length) cols.push('Category')
+  cols.push('Base Price')
   const sample = (i: number) =>
     cols.map((c) => {
       const f = fields.find((x) => x.label === c)
@@ -230,7 +234,7 @@ export async function downloadTemplate(fields: RegField[], tournamentName: strin
       if (f?.key === 'role') return i ? 'All-rounder' : 'Batsman'
       if (f?.key === 'age') return i ? 22 : 27
       if (f?.type === 'select') return f.options?.[0] ?? ''
-      if (c === 'Category') return i ? 'B' : 'A'
+      if (c === 'Category') return categories?.[Math.min(i, categories.length - 1)] ?? ''
       return ''
     })
   const ws = XLSX.utils.aoa_to_sheet([cols, sample(0), sample(1)])
@@ -239,7 +243,7 @@ export async function downloadTemplate(fields: RegField[], tournamentName: strin
     ['How to fill this sheet'],
     ['• One player per row. Only the name is required.'],
     ['• Role: Batsman, Bowler, All-rounder or Wicket-keeper (short forms like WK, AR, bat, bowl also work).'],
-    ['• Category (optional): A / B / C or any label — you can set a different base price per category.'],
+    ...(categories?.length ? [[`• Category: one of ${categories.join(', ')} — each category can have its own base price.`]] : []),
     ['• Photo URL: any public image link. Google Drive links are converted automatically.'],
     ['• Delete the two sample rows before uploading.'],
   ])
@@ -250,7 +254,7 @@ export async function downloadTemplate(fields: RegField[], tournamentName: strin
   XLSX.writeFile(wb, `${safeName(tournamentName)}_player_template.xlsx`)
 }
 
-export async function exportPlayers(players: Player[], teams: Team[], tournament: Pick<Tournament, 'name'>) {
+export async function exportPlayers(players: Player[], teams: Team[], tournament: Pick<Tournament, 'name' | 'useCategories'>) {
   const XLSX = await import('xlsx')
   const teamName = new Map(teams.map((t) => [t.id, t.name]))
   const extraKeys = [...new Set(players.flatMap((p) => Object.keys(p.extra ?? {})))]
@@ -258,7 +262,7 @@ export async function exportPlayers(players: Player[], teams: Team[], tournament
     '#': p.serial,
     Name: p.name,
     Role: p.role,
-    Category: p.category ?? '',
+    ...(tournament.useCategories ? { Category: p.category ?? '' } : {}),
     Mobile: p.phone ?? '',
     Email: p.email ?? '',
     City: p.city ?? '',
@@ -278,7 +282,7 @@ export async function exportPlayers(players: Player[], teams: Team[], tournament
   XLSX.writeFile(wb, `${safeName(tournament.name)}_players.xlsx`)
 }
 
-export async function exportResults(players: Player[], teams: Team[], tournament: Pick<Tournament, 'name' | 'teamPurse'>) {
+export async function exportResults(players: Player[], teams: Team[], tournament: Pick<Tournament, 'name' | 'teamPurse' | 'useCategories'>) {
   const XLSX = await import('xlsx')
   const wb = XLSX.utils.book_new()
   const sold = players.filter((p) => p.status === 'SOLD')
@@ -300,7 +304,7 @@ export async function exportResults(players: Player[], teams: Team[], tournament
     const rows = sold
       .filter((p) => p.soldTeamId === t.id)
       .sort((a, b) => (b.soldPrice ?? 0) - (a.soldPrice ?? 0))
-      .map((p, i) => ({ '#': i + 1, Player: p.name, Role: p.role, Price: p.soldPrice, Mobile: p.phone ?? '', Category: p.category ?? '' }))
+      .map((p, i) => ({ '#': i + 1, Player: p.name, Role: p.role, Price: p.soldPrice, Mobile: p.phone ?? '', ...(tournament.useCategories ? { Category: p.category ?? '' } : {}) }))
     const sheetName = t.name.replace(/[\\/?*[\]:]/g, '').slice(0, 31) || t.shortName
     XLSX.utils.book_append_sheet(wb, sheet(XLSX, rows.length ? rows : [{ Player: 'No players bought' }]), uniqueSheet(wb, sheetName))
   }
