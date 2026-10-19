@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
 import { ArrowRight, Check, Crown, Dices, Gift, KeyRound, Minus, Palette, Plus, Shield, Ticket } from 'lucide-react'
 import { Reveal } from './marketing'
+import { Select } from './ui'
 import { CricketScene } from './cricket-scene'
 import { ADD_ONS, FREE_FEATURES, PRICING, PRICING_FAQ, PRO_FEATURES } from '@/lib/plans'
 import { cn } from '@/lib/cn'
@@ -276,9 +277,9 @@ function Checkout({ inApp, signupHref, total, picks }: { inApp?: boolean; signup
   const go = (hash: string) => (window.location.href = `/t/${id}#addons=${hash}`)
   return (
     <div className="space-y-2">
-      <select value={id} onChange={(e) => setId(e.target.value)} aria-label="Auction to buy for" className="h-11 w-full rounded-xl border border-white/10 bg-ink-850 px-3 text-sm">
+      <Select value={id} onChange={(e) => setId(e.target.value)} aria-label="Auction to buy for">
         {auctions.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-      </select>
+      </Select>
       <div className="flex flex-wrap gap-2">
         <button disabled={!total} onClick={() => go(picks.join(','))} className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-lime-bright px-4 text-sm font-semibold text-on-accent hover:bg-lime-hover disabled:opacity-40">
           {total ? `Pay ₹${reward.apply(total)}` : 'Nothing to pay'}

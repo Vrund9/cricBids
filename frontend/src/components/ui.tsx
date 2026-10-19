@@ -1,9 +1,10 @@
 'use client'
 
-import { forwardRef, useEffect, useId, useState } from 'react'
+import { Children, Fragment, forwardRef, isValidElement, useEffect, useId, useState } from 'react'
+import ReactSelect from 'react-select'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion, useSpring, useTransform } from 'motion/react'
-import { Loader2, X } from 'lucide-react'
+import { Check, Loader2, X } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { initials } from '@/lib/format'
 
@@ -69,21 +70,104 @@ export const Textarea = forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttrib
   return <textarea ref={ref} className={cn(control, 'min-h-24 py-3', className)} {...props} />
 })
 
-export const Select = forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSelectElement>>(function Select({ className, children, ...props }, ref) {
+interface SelectOption {
+  value: string
+  label: string
+  isDisabled?: boolean
+}
+
+function textOf(node: React.ReactNode): string {
+  return Children.toArray(node).map((n) => (typeof n === 'string' || typeof n === 'number' ? String(n) : isValidElement<{ children?: React.ReactNode }>(n) ? textOf(n.props.children) : '')).join('')
+}
+
+/** Reads `<option>` children (also inside fragments and arrays) into react-select options. */
+function optionsFrom(children: React.ReactNode) {
+  const out: SelectOption[] = []
+  const walk = (nodes: React.ReactNode) =>
+    Children.forEach(nodes, (n) => {
+      if (!isValidElement<{ children?: React.ReactNode; value?: string | number; disabled?: boolean }>(n)) return
+      if (n.type === Fragment) return walk(n.props.children)
+      if (n.type === 'option') {
+        const label = textOf(n.props.children)
+        out.push({ value: String(n.props.value ?? label), label, isDisabled: !!n.props.disabled })
+      }
+    })
+  walk(children)
+  return out
+}
+
+interface SelectProps {
+  value?: string | number
+  /** Called with a change-event-shaped object so callers can keep reading `e.target.value`. */
+  onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void
+  disabled?: boolean
+  className?: string
+  id?: string
+  name?: string
+  placeholder?: string
+  'aria-label'?: string
+  children?: React.ReactNode
+}
+
+/**
+ * Themed dropdown built on react-select. It takes plain `<option>` children like a native
+ * `<select>`; `className` sizes the box (h-9, w-40 …) and can recolour its border and text.
+ * Long lists become searchable.
+ */
+export function Select({ value, onChange, disabled, className, id, name, placeholder, children, 'aria-label': ariaLabel }: SelectProps) {
+  const instanceId = useId()
+  const options = optionsFrom(children)
+  const selected = options.find((o) => o.value === String(value ?? '')) ?? null
   return (
-    <select
-      ref={ref}
-      className={cn(
-        control,
-        'h-11 appearance-none bg-[url("data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 fill=%27none%27 stroke=%27%238a94ad%27 stroke-width=%272%27><path d=%27M2 4l4 4 4-4%27/></svg>")] bg-[length:12px] bg-[right_14px_center] bg-no-repeat pr-9',
-        className,
-      )}
-      {...props}
-    >
-      {children}
-    </select>
+    <ReactSelect<SelectOption>
+      unstyled
+      instanceId={instanceId}
+      inputId={id}
+      name={name}
+      aria-label={ariaLabel}
+      options={options}
+      value={selected}
+      isDisabled={disabled}
+      isSearchable={options.length > 8}
+      placeholder={placeholder ?? 'Select…'}
+      menuPlacement="auto"
+      menuPortalTarget={typeof document !== 'undefined' ? document.body : undefined}
+      onChange={(o) => o && onChange?.({ target: { value: o.value }, currentTarget: { value: o.value } } as unknown as React.ChangeEvent<HTMLSelectElement>)}
+      formatOptionLabel={(o, { context }) =>
+        context === 'menu' ? (
+          <span className="flex items-center gap-2">
+            <span className="min-w-0 flex-1">{o.label}</span>
+            {o.value === selected?.value && <Check className="h-3.5 w-3.5 shrink-0" />}
+          </span>
+        ) : (
+          o.label
+        )
+      }
+      classNames={{
+        // The container carries the caller's size and colour classes; the control inherits the border colour.
+        container: () => cn('h-11 w-full border-white/10 text-sm text-white', className),
+        control: ({ isFocused, isDisabled }) =>
+          cn(
+            'h-full !min-h-0 cursor-pointer rounded-xl border bg-ink-850/80 pl-3.5 pr-2.5 transition',
+            isFocused ? 'border-lime-glow/60 bg-ink-850 ring-4 ring-lime-glow/10' : '[border-color:inherit] hover:bg-ink-850',
+            isDisabled && 'cursor-not-allowed opacity-50',
+          ),
+        valueContainer: () => 'gap-1',
+        singleValue: () => 'truncate',
+        placeholder: () => 'text-ink-400',
+        input: () => 'text-white',
+        indicatorSeparator: () => 'hidden',
+        dropdownIndicator: ({ selectProps }) => cn('pl-2 text-ink-400 transition-transform duration-200', selectProps.menuIsOpen && 'rotate-180'),
+        menuPortal: () => '!z-[70]',
+        menu: () => 'mt-1.5 mb-1.5 !w-max min-w-full max-w-[min(90vw,24rem)] overflow-hidden rounded-xl border border-white/10 bg-ink-800 p-1 text-sm text-white shadow-2xl',
+        menuList: () => 'scroll-thin',
+        option: ({ isFocused, isSelected, isDisabled }) =>
+          cn('cursor-pointer whitespace-nowrap rounded-lg px-3 py-2', isFocused && 'bg-white/[0.07]', isSelected && 'font-semibold text-lime-glow', isDisabled && 'cursor-not-allowed opacity-40'),
+        noOptionsMessage: () => 'px-3 py-2 text-ink-400',
+      }}
+    />
   )
-})
+}
 
 export function Field({ label, hint, error, children, className, htmlFor }: { label?: React.ReactNode; hint?: React.ReactNode; error?: string | null; children: React.ReactNode; className?: string; htmlFor?: string }) {
   return (

@@ -171,18 +171,10 @@ export default function TeamSquadPage() {
           </div>
         </div>
         {squad.length ? (
-          <ul className="grid divide-y divide-white/5 sm:grid-cols-2 sm:divide-y-0">
+          <ul className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 sm:p-5 lg:grid-cols-4 xl:grid-cols-5">
             {squad.map((p, i) => (
-              <motion.li key={p.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 10) * 0.03 }} className="flex items-center gap-3 border-white/5 px-5 py-3 sm:border-b">
-                <Avatar src={p.photoUrl} name={p.name} size={36} />
-                <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-2 truncate text-sm font-medium">
-                    {p.name}
-                    {p.retained && <UserCheck className="h-3.5 w-3.5 shrink-0 text-gold" aria-label="Retained" />}
-                  </p>
-                  <p className="truncate text-[11px] text-ink-400">{[ROLE_LABEL[normRole(p.role)], p.category && `Cat ${p.category}`, p.battingStyle].filter(Boolean).join(' · ')}</p>
-                </div>
-                <span className="font-mono text-sm font-semibold text-gold">{p.soldPrice ? money(p.soldPrice, cur) : 'free'}</span>
+              <motion.li key={p.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 12) * 0.03 }}>
+                <PlayerCard p={p} color={team.color} currency={cur} />
               </motion.li>
             ))}
           </ul>
@@ -204,6 +196,33 @@ export default function TeamSquadPage() {
           </div>
         )}
       </Card>
+    </div>
+  )
+}
+
+/** Trading-card style tile for a bought player: photo up top, role colour strip, price at the foot. */
+function PlayerCard({ p, color, currency }: { p: Player; color: string; currency: string }) {
+  const role = normRole(p.role)
+  const rm = roleMeta(role)
+  const facts = [p.battingStyle, p.bowlingStyle && p.bowlingStyle !== 'Does not bowl' ? p.bowlingStyle : null].filter(Boolean).join(' · ')
+  return (
+    <div className="group relative h-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] transition hover:-translate-y-0.5 hover:border-white/20">
+      <div className="relative grid place-items-center px-3 pb-3 pt-5" style={{ background: `linear-gradient(160deg, ${color}40, ${rm.color}14 70%, transparent)` }}>
+        <span className="absolute left-2.5 top-2.5 rounded-md px-1.5 py-0.5 text-[10px] font-black tracking-wider" style={{ background: `${rm.color}26`, color: rm.color }}>{rm.short}</span>
+        {p.category && <span className="absolute right-2.5 top-2.5 rounded-md bg-gold/15 px-1.5 py-0.5 text-[10px] font-bold text-gold">Cat {p.category}</span>}
+        <Avatar src={p.photoUrl} name={p.name} size={84} color={color} className="shadow-xl ring-4 ring-white/10" />
+        {p.retained && (
+          <span className="absolute bottom-1.5 left-1/2 inline-flex -translate-x-1/2 items-center gap-1 rounded-full bg-gold-bright px-2 py-0.5 text-[10px] font-bold text-on-gold">
+            <UserCheck className="h-3 w-3" /> Retained
+          </span>
+        )}
+      </div>
+      <div className="h-0.5" style={{ background: rm.color }} />
+      <div className="p-3 text-center">
+        <p className="truncate text-sm font-semibold" title={p.name}>{p.name}</p>
+        <p className="mt-0.5 truncate text-[11px] text-ink-400">{facts || ROLE_LABEL[role]}</p>
+        <p className="mt-2 font-display text-lg font-black text-gold tabular">{p.soldPrice ? money(p.soldPrice, currency) : 'Free'}</p>
+      </div>
     </div>
   )
 }
