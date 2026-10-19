@@ -1,8 +1,9 @@
 'use client'
 
+import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import { motion } from 'motion/react'
-import { Check, Copy, ImagePlus, Lock, Plus, RefreshCw, Smartphone, Trash2, UserCheck, X } from 'lucide-react'
+import { Check, ChevronRight, Copy, ImagePlus, LayoutGrid, Lock, Plus, RefreshCw, Smartphone, Trash2, UserCheck, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTournament } from '@/components/tournament-context'
 import { Avatar, Button, Card, Field, Input, Select, Switch, fadeUp, stagger } from '@/components/ui'
@@ -52,6 +53,7 @@ export default function TeamsPage() {
                   <div className="border-x border-white/5 p-3"><dt className="text-ink-400">Spent</dt><dd className="mt-0.5 font-display text-lg font-bold text-gold">{moneyShort(t.teamPurse - team.purse, t.currency)}</dd></div>
                   <div className="p-3"><dt className="text-ink-400">Left</dt><dd className="mt-0.5 font-display text-lg font-bold">{moneyShort(team.purse, t.currency)}</dd></div>
                 </dl>
+                <SquadLink tournamentId={t.id} teamId={team.id} label="Squad, analysis & field view" />
               </Card>
             </motion.div>
           ))}
@@ -219,6 +221,7 @@ function TeamCard({ team, tournamentId, currency, started, remote, onChange, chi
           </div>
         )}
         {children}
+        <SquadLink tournamentId={tournamentId} teamId={team.id} label={started ? 'Squad & analysis' : 'Squad planner'} className="-mx-5 border-t" />
         {!started && (
           <button onClick={remove} className="inline-flex items-center gap-1 text-xs text-ink-400 hover:text-rose-hot">
             <Trash2 className="h-3.5 w-3.5" /> Remove team
@@ -226,6 +229,14 @@ function TeamCard({ team, tournamentId, currency, started, remote, onChange, chi
         )}
       </div>
     </Card>
+  )
+}
+
+function SquadLink({ tournamentId, teamId, label, className }: { tournamentId: string; teamId: string; label: string; className?: string }) {
+  return (
+    <Link href={`/t/${tournamentId}/teams/${teamId}`} className={`flex items-center gap-2 border-white/5 px-5 py-3 text-sm font-semibold text-lime-glow hover:bg-white/[0.03] ${className ?? 'border-t'}`}>
+      <LayoutGrid className="h-4 w-4" /> {label} <ChevronRight className="ml-auto h-4 w-4" />
+    </Link>
   )
 }
 

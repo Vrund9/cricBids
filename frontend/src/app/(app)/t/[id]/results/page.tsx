@@ -1,8 +1,9 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'motion/react'
-import { Crown, FileDown, FileSpreadsheet, Trophy } from 'lucide-react'
+import { Crown, FileDown, FileSpreadsheet, LayoutGrid, Trophy } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTournament } from '@/components/tournament-context'
 import { CricketScene } from '@/components/cricket-scene'
@@ -112,7 +113,7 @@ export default function ResultsPage() {
         </>
       )}
 
-      {team && <TeamDetail team={team} squad={sold.filter((p) => p.soldTeamId === team.id)} currency={cur} />}
+      {team && <TeamDetail team={team} squad={sold.filter((p) => p.soldTeamId === team.id)} currency={cur} href={`/t/${t.id}/teams/${team.id}`} />}
 
       {view === 'unsold' && (
         <Card className="overflow-hidden">
@@ -136,7 +137,7 @@ export default function ResultsPage() {
   )
 }
 
-function TeamDetail({ team, squad, currency }: { team: Team; squad: Player[]; currency: string }) {
+function TeamDetail({ team, squad, currency, href }: { team: Team; squad: Player[]; currency: string; href: string }) {
   const spent = squad.reduce((a, p) => a + (p.soldPrice ?? 0), 0)
   const roles = Object.entries(squad.reduce<Record<string, number>>((acc, p) => ({ ...acc, [p.role]: (acc[p.role] ?? 0) + 1 }), {}))
   return (
@@ -151,6 +152,7 @@ function TeamDetail({ team, squad, currency }: { team: Team; squad: Player[]; cu
           <div><dt className="text-xs text-ink-400">Spent</dt><dd className="font-display text-xl font-bold text-gold">{money(spent, currency)}</dd></div>
           <div><dt className="text-xs text-ink-400">Purse left</dt><dd className="font-display text-xl font-bold">{money(team.purse, currency)}</dd></div>
         </dl>
+        <Link href={href} className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/15 px-4 text-sm font-semibold hover:bg-white/5"><LayoutGrid className="h-4 w-4" /> Field view</Link>
       </div>
       {roles.length > 0 && (
         <div className="flex flex-wrap gap-2 border-y border-white/5 px-5 py-3">

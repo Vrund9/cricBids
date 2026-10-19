@@ -163,7 +163,7 @@ export function TeamPurses({ snap, compact, highlightId }: { snap: Snapshot; com
  * Every team's purse at a glance, as small tiles that wrap into a few rows,
  * so the control room and big screen never need scrolling to compare purses.
  */
-export function PurseBoard({ snap, highlightId, className }: { snap: Snapshot; highlightId?: string | null; className?: string }) {
+export function PurseBoard({ snap, highlightId, className, teamHref }: { snap: Snapshot; highlightId?: string | null; className?: string; teamHref?: (teamId: string) => string }) {
   const cur = snap.tournament.currency
   const full = snap.tournament.teamPurse
   return (
@@ -171,13 +171,17 @@ export function PurseBoard({ snap, highlightId, className }: { snap: Snapshot; h
       {snap.teams.map((t) => {
         const pct = full ? Math.max(0, Math.min(100, (t.purse / full) * 100)) : 0
         const leading = highlightId === t.id
+        const href = teamHref?.(t.id)
+        // With a link, the tile opens that team's squad in a new tab so the auction keeps running here.
+        const Tile = href ? 'a' : 'div'
         return (
           <li
             key={t.id}
-            className={cn('relative overflow-hidden rounded-xl border bg-white/[0.03] px-2.5 py-2 transition-colors', leading ? 'border-2' : 'border-white/[0.07]')}
+            className={cn('relative overflow-hidden rounded-xl border bg-white/[0.03] transition-colors', leading ? 'border-2' : 'border-white/[0.07]', href && 'hover:border-white/25')}
             style={leading ? { borderColor: t.color, background: `color-mix(in oklab, ${t.color} 14%, transparent)` } : undefined}
-            title={`${t.name}: ${money(t.purse, cur)} left · ${t.squadSize}/${snap.tournament.maxSquad} players · max bid ${money(t.maxBid, cur)}`}
+            title={`${t.name}: ${money(t.purse, cur)} left · ${t.squadSize}/${snap.tournament.maxSquad} players · max bid ${money(t.maxBid, cur)}${href ? ' — open squad in a new tab' : ''}`}
           >
+            <Tile {...(href ? { href, target: '_blank', rel: 'noopener' } : {})} className="block px-2.5 py-2">
             <div className="flex items-center gap-1.5">
               <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: t.color }} />
               <span className="min-w-0 flex-1 truncate text-xs font-bold">{t.shortName}</span>
@@ -189,6 +193,7 @@ export function PurseBoard({ snap, highlightId, className }: { snap: Snapshot; h
             <div className="mt-1 h-1 overflow-hidden rounded-full bg-white/5">
               <div className="h-full rounded-full transition-[width] duration-500" style={{ width: `${pct}%`, background: t.color }} />
             </div>
+            </Tile>
           </li>
         )
       })}
