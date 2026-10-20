@@ -17,7 +17,8 @@ const SWATCHES = ['#c8ff2e', '#22d3ee', '#5b8cff', '#a78bfa', '#ff4d6d', '#ff993
 
 type Screen = 'live' | 'register' | 'paddle'
 
-export default function ThemePage() {
+/** Screen theme editor for the tournament in the surrounding TournamentProvider (Settings → Theme). */
+export function ThemeEditor() {
   const { t, update } = useTournament()
   const { openUpgrade } = useUpgrade()
   const saved: ThemeConfig = { preset: 'floodlight', ...(t.theme ?? {}) }
@@ -86,7 +87,9 @@ export default function ThemePage() {
         )}
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_480px]">
+      {/* Container query: the editor sits beside the Settings menu, so the window width says little. */}
+      <div className="@container mt-6">
+      <div className="grid grid-cols-1 gap-6 @4xl:grid-cols-[minmax(0,1fr)_420px]">
         <div className="min-w-0 space-y-6">
           {/* 1 · Colours */}
           <Section n={1} title="Colour theme" hint="Sets the accent, gold and highlight colours.">
@@ -198,7 +201,7 @@ export default function ThemePage() {
         </div>
 
         {/* Preview */}
-        <div className="min-w-0 xl:sticky xl:top-24 xl:self-start">
+        <div className="min-w-0 @4xl:sticky @4xl:top-24 @4xl:self-start">
           <div className="mb-3 flex items-center justify-between gap-2">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-400">Live preview</p>
             <div className="flex rounded-xl border border-[var(--border-strong)] bg-ink-850 p-1 shadow-sm" role="tablist" aria-label="Preview screen">
@@ -226,6 +229,7 @@ export default function ThemePage() {
             <a href={`/register/${t.registrationToken}`} target="_blank" rel="noopener" className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[var(--border-strong)] bg-ink-850 px-3 text-xs font-semibold shadow-sm hover:bg-white/5"><ExternalLink className="h-3.5 w-3.5" /> Open registration</a>
           </div>
         </div>
+      </div>
       </div>
 
       {/* Save bar: always in reach while there are changes */}

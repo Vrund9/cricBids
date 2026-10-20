@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'motion/react'
-import { AlertTriangle, ArrowLeft, ArrowRight, Check, Layers, ListOrdered, Minus, Plus, Shuffle, Sparkles, Timer } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, ArrowRight, Check, Layers, ListOrdered, Lock, Minus, Plus, Shuffle, Sparkles, Timer } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTournament } from '@/components/tournament-context'
 import { Button, Card, Input, PageLoader, Switch } from '@/components/ui'
@@ -62,7 +62,8 @@ type Q = (typeof QUESTIONS)[number]
 
 export default function SetupPage() {
   const { t } = useTournament()
-  return t.status === 'COMPLETED' ? <RulesSummary /> : <SetupWizard />
+  // Once bidding starts the rules are fixed: a locked summary instead of the question steps.
+  return ['LIVE', 'PAUSED', 'COMPLETED'].includes(t.status) ? <RulesSummary /> : <SetupWizard />
 }
 
 const ORDER_LABEL: Record<PlayerOrder, string> = {
@@ -71,9 +72,10 @@ const ORDER_LABEL: Record<PlayerOrder, string> = {
   SEQUENTIAL: 'In list order',
 }
 
-/** After the auction the rules are history: one read-only summary, no wizard steps. */
+/** From the moment the auction starts, the rules are locked: one read-only summary, no wizard steps. */
 function RulesSummary() {
   const { t } = useTournament()
+  const done = t.status === 'COMPLETED'
   const cur = t.currency
   const cats = Object.entries(t.categoryBasePrices ?? {})
   const rows: [string, React.ReactNode][] = [
@@ -89,9 +91,14 @@ function RulesSummary() {
   ]
   return (
     <div className="mx-auto max-w-3xl">
-      <div className="mb-6">
-        <h2 className="font-display text-2xl font-bold">Auction rules</h2>
-        <p className="text-sm text-ink-400">The rules this auction ran with. It’s complete, so they can’t be changed.</p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="font-display text-2xl font-bold">Auction rules</h2>
+          <p className="text-sm text-ink-400">{done ? 'The rules this auction ran with.' : 'The rules this auction is running with.'}</p>
+        </div>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-semibold text-ink-300">
+          <Lock className="h-3.5 w-3.5" /> {done ? 'Locked · auction complete' : 'Locked · auction is live'}
+        </span>
       </div>
       <Card className="divide-y divide-white/5">
         {rows.map(([label, value]) => (
@@ -113,7 +120,6 @@ function SetupWizard() {
   const [step, setStep] = useState(0)
   const [dir, setDir] = useState(1)
   const [saving, setSaving] = useState(false)
-  const started = ['LIVE', 'PAUSED', 'COMPLETED'].includes(t.status)
 
   useEffect(() => {
     api<Suggestions>(`/tournaments/${t.id}/suggestions`).then((s) => {
@@ -160,7 +166,7 @@ function SetupWizard() {
   if (!sug || !a) return <PageLoader />
 
   const go = async (d: 1 | -1) => {
-    if (d === 1 && q === 'teams' && !started && a.teamCount !== t.teams.length) {
+    if (d === 1 && q === 'teams' && a.teamCount !== t.teams.length) {
       try {
         await api(`/tournaments/${t.id}/teams/count`, { method: 'PUT', body: { count: a.teamCount } })
         await reload()
@@ -177,7 +183,7 @@ function SetupWizard() {
     setSaving(true)
     try {
       await update({
-        ...(started ? {} : { teamPurse: a.teamPurse }),
+        teamPurse: a.teamPurse,
         basePrice: a.basePrice,
         categoryBasePrices: Object.keys(a.categoryBasePrices).length ? a.categoryBasePrices : null,
         minSquad: a.minSquad,
@@ -230,31 +236,19 @@ function SetupWizard() {
 
             {q === 'teams' && (
               <Question title="How many teams are bidding?" hint={sug.players ? `With ${sug.players} players, ${a.teamCount} teams get about ${Math.floor(sug.players / a.teamCount)} players each.` : 'You can rename teams and add logos later.'}>
-                {started ? (
-                  <p className="text-ink-300">The auction has started, so the number of teams is locked at {t.teams.length}.</p>
-                ) : (
-                  <>
-                    <Stepper value={a.teamCount} min={2} max={16} onChange={(v) => set({ teamCount: v })} />
-                    <Chips options={[4, 6, 8, 10, 12].map((n) => ({ label: `${n} teams`, value: n }))} value={a.teamCount} onChange={(v) => set({ teamCount: v })} />
-                  </>
-                )}
+                <Stepper value={a.teamCount} min={2} max={16} onChange={(v) => set({ teamCount: v })} />
+                <Chips options={[4, 6, 8, 10, 12].map((n) => ({ label: `${n} teams`, value: n }))} value={a.teamCount} onChange={(v) => set({ teamCount: v })} />
               </Question>
             )}
 
             {q === 'purse' && (
               <Question title="How much can each team spend?" hint={`That’s about ${moneyShort(perPlayer, cur)} per player for a ${a.minSquad}-player squad.`}>
-                {started ? (
-                  <p className="text-ink-300">Purse is locked at {money(t.teamPurse, cur)} after the auction starts.</p>
-                ) : (
-                  <>
-                    <BigNumber value={a.teamPurse} onChange={(v) => set({ teamPurse: v })} currency={cur} />
-                    <Chips
-                      options={[...new Set([sug.teamPurse, nice(sug.teamPurse * 2), 100000, 500000, 1000000])].sort((x, y) => x - y).map((n) => ({ label: moneyShort(n, cur) + (n === sug.teamPurse ? ' · suggested' : ''), value: n }))}
-                      value={a.teamPurse}
-                      onChange={(v) => set({ teamPurse: v })}
-                    />
-                  </>
-                )}
+                <BigNumber value={a.teamPurse} onChange={(v) => set({ teamPurse: v })} currency={cur} />
+                <Chips
+                  options={[...new Set([sug.teamPurse, nice(sug.teamPurse * 2), 100000, 500000, 1000000])].sort((x, y) => x - y).map((n) => ({ label: moneyShort(n, cur) + (n === sug.teamPurse ? ' · suggested' : ''), value: n }))}
+                  value={a.teamPurse}
+                  onChange={(v) => set({ teamPurse: v })}
+                />
               </Question>
             )}
 
@@ -353,7 +347,7 @@ function SetupWizard() {
             )}
 
             {q === 'extras' && (
-              <Question title="A couple of finishing touches" hint="You can change these any time, even mid-auction.">
+              <Question title="A couple of finishing touches" hint="You can change these until the auction starts.">
                 <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><Timer className="h-4 w-4 text-sky-live" /> Bid countdown on screen</p>
                 <Chips options={[{ label: 'Off', value: 0 }, { label: '10s', value: 10 }, { label: '20s', value: 20 }, { label: '30s', value: 30 }, { label: '60s', value: 60 }]} value={a.bidTimerSec} onChange={(v) => set({ bidTimerSec: v })} />
                 <p className="mt-2 text-xs text-ink-400">Resets with every bid. Shows “going once… twice…” — you still bring the hammer down.</p>
@@ -367,8 +361,8 @@ function SetupWizard() {
               <Question title="Looks good?" hint="Here’s your auction. Save it and head to the control room.">
                 <dl className="grid gap-3 sm:grid-cols-2">
                   {[
-                    ['Teams', `${started ? t.teams.length : a.teamCount}`],
-                    ['Purse per team', money(started ? t.teamPurse : a.teamPurse, cur)],
+                    ['Teams', `${a.teamCount}`],
+                    ['Purse per team', money(a.teamPurse, cur)],
                     ['Base price', money(a.basePrice, cur) + (Object.keys(a.categoryBasePrices).length ? ` (+${Object.keys(a.categoryBasePrices).length} categories)` : '')],
                     ['Squad size', `${a.minSquad} – ${a.maxSquad}`],
                     ['Bid steps', a.bidIncrements.map((x) => `+${moneyShort(x.step, cur)}`).join(' / ')],

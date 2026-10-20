@@ -60,7 +60,7 @@ const STEPS: Step[] = [
     title: 'Pick a look',
     text: 'Colour themes, your brand colour and backgrounds like stadium lights or your own photo.',
     points: ['Preview everything for free', `₹${PRICING.themeUnlock} add-on to save a custom look`],
-    where: 'Theme tab',
+    where: 'Settings → Theme',
     color: '#ec4899',
     optional: true,
     Visual: ThemeVisual,
