@@ -96,6 +96,9 @@ export function themeStyle(theme?: Partial<ThemeConfig> | null): CSSProperties {
     '--color-lime-bright': p.accent,
     '--color-lime-hover': p.accent,
     '--color-lime-deep': p.accent,
+    // Light mode paints accent fills with a gradient; screens use their own flat accent instead.
+    '--accent-fill': 'none',
+    '--accent-fill-hover': 'none',
     '--color-gold-bright': p.gold,
     '--color-on-accent': i950,
     '--color-on-gold': i950,

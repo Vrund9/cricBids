@@ -2,11 +2,12 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Gift, KeyRound, Lock, UserRound } from 'lucide-react'
+import { Gift, KeyRound, Lock, Palette, UserRound } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
 import { cn } from '@/lib/cn'
 
 const ITEMS = [
+  { href: '/account/theme', label: 'Theme', icon: Palette },
   { href: '/account', label: 'Profile', icon: UserRound },
   { href: '/account/password', label: 'Password', icon: Lock },
   { href: '/account/feedback', label: 'Feedback & rewards', icon: Gift },
@@ -30,4 +31,10 @@ export function AccountNav() {
       })}
     </nav>
   )
+}
+
+/** Settings pages are short forms; only the theme editor (options + live preview) uses the full width. */
+export function SettingsContent({ children }: { children: React.ReactNode }) {
+  const path = usePathname()
+  return <div className={cn('min-w-0 flex-1', !path.startsWith('/account/theme') && 'max-w-3xl')}>{children}</div>
 }

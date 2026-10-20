@@ -141,7 +141,7 @@ export function PricingContent({ cta, inApp }: { cta: { href: string; label: str
             <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-sky-live/10 text-sky-live"><KeyRound className="h-5 w-5" /></div>
             <div>
               <h3 className="font-semibold">Plan codes</h3>
-              <p className="mt-1 text-sm text-ink-300">Got a code from the BidWicket team? It unlocks every add-on on your account. Enter it under Account → Plan activation.</p>
+              <p className="mt-1 text-sm text-ink-300">Got a code from the BidWicket team? It unlocks every add-on on your account. Enter it under Settings → Plan activation.</p>
             </div>
           </div>
         </Reveal>

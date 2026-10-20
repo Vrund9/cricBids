@@ -28,6 +28,7 @@ export function SiteHeader() {
         <Logo />
         <nav className="hidden items-center gap-8 text-sm text-ink-200 md:flex" aria-label="Main">
           <Link href="/#how" className="hover:text-white">How it works</Link>
+          <Link href="/#new" className="hover:text-white">What’s new</Link>
           <Link href="/#features" className="hover:text-white">Features</Link>
           <Link href="/pricing" className="hover:text-white">Pricing</Link>
           <Link href="/#faq" className="hover:text-white">FAQ</Link>
@@ -35,7 +36,7 @@ export function SiteHeader() {
         <div className="flex items-center gap-2">
           <ThemeToggle />
           {user ? (
-            <Link href="/dashboard" className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-lime-bright px-4 text-sm font-semibold text-on-accent hover:bg-[#d6ff5c]">
+            <Link href="/dashboard" className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-lime-bright px-4 text-sm font-semibold text-on-accent hover:bg-lime-hover">
               Dashboard <ArrowRight className="h-4 w-4" />
             </Link>
           ) : (
@@ -43,7 +44,7 @@ export function SiteHeader() {
               <Link href="/login" className="hidden h-9 items-center rounded-xl px-3 text-sm font-medium text-ink-200 hover:text-white sm:inline-flex">
                 Log in
               </Link>
-              <Link href="/signup" className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-lime-bright px-4 text-sm font-semibold text-on-accent hover:bg-[#d6ff5c]">
+              <Link href="/signup" className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-lime-bright px-4 text-sm font-semibold text-on-accent hover:bg-lime-hover">
                 Start free <ArrowRight className="h-4 w-4" />
               </Link>
             </>

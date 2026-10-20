@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { BadgeIndianRupee, Compass, Info, LayoutGrid, LogOut, Route, ShieldCheck, TriangleAlert, UserRound, X } from 'lucide-react'
+import { BadgeIndianRupee, Compass, Info, LayoutGrid, LogOut, Route, Settings, ShieldCheck, TriangleAlert, X } from 'lucide-react'
 import { Logo } from './brand'
 import { Avatar, PageLoader } from './ui'
 import { resetTours } from './tour'
@@ -102,8 +102,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 {menu && (
                   <motion.div role="menu" initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.97 }} className="absolute right-0 mt-2 w-56 rounded-2xl border border-white/10 bg-ink-800 p-1.5 shadow-2xl">
                     <div className="px-3 py-2 text-xs text-ink-400">{user.email}</div>
-                    <Link href="/account" onClick={() => setMenu(false)} className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-white/5">
-                      <UserRound className="h-4 w-4" /> Account
+                    <Link href="/account/theme" onClick={() => setMenu(false)} className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-white/5">
+                      <Settings className="h-4 w-4" /> Settings
                     </Link>
                     <Link href="/how-it-works" onClick={() => setMenu(false)} className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-white/5 md:hidden">
                       <Route className="h-4 w-4" /> How it works

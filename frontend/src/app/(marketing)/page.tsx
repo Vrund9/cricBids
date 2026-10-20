@@ -1,10 +1,11 @@
 import Link from 'next/link'
 import {
-  ArrowRight, ClipboardList, FileSpreadsheet, Gavel, HelpCircle, Link2, MessageSquareQuote, Presentation, Shuffle, ShieldCheck,
-  Smartphone, Sparkles, Undo2, Wallet, X,
+  ArrowRight, ClipboardList, Dices, FileSpreadsheet, Gavel, HelpCircle, Layers, Link2, MessageSquareQuote, Moon, Presentation, Shuffle,
+  ShieldCheck, Smartphone, Sparkles, Undo2, UserCheck, Users, Wallet, X,
 } from 'lucide-react'
-import { HeroAuctionDemo, LiveLinkVisual, Reveal, SoldTicker } from '@/components/marketing'
+import { HeroAuctionDemo, LiveLinkVisual, Reveal, SoldTicker, SquadFieldVisual } from '@/components/marketing'
 import { SITE_URL } from '@/lib/api'
+import { PRICING } from '@/lib/plans'
 
 const FAQ = [
   {
@@ -21,7 +22,15 @@ const FAQ = [
   },
   {
     q: 'How are players picked during the auction?',
-    a: 'You choose: fully random (cryptographically shuffled, so nobody can predict the order), random within categories (marquee / A / B / C first), or in list order. Unsold players can be re-auctioned in another round.',
+    a: 'You choose: fully random (cryptographically shuffled, so nobody can predict the order), random within categories (marquee / A / B / C first), or in list order. Unsold players can be re-auctioned in another round. In a hurry? A one-click random auction deals every player to a team at base price, category by category.',
+  },
+  {
+    q: 'Do I have to split players into categories?',
+    a: 'No. When you create a tournament you pick category-wise (Marquee, A, B… with their own base prices and order) or one open pool. You can edit the category list any time before the auction starts.',
+  },
+  {
+    q: 'Can teams keep retained players?',
+    a: 'Yes. Mark retained players per team before the auction and choose whether their price comes out of the team’s purse. They show up in the squad straight away.',
   },
   {
     q: 'Can team owners bid from their own phones?',
@@ -29,7 +38,11 @@ const FAQ = [
   },
   {
     q: 'What stops a team from overspending?',
-    a: 'Purse rules are enforced automatically. A team can only bid up to an amount that still leaves enough money to fill its minimum squad at base price, and it can’t exceed the maximum squad size.',
+    a: 'Purse rules are enforced automatically. A team can only bid up to an amount that still leaves enough money to fill its minimum squad at base price, and it can’t exceed the maximum squad size. Each team’s squad page also shows which roles are still missing and who they can still afford.',
+  },
+  {
+    q: 'How much does it cost?',
+    a: `Your first ${PRICING.freeAuctions} auctions with up to ${PRICING.includedTeams} teams are free — the full product, not a trial. After that you pay per use (₹${PRICING.perExtraTeam} per extra team, ₹${PRICING.auctionFee} per auction), or ₹${PRICING.pro} for Pro with everything unlocked on one auction.`,
   },
 ]
 
@@ -43,7 +56,7 @@ const jsonLd = [
     url: SITE_URL,
     description: 'Live cricket player auction software for tournaments: registration forms, Excel import, realtime big-screen auction link, team purses and results export.',
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'INR' },
-    featureList: ['Player registration form', 'Excel import with auto column mapping', 'Realtime live auction link', 'Remote team bidding', 'Purse and squad rules', 'Excel results export'],
+    featureList: ['Player registration form', 'Excel import with auto column mapping', 'Category-wise or open player pool', 'Realtime live auction link', 'Remote team bidding', 'One-click random auction', 'Retained players', 'Team squad pages with role analysis and field view', 'Purse and squad rules', 'Excel and PDF results export'],
   },
   {
     '@context': 'https://schema.org',
@@ -60,10 +73,10 @@ const jsonLd = [
 ]
 
 const STEPS = [
-  { icon: ClipboardList, title: 'Collect players', text: 'Share a registration link or upload your Excel. Photos, roles and custom questions included.' },
-  { icon: Sparkles, title: 'Answer a few questions', text: 'Teams, purse, base price, squad size, order. We suggest smart defaults from your player pool.' },
-  { icon: Gavel, title: 'Go live', text: 'Open the control room, put the live link on the projector and share it in every group.' },
-  { icon: FileSpreadsheet, title: 'Export results', text: 'Every squad, price and unsold player in one Excel the moment the hammer falls.' },
+  { icon: ClipboardList, title: 'Collect players', text: 'Share a registration link or upload your Excel. Go category-wise (Marquee, A, B…) or keep one open pool.' },
+  { icon: Sparkles, title: 'Answer a few questions', text: 'Teams, purse, retained players, base prices, squad size, order. Smart defaults from your player pool.' },
+  { icon: Gavel, title: 'Go live', text: 'Run the control room, put the live link on the projector, and open each team’s squad page as it fills up.' },
+  { icon: FileSpreadsheet, title: 'Export results', text: 'Team-wise Excel and a printable PDF report with every squad, price and unsold player.' },
 ]
 
 export default function Home() {
@@ -79,7 +92,7 @@ export default function Home() {
             <div className="min-w-0">
               <Reveal>
                 <span className="inline-flex items-center gap-2 rounded-full border border-lime-glow/25 bg-lime-glow/10 px-3 py-1 text-xs font-semibold text-lime-glow">
-                  <Sparkles className="h-3.5 w-3.5" /> New · Team owners can bid from their phones
+                  <Sparkles className="h-3.5 w-3.5" /> New · Team squad pages with a live field view
                 </span>
               </Reveal>
               <Reveal delay={0.05}>
@@ -101,7 +114,7 @@ export default function Home() {
                 </Link>
               </Reveal>
               <Reveal delay={0.2}>
-                <p className="mt-6 text-sm text-ink-400">Free to start · Works on any phone, laptop or projector · No app install</p>
+                <p className="mt-6 text-sm text-ink-400">First {PRICING.freeAuctions} auctions free · Works on any phone, laptop or projector · No app install</p>
               </Reveal>
             </div>
             <Reveal delay={0.15}>
@@ -177,6 +190,46 @@ export default function Home() {
           </div>
         </section>
 
+        {/* What's new */}
+        <section id="new" className="mx-auto max-w-7xl scroll-mt-20 px-4 pt-24 sm:px-6">
+          <Reveal className="max-w-2xl">
+            <p className="text-sm font-semibold uppercase tracking-widest text-lime-glow">New this season</p>
+            <h2 className="mt-3 font-display text-4xl font-bold sm:text-5xl">Build squads, not spreadsheets</h2>
+            <p className="mt-4 text-ink-300">Every team now gets its own live page, and setting up an auction fits how your league actually works.</p>
+          </Reveal>
+          <div className="mt-14 grid gap-5 lg:grid-cols-5">
+            <Reveal className="lg:col-span-3">
+              <div className="card h-full border-lime-glow/20 p-7">
+                <Users className="h-6 w-6 text-lime-glow" />
+                <h3 className="mt-4 font-display text-2xl font-semibold">A live squad page for every team</h3>
+                <p className="mt-2 text-ink-300">
+                  Open any team from the control room to see its bought players, how the squad balances against a playing XI, which available players it can still afford by role, and the XI laid out on a cricket field once the squad is complete.
+                </p>
+                <SquadFieldVisual />
+              </div>
+            </Reveal>
+            <div className="grid gap-5 lg:col-span-2">
+              {[
+                { icon: Layers, title: 'Category-wise or one open pool', text: 'Choose when you create the tournament. Categories carry their own base prices and draw order through registration, import, the auction and exports.', c: '#38bdf8' },
+                { icon: Dices, title: 'One-click random auction', text: 'No time for a full auction? Deal every player to a team at base price, grade by grade, in one click.', c: '#ffb020' },
+                { icon: UserCheck, title: 'Retained players', text: 'Lock in each team’s retentions before bidding starts, with or without deducting them from the purse.', c: '#a78bfa' },
+              ].map((f, i) => (
+                <Reveal key={f.title} delay={0.05 * (i + 1)}>
+                  <div className="card flex h-full gap-4 p-6">
+                    <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl" style={{ background: `color-mix(in oklab, ${f.c} 14%, transparent)` }}>
+                      <f.icon className="h-5 w-5" style={{ color: `color-mix(in oklab, ${f.c} var(--tint-strength), black)` }} />
+                    </div>
+                    <div>
+                      <h3 className="font-display text-lg font-semibold">{f.title}</h3>
+                      <p className="mt-1.5 text-sm text-ink-300">{f.text}</p>
+                    </div>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* Features bento */}
         <section id="features" className="mx-auto max-w-7xl scroll-mt-20 px-4 py-24 sm:px-6">
           <Reveal className="mx-auto max-w-2xl text-center">
@@ -209,12 +262,15 @@ export default function Home() {
               { icon: Wallet, title: 'Purse & squad rules', text: 'Max bid automatically keeps money for the minimum squad. Tiered bid increments.', c: '#ffb020' },
               { icon: Shuffle, title: 'Fair random draw', text: 'Crypto-random order, or random within marquee/A/B/C categories. Re-auction unsold players.', c: '#c8ff2e' },
               { icon: MessageSquareQuote, title: 'Custom registration form', text: 'Add your own questions — jersey size, availability, fees paid. Approve entries if you want.', c: '#a78bfa' },
+              { icon: FileSpreadsheet, title: 'Results your way', text: 'Team-wise Excel with auto-sized columns, a summary and unsold sheet, plus a printable PDF report.', c: '#0ea5e9' },
+              { icon: Moon, title: 'Light & dark, your theme', text: 'Stadium, pitch or your own image behind the live screen, in your colours. Readable in a bright hall or a dark one.', c: '#f472b6' },
+              { icon: Gavel, title: 'Control room built for speed', text: 'Keyboard shortcuts, every team’s purse at a glance under the bid buttons, pause and re-auction unsold.', c: '#c8ff2e' },
               { icon: Undo2, title: 'Undo anything', text: 'Undo a bid, reverse a sale with automatic purse refund, skip a player, pause the room.', c: '#ff4d6d' },
               { icon: ShieldCheck, title: 'Private by default', text: 'Phone numbers and emails never appear on public screens. Links can be reset any time.', c: '#34d399' },
             ].map((f, i) => (
               <Reveal key={f.title} className="md:col-span-2" delay={0.04 * i}>
                 <div className="card h-full p-6">
-                  <f.icon className="h-6 w-6" style={{ color: f.c }} />
+                  <f.icon className="h-6 w-6" style={{ color: `color-mix(in oklab, ${f.c} var(--tint-strength), black)` }} />
                   <h3 className="mt-4 font-display text-lg font-semibold">{f.title}</h3>
                   <p className="mt-2 text-sm text-ink-300">{f.text}</p>
                 </div>
@@ -249,8 +305,8 @@ export default function Home() {
           <Reveal className="mx-auto max-w-5xl">
             <div className="grain relative overflow-hidden rounded-[2rem] border border-lime-glow/20 bg-gradient-to-br from-lime-glow/15 via-ink-800 to-ink-900 p-10 text-center sm:p-16">
               <h2 className="font-display text-4xl font-extrabold sm:text-5xl">Your next auction, without the PPT.</h2>
-              <p className="mx-auto mt-4 max-w-xl text-ink-200">Set up in minutes. Share one link. Let the bidding wars begin.</p>
-              <Link href="/signup" className="mt-8 inline-flex h-12 items-center gap-2 rounded-xl bg-lime-bright px-7 font-semibold text-on-accent hover:bg-[#d6ff5c]">
+              <p className="mx-auto mt-4 max-w-xl text-ink-200">Set up in minutes. Share one link. Let the bidding wars begin — your first {PRICING.freeAuctions} auctions are on us.</p>
+              <Link href="/signup" className="mt-8 inline-flex h-12 items-center gap-2 rounded-xl bg-lime-bright px-7 font-semibold text-on-accent hover:bg-lime-hover">
                 Create your auction <ArrowRight className="h-4 w-4" />
               </Link>
             </div>

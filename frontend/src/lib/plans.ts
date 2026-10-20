@@ -53,6 +53,6 @@ export const PRICING_FAQ: { q: string; a: string }[] = [
   { q: 'Do I pay anything to try it?', a: `No. Your first ${PRICING.freeAuctions} auctions with up to ${PRICING.includedTeams} teams cost nothing — players, registration form, live screen, phone bidding and results included.` },
   { q: 'When do I pay?', a: `Only when you add something: more than ${PRICING.includedTeams} teams, a custom theme, a random auction, or an auction after your ${ordinal(PRICING.freeAuctions)}. You see the total before you confirm.` },
   { q: 'Add-ons or Pro?', a: `Pro (₹${PRICING.pro}) unlocks every add-on for one auction. It’s the better deal once your add-ons would cost more than ₹${PRICING.pro} — for example a 12-team auction with a custom theme.` },
-  { q: 'What are reward points?', a: 'Send a suggestion or report a bug (Account → Feedback & rewards) and earn 5 points each. Every 100 points takes 10% off a purchase (up to 50%).' },
-  { q: 'I got a plan code', a: 'Enter it under Account → Plan activation. It unlocks everything on your account until the BidWicket team turns it off.' },
+  { q: 'What are reward points?', a: 'Send a suggestion or report a bug (Settings → Feedback & rewards) and earn 5 points each. Every 100 points takes 10% off a purchase (up to 50%).' },
+  { q: 'I got a plan code', a: 'Enter it under Settings → Plan activation. It unlocks everything on your account until the BidWicket team turns it off.' },
 ]

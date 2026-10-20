@@ -88,12 +88,15 @@
     --color-ink-200: #2f374b;
     --color-ink-100: #161c2c;
     --color-white: #0d1324;
-    /* No neon on white: accents become a deep pitch green (text and fills) with white text on fills. */
-    --color-lime-glow: #15803d;
-    --color-lime-deep: #166534;
-    --color-lime-bright: #15803d;
-    --color-lime-hover: #166534;
-    --color-on-accent: #ffffff;
+    /* No neon on white: fills (buttons, switches, progress) are a soft light-green gradient with
+       dark green text (see .bg-lime-bright below); accents used as text are a mid green that stays readable. */
+    --color-lime-glow: #15913f;
+    --color-lime-deep: #15803d;
+    --color-lime-bright: #4ade80;
+    --color-lime-hover: #22c55e;
+    --color-on-accent: #052e16;
+    --accent-fill: linear-gradient(135deg, #86efac 0%, #4ade80 50%, #22c55e 100%);
+    --accent-fill-hover: linear-gradient(135deg, #4ade80 0%, #22c55e 55%, #16a34a 100%);
     --color-gold-bright: #f59e0b;
     --color-gold: #b45309;
     --color-rose-hot: #d61f4b;
@@ -103,7 +106,7 @@
     --border: rgb(13 19 36 / 0.12);
     --border-strong: rgb(13 19 36 / 0.22);
     --tint-strength: 58%;
-    --gradient-end: #0e7a5a;
+    --gradient-end: #22c55e;
     --card-bg: #ffffff;
     --card-shadow: 0 1px 2px rgb(13 19 36 / 0.05), 0 12px 32px -20px rgb(13 19 36 / 0.22);
     --tile-shadow: 0 1px 2px rgb(13 19 36 / 0.06), 0 6px 18px -12px rgb(13 19 36 / 0.3);
@@ -113,7 +116,7 @@
   }
   :root[data-theme='light'] body {
     background:
-      radial-gradient(1100px 560px at 88% -12%, rgb(21 128 61 / 0.10), transparent 62%),
+      radial-gradient(1100px 560px at 88% -12%, rgb(74 222 128 / 0.14), transparent 62%),
       radial-gradient(900px 520px at -12% 6%, rgb(14 165 233 / 0.10), transparent 60%),
       var(--bg);
   }
@@ -178,6 +181,18 @@
   }
   .tile:hover { box-shadow: var(--tile-shadow-hover), 0 0 0 1px color-mix(in oklab, var(--fg) 30%, transparent); }
   .tile[aria-pressed='true'] { box-shadow: var(--tile-shadow-hover); }
+
+  /* Light mode: solid accent fills (primary buttons, switches, tab underlines, progress) become the
+     light-green gradient. Themed screens reset --accent-fill to none so their own accent shows. */
+  :root[data-theme='light'] .bg-lime-bright {
+    background-image: var(--accent-fill);
+  }
+  :root[data-theme='light'] .bg-lime-bright.text-on-accent {
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.45), 0 8px 24px -10px rgb(22 163 74 / 0.55);
+  }
+  :root[data-theme='light'] .bg-lime-bright.hover\:bg-lime-hover:hover {
+    background-image: var(--accent-fill-hover);
+  }
 
   .text-gradient {
     background: linear-gradient(100deg, var(--color-white) 10%, var(--color-lime-glow) 60%, var(--gradient-end) 90%);

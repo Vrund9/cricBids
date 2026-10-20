@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { motion } from 'motion/react'
-import { ArrowLeft, Crown, Gavel, LayoutDashboard, ListChecks, Palette, Shield, Trophy, Users } from 'lucide-react'
+import { ArrowLeft, Crown, Gavel, LayoutDashboard, ListChecks, Shield, Trophy, Users } from 'lucide-react'
 import { UpgradeProvider } from '@/components/upgrade'
 import { TournamentProvider, useTournament } from '@/components/tournament-context'
 import { Avatar, EmptyState, PageLoader, StatusBadge } from '@/components/ui'
@@ -19,13 +19,12 @@ const TABS = [
   { href: '/players', label: 'Players', icon: Users, also: ['/registration'] },
   { href: '/teams', label: 'Teams', icon: Shield },
   { href: '/setup', label: 'Auction rules', icon: ListChecks },
-  { href: '/theme', label: 'Theme', icon: Palette, beforeDone: true },
   { href: '/auction', label: 'Control room', icon: Gavel, beforeDone: true },
   { href: '/results', label: 'Results', icon: Trophy },
 ]
 
 /** Pages that make no sense after the auction: they redirect to the overview. */
-const CLOSED_WHEN_DONE = ['/registration', '/theme', '/auction']
+const CLOSED_WHEN_DONE = ['/registration', '/auction']
 
 function Header({ id }: { id: string }) {
   const { t } = useTournament()

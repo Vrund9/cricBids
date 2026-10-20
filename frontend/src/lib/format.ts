@@ -51,7 +51,7 @@ export function timeAgo(date: string | number) {
 export const ROLE_META: Record<string, { short: string; color: string }> = {
   Batsman: { short: 'BAT', color: '#38bdf8' },
   Bowler: { short: 'BOWL', color: '#ff4d6d' },
-  'All-rounder': { short: 'AR', color: '#c8ff2e' },
+  'All-rounder': { short: 'AR', color: '#34d399' },
   'Wicket-keeper': { short: 'WK', color: '#ffb020' },
 }
 
