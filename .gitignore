@@ -13,3 +13,10 @@ backend/src/generated
 .DS_Store
 npm-debug.log*
 backend/.pgdata
+
+# Load-test data (tokens/passwords for staging) and results
+loadtest/data/*.csv
+loadtest/*.csv
+loadtest/results/
+results.jtl
+report/
