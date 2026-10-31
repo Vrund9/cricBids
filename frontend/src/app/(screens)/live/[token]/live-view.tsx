@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'motion/react'
 import { CalendarDays, Crown, Maximize2, Minimize2, Pause, Trophy, Users, Volume2, VolumeX } from 'lucide-react'
@@ -182,6 +183,18 @@ function SalesTicker({ snap }: { snap: Snapshot }) {
 }
 
 function RoundBreak({ snap }: { snap: Snapshot }) {
+  // Chit mode: between players the auctioneer is drawing the next chit, not ending the round.
+  if (snap.tournament.playerOrder === 'CHIT' && snap.chits?.length && snap.lastEvent?.type !== 'ROUND_END') {
+    return (
+      <Card className="flex min-h-[420px] flex-col items-center justify-center gap-4 p-10 text-center">
+        <motion.div animate={{ rotate: [0, -4, 4, 0] }} transition={{ repeat: Infinity, duration: 2.4 }}>
+          <Image src="/modes/chit.png" alt="" width={640} height={400} className="w-72 rounded-3xl" priority />
+        </motion.div>
+        <h2 className="font-display text-4xl font-extrabold">Drawing the next chit…</h2>
+        <p className="max-w-md text-ink-300">{snap.chits.length} chit{snap.chits.length === 1 ? '' : 's'} left in the bowl.</p>
+      </Card>
+    )
+  }
   const unsold = snap.lastEvent?.type === 'ROUND_END' ? snap.lastEvent.unsold ?? snap.counts.unsold : snap.counts.unsold
   return (
     <Card className="flex min-h-[420px] flex-col items-center justify-center gap-4 p-10 text-center">

@@ -22,11 +22,15 @@ const FAQ = [
   },
   {
     q: 'How are players picked during the auction?',
-    a: 'You choose: fully random (cryptographically shuffled, so nobody can predict the order), random within categories (marquee / A / B / C first), or in list order. Unsold players can be re-auctioned in another round. In a hurry? A one-click random auction deals every player to a team at base price, category by category.',
+    a: 'You pick one of two modes when you create the auction. Computer picks: a secure random shuffle nobody can predict, either from one open pool or category by category (marquee / A / B / C first). Chit mode: the Indian way — draw a numbered chit from a bowl and type its number. Unsold players can be re-auctioned in another round. In a hurry? A one-click random auction deals every player to a team at base price, category by category.',
+  },
+  {
+    q: 'How does chit mode work?',
+    a: 'Write each player’s number (the # on your player list) on a chit and fold them into a bowl. On auction day, draw a chit and type its number in the control room — that player comes up on the big screen and bidding starts. BidWicket shows which numbers are still in the bowl and won’t let you bring up a player who is already sold. Skipped players go back in the bowl, and unsold players return to it for the re-auction.',
   },
   {
     q: 'Do I have to split players into categories?',
-    a: 'No. When you create a tournament you pick category-wise (Marquee, A, B… with their own base prices and order) or one open pool. You can edit the category list any time before the auction starts.',
+    a: 'No. With computer picks you choose category-wise (Marquee, A, B… with their own base prices and order) or one open pool when you create the tournament, and you can edit the category list any time before the auction starts. Chit mode doesn’t need categories at all.',
   },
   {
     q: 'Can teams keep retained players?',
@@ -56,7 +60,7 @@ const jsonLd = [
     url: SITE_URL,
     description: 'Live cricket player auction software for tournaments: registration forms, Excel import, realtime big-screen auction link, team purses and results export.',
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'INR' },
-    featureList: ['Player registration form', 'Excel import with auto column mapping', 'Category-wise or open player pool', 'Realtime live auction link', 'Remote team bidding', 'One-click random auction', 'Retained players', 'Team squad pages with role analysis and field view', 'Purse and squad rules', 'Excel and PDF results export'],
+    featureList: ['Player registration form', 'Excel import with auto column mapping', 'Category-wise or open player pool', 'Chit mode: draw numbered chits like a traditional auction', 'Realtime live auction link', 'Remote team bidding', 'One-click random auction', 'Retained players', 'Team squad pages with role analysis and field view', 'Purse and squad rules', 'Excel and PDF results export'],
   },
   {
     '@context': 'https://schema.org',

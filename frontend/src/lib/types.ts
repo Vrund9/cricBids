@@ -1,6 +1,6 @@
 export type TournamentStatus = 'DRAFT' | 'READY' | 'LIVE' | 'PAUSED' | 'COMPLETED'
 export type PlayerStatus = 'AVAILABLE' | 'LIVE' | 'SOLD' | 'UNSOLD'
-export type PlayerOrder = 'RANDOM' | 'CATEGORY_RANDOM' | 'SEQUENTIAL'
+export type PlayerOrder = 'RANDOM' | 'CATEGORY_RANDOM' | 'SEQUENTIAL' | 'CHIT'
 export type PlanName = 'FREE' | 'PRO'
 import type { ThemeConfig } from './themes'
 
@@ -124,6 +124,7 @@ export interface TournamentSummary {
   plan: PlanName
   setupComplete: boolean
   registrationOpen: boolean
+  playerOrder: PlayerOrder
   liveToken: string
   updatedAt: string
   teams: number
@@ -268,6 +269,8 @@ export interface Snapshot {
   teams: SnapshotTeam[]
   counts: { total: number; available: number; sold: number; unsold: number; live: number; queue: number; bids: number }
   totalSpent: number
+  /** Chit mode only: serial numbers still in the bowl. Null in every other mode. */
+  chits: number[] | null
   sold: PublicPlayer[]
   topBuys: PublicPlayer[]
   lastEvent: AuctionEvent | null

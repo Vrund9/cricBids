@@ -3,6 +3,8 @@
 // Adds ten Pro tournaments (100–500 players each) to that user, in every auction state:
 //   COMPLETED ×3 · LIVE ×3 · PAUSED ×1 · READY ×2 · DRAFT ×1
 // Re-running replaces only tournaments with these exact names; the user's other data is untouched.
+//
+// `npm run seed:bulk -- you@example.com --chit` adds only the two live chit-mode auctions.
 import 'dotenv/config'
 import { randomBytes } from 'crypto'
 import { PrismaPg } from '@prisma/adapter-pg'
@@ -51,6 +53,8 @@ interface Plan {
   venue: string
   preset: string
   women?: boolean
+  /** Chit mode: no categories, players drawn by chit number. */
+  chit?: boolean
 }
 
 const PLANS: Plan[] = [
@@ -64,6 +68,11 @@ const PLANS: Plan[] = [
   { name: "Anand Women's League", players: 300, status: 'READY', venue: 'Anand', preset: 'violet', women: true },
   { name: 'Gandhinagar Masters', players: 400, status: 'COMPLETED', venue: 'Gandhinagar', preset: 'emerald' },
   { name: 'Diamond City Premier League', players: 500, status: 'LIVE', progress: 0.2, venue: 'Surat', preset: 'royal' },
+]
+
+const CHIT_PLANS: Plan[] = [
+  { name: 'Bhavnagar Chit Premier League', players: 120, status: 'LIVE', progress: 0.35, venue: 'Bhavnagar', preset: 'saffron', chit: true },
+  { name: 'Jamnagar Gully Chit Cup', players: 80, status: 'LIVE', progress: 0.15, venue: 'Jamnagar', preset: 'ocean', chit: true },
 ]
 
 function stepFor(amount: number) {
@@ -150,10 +159,10 @@ async function build(ownerId: string, plan: Plan, index: number) {
       teamPurse: PURSE,
       basePrice: BASE,
       bidIncrements: INCREMENTS,
-      categoryBasePrices: CATEGORY_BASE,
+      categoryBasePrices: plan.chit ? undefined : CATEGORY_BASE,
       minSquad: MIN_SQUAD,
       maxSquad,
-      playerOrder: 'CATEGORY_RANDOM',
+      playerOrder: plan.chit ? 'CHIT' : 'CATEGORY_RANDOM',
       bidTimerSec: 30,
       setupComplete: plan.status !== 'DRAFT',
       registrationOpen: plan.status === 'DRAFT' || plan.status === 'READY',
@@ -183,14 +192,15 @@ async function build(ownerId: string, plan: Plan, index: number) {
   // DRAFT: last 12% registered through the form and still awaiting approval.
   const approved = (i: number) => plan.status !== 'DRAFT' || i < n * 0.88
   const players = await prisma.player.createManyAndReturn({
-    data: pool.map((p, i) => ({ ...p, tournamentId: t.id, approved: approved(i) })),
+    data: pool.map((p, i) => ({ ...p, category: plan.chit ? null : p.category, tournamentId: t.id, approved: approved(i) })),
     select: { id: true, serial: true, category: true },
   })
 
   if (!started) return { t, teamCount, sold: 0, unsold: 0 }
 
   // Auction order: categories A → B → C, shuffled within each (CATEGORY_RANDOM).
-  const order = ['A', 'B', 'C'].flatMap((c) => shuffle(players.filter((p) => p.category === c)))
+  // Chit mode: chits come out of the bowl in no particular order.
+  const order = plan.chit ? shuffle(players) : ['A', 'B', 'C'].flatMap((c) => shuffle(players.filter((p) => p.category === c)))
   const doneCount = plan.status === 'COMPLETED' ? order.length : Math.floor(order.length * (plan.progress ?? 0.5))
 
   const purse = new Map(teamIds.map((id) => [id, PURSE]))
@@ -268,7 +278,8 @@ async function build(ownerId: string, plan: Plan, index: number) {
         currentBid: last.amount,
         leadingTeamId: last.teamId,
         round: 1,
-        queue: order.slice(doneCount + 1).map((p) => p.id),
+        // Chit mode keeps the bowl (players still to be drawn) in number order.
+        queue: (plan.chit ? [...order.slice(doneCount + 1)].sort((x, y) => x.serial - y.serial) : order.slice(doneCount + 1)).map((p) => p.id),
         timerEndsAt: null,
         version: bids.length + live.length,
         startedAt: auctionDate,
@@ -280,16 +291,17 @@ async function build(ownerId: string, plan: Plan, index: number) {
 }
 
 async function main() {
-  const email = process.argv[2]?.trim().toLowerCase()
+  const email = process.argv.slice(2).find((a) => a.includes('@'))?.trim().toLowerCase()
+  const plans = process.argv.includes('--chit') ? CHIT_PLANS : PLANS
   if (!email) throw new Error('Usage: npm run seed:bulk -- <email of an existing account>')
   const user = await prisma.user.findUnique({ where: { email } })
   if (!user) throw new Error(`No account with email ${email} — sign up first, then re-run.`)
 
-  const removed = await prisma.tournament.deleteMany({ where: { ownerId: user.id, name: { in: PLANS.map((p) => p.name) } } })
+  const removed = await prisma.tournament.deleteMany({ where: { ownerId: user.id, name: { in: plans.map((p) => p.name) } } })
   if (removed.count) console.log(`Replaced ${removed.count} previously seeded tournament(s).`)
 
-  for (const [i, plan] of PLANS.entries()) {
-    const { t, teamCount, sold, unsold } = await build(user.id, plan, i)
+  for (const [i, plan] of plans.entries()) {
+    const { t, teamCount, sold, unsold } = await build(user.id, plan, plans === PLANS ? i : PLANS.length + i)
     console.log(`${String(i + 1).padStart(2)}. ${plan.name.padEnd(30)} ${plan.status.padEnd(9)} ${String(plan.players).padStart(3)} players · ${String(teamCount).padStart(2)} teams · ${sold} sold · ${unsold} unsold  → /live/${t.liveToken}`)
   }
   console.log(`\nAdded to ${user.name} <${email}>`)

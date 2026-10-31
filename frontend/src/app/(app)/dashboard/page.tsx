@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'motion/react'
-import { CalendarDays, ImagePlus, LayoutGrid, List, Loader2, MapPin, Plus, Radio, Users, X } from 'lucide-react'
+import { CalendarDays, ImagePlus, LayoutGrid, List, Loader2, MapPin, Plus, Radio, Shuffle, Ticket, Users, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Avatar, Button, EmptyState, Field, Input, Modal, PageLoader, Select, StatusBadge, stagger, fadeUp } from '@/components/ui'
 import { Tour } from '@/components/tour'
@@ -13,6 +13,7 @@ import { api, uploadImage } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import { CURRENCIES, moneyShort } from '@/lib/format'
 import { CategoryModePicker, type CategoryChoice } from '@/components/categories'
+import { AuctionModePicker, type AuctionMode } from '@/components/auction-mode'
 import type { TournamentSummary } from '@/lib/types'
 import { cn } from '@/lib/cn'
 
@@ -23,6 +24,7 @@ export default function Dashboard() {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({ name: '', venue: '', auctionDate: '', currency: 'INR', logoUrl: '' })
   const [cats, setCats] = useState<CategoryChoice>({ useCategories: false, categoryList: [] })
+  const [mode, setMode] = useState<AuctionMode>('RANDOM')
   const [creating, setCreating] = useState(false)
   const [uploading, setUploading] = useState(false)
 
@@ -41,7 +43,7 @@ export default function Dashboard() {
     setCreating(true)
     try {
       const t = await api<{ id: string }>('/tournaments', {
-        body: { name: form.name, venue: form.venue || undefined, currency: form.currency, auctionDate: new Date(form.auctionDate).toISOString(), logoUrl: form.logoUrl || undefined, ...cats },
+        body: { name: form.name, venue: form.venue || undefined, currency: form.currency, auctionDate: new Date(form.auctionDate).toISOString(), logoUrl: form.logoUrl || undefined, mode, ...(mode === 'CHIT' ? { useCategories: false, categoryList: [] } : cats) },
       })
       router.push(`/t/${t.id}`)
     } catch (err) {
@@ -144,9 +146,15 @@ export default function Dashboard() {
               {CURRENCIES.map((c) => <option key={c}>{c}</option>)}
             </Select>
           </Field>
-          <Field label="How are players grouped?">
-            <CategoryModePicker value={cats} onChange={setCats} />
+          <Field label="How do players come up?">
+            <AuctionModePicker value={mode} onChange={setMode} />
           </Field>
+          {/* Grouping only applies when the computer draws players; chits are drawn one number at a time. */}
+          {mode === 'RANDOM' && (
+            <Field label="How are players grouped?">
+              <CategoryModePicker value={cats} onChange={setCats} />
+            </Field>
+          )}
           <Button type="submit" size="lg" className="w-full" loading={creating} disabled={uploading}>Create &amp; add players</Button>
         </form>
       </Modal>
@@ -238,6 +246,7 @@ function TournamentBrowser({ items }: { items: TournamentSummary[] }) {
                     <p className="truncate font-semibold">{t.name}</p>
                     <p className="truncate text-xs text-ink-400">
                       {t.auctionDate ? new Date(t.auctionDate).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : 'No date'}{t.venue ? ` · ${t.venue}` : ''}
+                      {' · '}{t.playerOrder === 'CHIT' ? <span className="text-gold">Chit mode</span> : 'Computer picks'}
                     </p>
                   </div>
                   <span className="hidden w-24 text-right text-sm text-ink-300 sm:block">{t.players} players</span>
@@ -281,12 +290,15 @@ function TournamentCard({ t }: { t: TournamentSummary }) {
             <p className="text-[11px] text-ink-400">{t.sold} sold</p>
           </div>
         </div>
-        {(t.status === 'LIVE' || t.registrationOpen) && (
-          <div className="mt-4 flex gap-2 text-[11px]">
-            {t.status === 'LIVE' && <span className="inline-flex items-center gap-1 rounded-full bg-lime-glow/10 px-2 py-0.5 text-lime-glow"><Radio className="h-3 w-3" /> Auction live</span>}
-            {t.registrationOpen && t.status !== 'COMPLETED' && <span className="inline-flex items-center gap-1 rounded-full bg-sky-live/10 px-2 py-0.5 text-sky-live"><Users className="h-3 w-3" /> Registrations open</span>}
-          </div>
-        )}
+        <div className="mt-4 flex flex-wrap gap-2 text-[11px]">
+          {t.playerOrder === 'CHIT' ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-gold/10 px-2 py-0.5 text-gold"><Ticket className="h-3 w-3" /> Chit mode</span>
+          ) : (
+            <span className="inline-flex items-center gap-1 rounded-full bg-white/[0.06] px-2 py-0.5 text-ink-300"><Shuffle className="h-3 w-3" /> Computer picks</span>
+          )}
+          {t.status === 'LIVE' && <span className="inline-flex items-center gap-1 rounded-full bg-lime-glow/10 px-2 py-0.5 text-lime-glow"><Radio className="h-3 w-3" /> Auction live</span>}
+          {t.registrationOpen && t.status !== 'COMPLETED' && <span className="inline-flex items-center gap-1 rounded-full bg-sky-live/10 px-2 py-0.5 text-sky-live"><Users className="h-3 w-3" /> Registrations open</span>}
+        </div>
       </Link>
     </motion.div>
   )

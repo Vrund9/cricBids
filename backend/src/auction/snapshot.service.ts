@@ -54,6 +54,11 @@ export class SnapshotService {
       this.prisma.bid.count({ where: { tournamentId } }),
     ])
 
+    // Chit mode: the numbers still in the bowl, so the auctioneer (and the crowd) can see what's left.
+    const chits =
+      t.playerOrder === 'CHIT'
+        ? (await this.prisma.player.findMany({ where: { tournamentId, approved: true, status: 'AVAILABLE' }, select: { serial: true }, orderBy: { serial: 'asc' } })).map((p) => p.serial)
+        : null
     const tiers = parseIncrements(t.bidIncrements)
     const squadOf = new Map<string, number>()
     const spentOf = new Map<string, number>()
@@ -131,6 +136,7 @@ export class SnapshotService {
         bids: bidCount,
       },
       totalSpent,
+      chits,
       // Screens only show recent sales; sending all of them on every bid made big auctions sluggish.
       sold: auctioned.slice(0, RECENT_SALES),
       topBuys: [...auctioned].sort((a, b) => (b.soldPrice ?? 0) - (a.soldPrice ?? 0)).slice(0, 5),
