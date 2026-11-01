@@ -96,6 +96,7 @@ export class TournamentsService {
       plan: t.plan,
       setupComplete: t.setupComplete,
       registrationOpen: t.registrationOpen,
+      playerOrder: t.playerOrder,
       liveToken: t.liveToken,
       updatedAt: t.updatedAt,
       teams: _count.teams,
@@ -121,6 +122,7 @@ export class TournamentsService {
         logoUrl: dto.logoUrl,
         useCategories: !!dto.useCategories,
         categoryList: dto.useCategories ? withDefaultCategories(dto.categoryList) : [],
+        playerOrder: dto.mode === 'CHIT' ? 'CHIT' : dto.useCategories ? 'CATEGORY_RANDOM' : 'RANDOM',
         bidIncrements: DEFAULT_INCREMENTS as any,
         registrationFields: DEFAULT_REG_FIELDS as any,
         // Open by default so the first link an organiser shares actually works.

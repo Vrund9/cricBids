@@ -1,0 +1,11 @@
+{
+  "name": "BidWicket - Auction night",
+  "description": "5 min ramp-up, 15 min steady state. One live auction: 300 spectators, 16 team owners bidding remotely, 1 auctioneer, plus 50 organisers on the dashboard and 30 website visitors. providerId/region are filled in from the OctoPerf workspace before import.",
+  "userLoads": [
+    { "virtualUserId": "Spectator - Live View",     "providerId": "PROVIDER", "region": "REGION", "strategy": { "@type": "UserLoadOctoPerf", "iterations": null, "onSampleError": "CONTINUE", "points": [{ "threadsCount": 0, "timeInMs": 0 }, { "threadsCount": 300, "timeInMs": 300000 }, { "threadsCount": 300, "timeInMs": 1200000 }] } },
+    { "virtualUserId": "Team Owner - Remote Bid",   "providerId": "PROVIDER", "region": "REGION", "strategy": { "@type": "UserLoadOctoPerf", "iterations": null, "onSampleError": "CONTINUE", "points": [{ "threadsCount": 0, "timeInMs": 0 }, { "threadsCount": 16, "timeInMs": 300000 }, { "threadsCount": 16, "timeInMs": 1200000 }] } },
+    { "virtualUserId": "Auctioneer - Control Room", "providerId": "PROVIDER", "region": "REGION", "strategy": { "@type": "UserLoadOctoPerf", "iterations": null, "onSampleError": "CONTINUE", "points": [{ "threadsCount": 1, "timeInMs": 0 }, { "threadsCount": 1, "timeInMs": 1500000 }] } },
+    { "virtualUserId": "Organiser - Dashboard",     "providerId": "PROVIDER", "region": "REGION", "strategy": { "@type": "UserLoadOctoPerf", "iterations": null, "onSampleError": "CONTINUE", "points": [{ "threadsCount": 0, "timeInMs": 0 }, { "threadsCount": 50, "timeInMs": 300000 }, { "threadsCount": 50, "timeInMs": 1200000 }] } },
+    { "virtualUserId": "Visitor - Website",         "providerId": "PROVIDER", "region": "REGION", "strategy": { "@type": "UserLoadOctoPerf", "iterations": null, "onSampleError": "CONTINUE", "points": [{ "threadsCount": 0, "timeInMs": 0 }, { "threadsCount": 30, "timeInMs": 300000 }, { "threadsCount": 30, "timeInMs": 1200000 }] } }
+  ]
+}

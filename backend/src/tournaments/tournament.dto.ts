@@ -40,6 +40,10 @@ export class CreateTournamentDto {
 
   @IsOptional() @IsArray() @ArrayMaxSize(20) @IsString({ each: true }) @MaxLength(30, { each: true })
   categoryList?: string[]
+
+  /** Auction mode picked when creating: the computer draws players, or the auctioneer draws chits. */
+  @IsOptional() @IsIn(['RANDOM', 'CHIT'])
+  mode?: 'RANDOM' | 'CHIT'
 }
 
 export class UpdateTournamentDto {

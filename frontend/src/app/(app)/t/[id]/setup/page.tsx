@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'motion/react'
 import { AlertTriangle, ArrowLeft, ArrowRight, Check, Layers, ListOrdered, Lock, Minus, Plus, Shuffle, Sparkles, Timer } from 'lucide-react'
@@ -70,6 +71,7 @@ const ORDER_LABEL: Record<PlayerOrder, string> = {
   RANDOM: 'Random order',
   CATEGORY_RANDOM: 'Random within each category',
   SEQUENTIAL: 'In list order',
+  CHIT: 'Chit mode — the auctioneer draws numbered chits',
 }
 
 /** From the moment the auction starts, the rules are locked: one read-only summary, no wizard steps. */
@@ -136,7 +138,8 @@ function SetupWizard() {
         maxSquad: useSaved ? t.maxSquad : s.maxSquad,
         incrementMode: !useSaved ? 'tiered' : incs.length === 1 ? 'flat' : 'custom',
         bidIncrements: incs,
-        playerOrder: useSaved ? t.playerOrder : s.categories.length > 1 ? 'CATEGORY_RANDOM' : 'RANDOM',
+        // Chit mode is chosen when the auction is created, so keep it even before setup is saved.
+        playerOrder: useSaved || t.playerOrder === 'CHIT' ? t.playerOrder : s.categories.length > 1 ? 'CATEGORY_RANDOM' : 'RANDOM',
         bidTimerSec: t.bidTimerSec,
         remoteBidding: t.remoteBidding,
       })
@@ -337,12 +340,39 @@ function SetupWizard() {
             )}
 
             {q === 'order' && (
-              <Question title="In what order should players come up?" hint="Random order is drawn with a secure shuffle — nobody can predict it, not even you.">
-                <div className="grid gap-3">
-                  <OptionCard icon={<Shuffle className="h-5 w-5" />} active={a.playerOrder === 'RANDOM'} onClick={() => set({ playerOrder: 'RANDOM' })} title="Completely random" text="The classic — anyone can come up next." />
-                  {t.useCategories && <OptionCard icon={<Layers className="h-5 w-5" />} active={a.playerOrder === 'CATEGORY_RANDOM'} onClick={() => set({ playerOrder: 'CATEGORY_RANDOM' })} title="Random within categories" text={`${sug.categories.map((c) => c.name).join(' → ')} — highest base price first, random inside each.`} />}
-                  <OptionCard icon={<ListOrdered className="h-5 w-5" />} active={a.playerOrder === 'SEQUENTIAL'} onClick={() => set({ playerOrder: 'SEQUENTIAL' })} title="In list order" text="Same order as your Excel / registrations." />
+              <Question title="How should players come up?" hint="Let the computer draw them, or pull numbered chits from a bowl the Indian way.">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <ModeCard
+                    image="/modes/random.png"
+                    active={a.playerOrder !== 'CHIT'}
+                    onClick={() => a.playerOrder === 'CHIT' && set({ playerOrder: t.useCategories && sug.categories.length > 1 ? 'CATEGORY_RANDOM' : 'RANDOM' })}
+                    title="Computer picks (random)"
+                    text="A secure shuffle decides who comes up next — nobody can predict it, not even you."
+                  />
+                  <ModeCard
+                    image="/modes/chit.png"
+                    active={a.playerOrder === 'CHIT'}
+                    onClick={() => set({ playerOrder: 'CHIT' })}
+                    title="Chit mode (Indian)"
+                    text="Draw a chit from the bowl and type its number — that player comes up on screen."
+                  />
                 </div>
+                {a.playerOrder === 'CHIT' ? (
+                  <p className="mt-4 rounded-2xl border border-gold/30 bg-gold/[0.06] p-4 text-sm text-ink-300">
+                    Write each player’s number (the <b className="text-white">#</b> on the Players list) on a chit, fold them into a bowl, and type the number you draw in the control room.
+                  </p>
+                ) : (
+                  <div className="mt-4 grid gap-3">
+                    <OptionCard icon={<Shuffle className="h-5 w-5" />} active={a.playerOrder === 'RANDOM'} onClick={() => set({ playerOrder: 'RANDOM' })} title="Without categories" text="Completely random — anyone can come up next." />
+                    {t.useCategories ? (
+                      <OptionCard icon={<Layers className="h-5 w-5" />} active={a.playerOrder === 'CATEGORY_RANDOM'} onClick={() => set({ playerOrder: 'CATEGORY_RANDOM' })} title="With categories" text={`${sug.categories.map((c) => c.name).join(' → ')} — highest base price first, random inside each.`} />
+                    ) : (
+                      <p className="flex items-start gap-3 rounded-2xl border border-dashed border-white/10 p-4 text-sm text-ink-400"><Layers className="mt-0.5 h-5 w-5 shrink-0" /> With categories — turn on categories on the Players tab to draw A, B, C… one group at a time.</p>
+                    )}
+                    {/* Kept for auctions already set to list order; new auctions choose one of the random options. */}
+                    {a.playerOrder === 'SEQUENTIAL' && <OptionCard icon={<ListOrdered className="h-5 w-5" />} active onClick={() => {}} title="In list order" text="Same order as your Excel / registrations." />}
+                  </div>
+                )}
               </Question>
             )}
 
@@ -366,7 +396,7 @@ function SetupWizard() {
                     ['Base price', money(a.basePrice, cur) + (Object.keys(a.categoryBasePrices).length ? ` (+${Object.keys(a.categoryBasePrices).length} categories)` : '')],
                     ['Squad size', `${a.minSquad} – ${a.maxSquad}`],
                     ['Bid steps', a.bidIncrements.map((x) => `+${moneyShort(x.step, cur)}`).join(' / ')],
-                    ['Order', a.playerOrder === 'RANDOM' ? 'Random' : a.playerOrder === 'CATEGORY_RANDOM' ? 'Random by category' : 'List order'],
+                    ['Order', a.playerOrder === 'RANDOM' ? 'Random' : a.playerOrder === 'CATEGORY_RANDOM' ? 'Random by category' : a.playerOrder === 'CHIT' ? 'Chit mode' : 'List order'],
                     ['Countdown', a.bidTimerSec ? `${a.bidTimerSec}s` : 'Off'],
                     ['Remote bidding', a.remoteBidding ? 'On' : 'Off'],
                   ].map(([k, v]) => (
@@ -454,6 +484,21 @@ function Chips<T extends number>({ options, value, onChange }: { options: { labe
         </button>
       ))}
     </div>
+  )
+}
+
+function ModeCard({ active, onClick, title, text, image }: { active: boolean; onClick: () => void; title: string; text: string; image: string }) {
+  return (
+    <button onClick={onClick} className={cn('flex flex-col overflow-hidden rounded-2xl border text-left transition', active ? 'border-lime-glow/60 bg-lime-glow/[0.06]' : 'border-white/10 hover:border-white/20 hover:bg-white/[0.02]')}>
+      <Image src={image} alt="" width={640} height={400} className="aspect-[8/5] w-full object-cover" />
+      <span className="flex items-start gap-3 p-4">
+        <span className="flex-1">
+          <span className="block font-semibold">{title}</span>
+          <span className="mt-0.5 block text-sm text-ink-400">{text}</span>
+        </span>
+        <span className={cn('grid h-5 w-5 shrink-0 place-items-center rounded-full border', active ? 'border-lime-glow bg-lime-bright text-on-accent' : 'border-white/20')}>{active && <Check className="h-3 w-3" />}</span>
+      </span>
+    </button>
   )
 }
 

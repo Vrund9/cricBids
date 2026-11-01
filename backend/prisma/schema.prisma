@@ -36,6 +36,8 @@ enum PlayerOrder {
   RANDOM
   CATEGORY_RANDOM
   SEQUENTIAL
+  /// Indian chit mode: the auctioneer draws a numbered chit and types the player's serial to bring them up.
+  CHIT
 }
 
 enum TournamentPlan {

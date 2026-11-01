@@ -48,8 +48,8 @@ export function PlayerSpotlight({ player, basePrice, currency, size = 'lg' }: { 
           <Badge color={rm.color}>{player.role}</Badge>
           {player.category && <Badge color="#ffb020">Cat {player.category}</Badge>}
         </div>
-        <h2 className={cn('mt-3 font-display font-extrabold leading-[0.95]', size === 'xl' ? 'text-5xl sm:text-6xl xl:text-7xl' : size === 'lg' ? 'text-4xl sm:text-5xl' : 'text-3xl')}>{player.name}</h2>
-        {facts.length > 0 && <p className={cn('mt-3 text-ink-300', size === 'xl' ? 'text-lg' : 'text-sm')}>{facts.join(' · ')}</p>}
+        <h2 className={cn('mt-3 font-display font-extrabold leading-[0.95]', size === 'xl' ? 'text-5xl sm:text-6xl xl:text-7xl' : size === 'lg' ? 'text-4xl sm:text-5xl' : 'line-clamp-2 text-3xl')}>{player.name}</h2>
+        {facts.length > 0 && <p className={cn('mt-3 text-ink-300', size === 'xl' ? 'text-lg' : size === 'md' ? 'line-clamp-2 text-sm' : 'text-sm')}>{facts.join(' · ')}</p>}
         <p className={cn('mt-2 text-ink-400', size === 'xl' ? 'text-base' : 'text-sm')}>Base price <b className="text-ink-100">{money(basePrice, currency)}</b></p>
       </div>
     </motion.div>
@@ -83,14 +83,15 @@ export function BidDisplay({ snap, skew, size = 'lg' }: { snap: Snapshot; skew: 
   return (
     <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-ink-950/60 p-6">
       {leader && <motion.div key={leader.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pointer-events-none absolute inset-0" style={{ background: `radial-gradient(600px 200px at 0% 100%, ${leader.color}33, transparent 70%)` }} />}
-      <div className="relative flex items-start justify-between gap-3">
+      {/* Fixed-height rows: the countdown and leading-team chip only appear once bidding starts, and the card must not grow when they do. */}
+      <div className="relative flex min-h-10 items-center justify-between gap-3">
         <p className="text-xs font-semibold uppercase tracking-[0.25em] text-ink-400">{c.currentBid === null ? (status === 'LIVE' ? 'Opening at' : status === 'UNSOLD' ? 'No bids' : 'Base') : status === 'SOLD' ? 'Sold for' : 'Current bid'}</p>
         {status === 'LIVE' && c.currentBid !== null && <BidTimer endsAt={c.timerEndsAt} skew={skew} total={snap.tournament.bidTimerSec} />}
       </div>
       <motion.p key={amount} initial={{ scale: 1.08 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400, damping: 18 }} className={cn('relative mt-1 origin-left font-display font-black tabular leading-none', status === 'SOLD' ? 'text-gold' : 'text-white', size === 'xl' ? 'text-7xl sm:text-8xl xl:text-[9rem]' : size === 'lg' ? 'text-6xl sm:text-7xl' : 'text-5xl')}>
         <AnimatedNumber value={amount} format={(n) => money(n, cur)} />
       </motion.p>
-      <div className="relative mt-4 min-h-10">
+      <div className={cn('relative mt-4 flex items-center', size === 'xl' ? 'min-h-14' : 'min-h-[46px]')}>
         <AnimatePresence mode="popLayout">
           {leader ? (
             <motion.div key={leader.id + String(c.currentBid)} initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -16, opacity: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 24 }} className="inline-flex items-center gap-3 rounded-2xl py-1.5 pl-1.5 pr-4" style={{ background: `${leader.color}22` }}>

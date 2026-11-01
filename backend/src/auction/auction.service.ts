@@ -96,7 +96,8 @@ export class AuctionService {
 
   /** Decide the order players will be called. Random order uses crypto shuffle. */
   private orderPlayers(players: { id: string; serial: number; category: string | null }[], t: Tournament) {
-    if (t.playerOrder === 'SEQUENTIAL') return [...players].sort((a, b) => a.serial - b.serial).map((p) => p.id)
+    // CHIT: the queue is just the pool still to be drawn; the auctioneer picks each player by chit number.
+    if (t.playerOrder === 'SEQUENTIAL' || t.playerOrder === 'CHIT') return [...players].sort((a, b) => a.serial - b.serial).map((p) => p.id)
     if (t.playerOrder === 'RANDOM') return shuffle(players).map((p) => p.id)
     // CATEGORY_RANDOM: marquee categories (highest base price) first, random within each category.
     const prices = (t.categoryBasePrices || {}) as Record<string, number>
@@ -127,8 +128,19 @@ export class AuctionService {
         }
       }
     }
+    return this.roundEnd(ctx)
+  }
+
+  private async roundEnd({ tx, t }: Ctx): Promise<StatePatch> {
     const unsold = await tx.player.count({ where: { tournamentId: t.id, status: 'UNSOLD' } })
     return { queue: [], currentPlayerId: null, currentBid: null, leadingTeamId: null, timerEndsAt: null, lastEvent: { type: 'ROUND_END', unsold } }
+  }
+
+  /** Chit mode: clear the stage and wait for the auctioneer to draw the next chit (or end the round if none are left). */
+  private async awaitChit(ctx: Ctx, queue: string[], lastEvent: Record<string, unknown>): Promise<StatePatch> {
+    const left = await ctx.tx.player.count({ where: { tournamentId: ctx.t.id, approved: true, status: 'AVAILABLE' } })
+    if (!left) return this.roundEnd(ctx)
+    return { queue, currentPlayerId: null, currentBid: null, leadingTeamId: null, timerEndsAt: null, lastEvent }
   }
 
   // ───────────────────────────── Organiser actions ─────────────────────────────
@@ -165,6 +177,10 @@ export class AuctionService {
         })
         const live = await tx.tournament.update({ where: { id: tournamentId }, data: { status: 'LIVE', setupComplete: true } })
         const ctx = { tx, t: live, state }
+        if (live.playerOrder === 'CHIT') {
+          await this.save(tx, state, await this.awaitChit(ctx, queue, { type: 'STARTED' }))
+          return
+        }
         const patch = await this.advance(ctx, queue)
         await this.save(tx, state, { ...patch, timerEndsAt: this.timer(live), lastEvent: { ...patch.lastEvent, type: 'STARTED' } })
       }),
@@ -181,8 +197,42 @@ export class AuctionService {
         const p = await ctx.tx.player.findUnique({ where: { id: ctx.state.currentPlayerId } })
         if (p?.status === 'LIVE') throw new BadRequestException(`Sell, mark unsold or skip ${p.name} first`)
       }
+      if (ctx.t.playerOrder === 'CHIT') {
+        const patch = await this.awaitChit(ctx, ctx.state.queue, { type: 'AWAIT_CHIT' })
+        if (patch.lastEvent?.type !== 'ROUND_END') throw new BadRequestException('Chit mode: type the number on the chit to bring up the next player')
+        return patch
+      }
       const patch = await this.advance(ctx, ctx.state.queue)
       return { ...patch, timerEndsAt: patch.currentPlayerId ? this.timer(ctx.t) : null }
+    })
+  }
+
+  /** Chit mode: bring up the player whose serial number is written on the drawn chit. */
+  async pick(tournamentId: string, userId: string, serial: number) {
+    await this.tournaments.owned(tournamentId, userId)
+    return this.act(tournamentId, async (ctx) => {
+      const { tx, t, state } = ctx
+      this.requireRunning(t)
+      if (t.playerOrder !== 'CHIT') throw new BadRequestException('Picking by chit number is only for chit-mode auctions')
+      if (state.currentPlayerId) {
+        const cur = await tx.player.findUnique({ where: { id: state.currentPlayerId } })
+        if (cur?.status === 'LIVE') throw new BadRequestException(`Sell, mark unsold or skip ${cur.name} first`)
+      }
+      const p = await tx.player.findUnique({ where: { tournamentId_serial: { tournamentId, serial } } })
+      if (!p || !p.approved) throw new BadRequestException(`There is no player with chit number ${serial}`)
+      if (p.status !== 'AVAILABLE') {
+        const why = p.status === 'SOLD' ? 'already sold' : p.status === 'UNSOLD' ? 'unsold this round' : 'already up'
+        throw new BadRequestException(`Chit #${serial} — ${p.name} is ${why}`)
+      }
+      await tx.player.update({ where: { id: p.id }, data: { status: 'LIVE' } })
+      return {
+        queue: state.queue.filter((id) => id !== p.id),
+        currentPlayerId: p.id,
+        currentBid: null,
+        leadingTeamId: null,
+        timerEndsAt: this.timer(t),
+        lastEvent: { type: 'NEXT', playerId: p.id, name: p.name, chit: serial },
+      }
     })
   }
 
@@ -310,6 +360,8 @@ export class AuctionService {
       const player = await this.currentPlayer(ctx)
       await tx.bid.deleteMany({ where: { playerId: player.id, round: state.round } })
       await tx.player.update({ where: { id: player.id }, data: { status: 'AVAILABLE' } })
+      // Chit mode: the chit goes back in the bowl and the auctioneer draws again.
+      if (ctx.t.playerOrder === 'CHIT') return this.awaitChit(ctx, [...state.queue, player.id], { type: 'SKIPPED', playerId: player.id, name: player.name })
       const patch = await this.advance(ctx, [...state.queue, player.id])
       return { ...patch, timerEndsAt: patch.currentPlayerId ? this.timer(ctx.t) : null }
     })
@@ -342,6 +394,10 @@ export class AuctionService {
       if (!unsold.length) throw new BadRequestException('There are no unsold players')
       await tx.player.updateMany({ where: { id: { in: unsold.map((p) => p.id) } }, data: { status: 'AVAILABLE' } })
       const queue = [...state.queue, ...this.orderPlayers(unsold, t)]
+      if (t.playerOrder === 'CHIT') {
+        const patch = await this.awaitChit(ctx, queue, { type: 'REAUCTION', count: unsold.length })
+        return { ...patch, round: state.round + 1 }
+      }
       const patch = await this.advance(ctx, queue)
       return { ...patch, round: state.round + 1, timerEndsAt: this.timer(t), lastEvent: { ...patch.lastEvent, type: 'REAUCTION', count: unsold.length } }
     })

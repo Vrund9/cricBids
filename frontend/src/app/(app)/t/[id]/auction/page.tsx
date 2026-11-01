@@ -1,10 +1,11 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { AlertTriangle, Check, Dices, ExternalLink, FastForward, Flag, Gavel, Keyboard, MonitorPlay, Pause, Play, RotateCcw, Rocket, SkipForward, Trophy, Undo2, Volume2, VolumeX, XCircle } from 'lucide-react'
+import { AlertTriangle, Check, Dices, ExternalLink, FastForward, Flag, Gavel, Keyboard, MonitorPlay, Pause, Play, RotateCcw, Rocket, SkipForward, Ticket, Trophy, Undo2, Volume2, VolumeX, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTournament } from '@/components/tournament-context'
 import { useUpgrade } from '@/components/upgrade'
@@ -20,7 +21,7 @@ import type { Snapshot } from '@/lib/types'
 import { cn } from '@/lib/cn'
 import { useConfirm } from '@/components/confirm'
 
-type Action = 'random' | 'start' | 'next' | 'sell' | 'unsold' | 'undo' | 'reopen' | 'skip' | 'pause' | 'resume' | 'reauction' | 'finish' | 'reset'
+type Action = 'random' | 'start' | 'next' | 'pick' | 'sell' | 'unsold' | 'undo' | 'reopen' | 'skip' | 'pause' | 'resume' | 'reauction' | 'finish' | 'reset'
 
 export default function ControlRoom() {
   const { t, reload } = useTournament()
@@ -60,8 +61,10 @@ export default function ControlRoom() {
         // If the socket is down, pull the state directly so the room never looks stale.
         if (conn !== 'live') setState(await api<Snapshot>(`/tournaments/${t.id}/auction`))
         if (['start', 'pause', 'resume', 'finish', 'reset'].includes(action)) void reload()
+        return true
       } catch (e) {
         toast.error((e as Error).message)
+        return false
       } finally {
         setBusy(null)
       }
@@ -93,11 +96,14 @@ export default function ControlRoom() {
   const running = snap?.tournament.status === 'LIVE'
   const paused = snap?.tournament.status === 'PAUSED'
   const leader = snap?.teams.find((x) => x.id === cur?.leadingTeamId)
+  const chitMode = snap?.tournament.playerOrder === 'CHIT'
+  const chits = snap?.chits ?? []
+  const pick = (serial: number) => run('pick', { serial })
 
   // Auto-advance to the next player after the SOLD/UNSOLD moment.
   useEffect(() => {
     if (autoTimer.current) clearTimeout(autoTimer.current)
-    if (autoNext && running && done && (snap?.counts.queue ?? 0) > 0) {
+    if (autoNext && !chitMode && running && done && (snap?.counts.queue ?? 0) > 0) {
       autoTimer.current = setTimeout(() => void run('next'), 3500)
     }
     return () => {
@@ -120,7 +126,7 @@ export default function ControlRoom() {
       } else if (k === 's' && live && leader) void run('sell')
       else if (k === 'u' && live) void run('unsold')
       else if (k === 'z' && live && cur?.bids.length) void run('undo')
-      else if (k === 'n' && running && !live) void run('next')
+      else if (k === 'n' && running && !live && !chitMode) void run('next')
       else if (k === 'k' && live) void run('skip')
       else if (k === 'p') void run(paused ? 'resume' : 'pause')
       else if (k === '?') setHelp((h) => !h)
@@ -153,7 +159,7 @@ export default function ControlRoom() {
             <Rocket className="h-8 w-8" />
           </motion.div>
           <h2 className="mt-6 font-display text-4xl font-extrabold">Ready to go live?</h2>
-          <p className="mx-auto mt-2 max-w-md text-ink-300">Players come up {t.playerOrder === 'SEQUENTIAL' ? 'in list order' : t.playerOrder === 'CATEGORY_RANDOM' ? 'randomly within each category' : 'in a secure random order'}. Everyone with the live link sees every bid instantly.</p>
+          <p className="mx-auto mt-2 max-w-md text-ink-300">{t.playerOrder === 'CHIT' ? 'Chit mode: draw a chit from the bowl and type its number to bring that player up.' : `Players come up ${t.playerOrder === 'SEQUENTIAL' ? 'in list order' : t.playerOrder === 'CATEGORY_RANDOM' ? 'randomly within each category' : 'in a secure random order'}.`} Everyone with the live link sees every bid instantly.</p>
           <ul className="mx-auto mt-8 max-w-sm space-y-2 text-left">
             {checks.map((c) => (
               <li key={c.label} className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3 text-sm">
@@ -230,7 +236,7 @@ export default function ControlRoom() {
     <div className="screen-perf space-y-6">
       <div className="flex flex-wrap items-center gap-3">
         <ConnIndicator conn={conn} viewers={viewers} />
-        <span className="text-sm text-ink-400">Round {snap.round} · {snap.counts.queue} in queue · {snap.counts.sold} sold · {snap.counts.unsold} unsold</span>
+        <span className="text-sm text-ink-400">Round {snap.round} · {chitMode ? `${chits.length} chits left` : `${snap.counts.queue} in queue`} · {snap.counts.sold} sold · {snap.counts.unsold} unsold</span>
         <div className="ml-auto flex flex-wrap items-center gap-2">
           <a href={liveUrl} target="_blank" rel="noopener" className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-white/10 px-3 text-xs font-semibold hover:bg-white/5"><MonitorPlay className="h-3.5 w-3.5" /> Big screen</a>
           <Button size="sm" variant={paused ? 'primary' : 'secondary'} loading={busy === 'pause' || busy === 'resume'} onClick={() => run(paused ? 'resume' : 'pause')}>
@@ -265,8 +271,9 @@ export default function ControlRoom() {
         <div className="space-y-6">
           {cur ? (
             <>
-              <div className="grid gap-4 lg:grid-cols-2">
-                <Card className="relative overflow-hidden p-5">
+              {/* Fixed row height so the cards stay the same size for every player, short name or long. */}
+              <div className="grid gap-4 lg:min-h-[240px] lg:grid-cols-2">
+                <Card className="relative flex items-center overflow-hidden p-5 [&>div:last-child]:w-full">
                   <RoleAura role={cur.player.role} />
                   <AnimatePresence mode="wait">
                     <PlayerSpotlight key={cur.player.id} player={cur.player} basePrice={cur.basePrice} currency={currency} size="md" />
@@ -328,6 +335,15 @@ export default function ControlRoom() {
                     <Button size="lg" variant="secondary" disabled={!cur.bids.length || !running} loading={busy === 'undo'} onClick={() => run('undo')}><Undo2 className="h-5 w-5" /> Undo bid</Button>
                     <Button size="lg" variant="ghost" disabled={!running} loading={busy === 'skip'} onClick={() => run('skip')}><SkipForward className="h-5 w-5" /> Skip</Button>
                   </>
+                ) : chitMode ? (
+                  <>
+                    {chits.length > 0 ? (
+                      <ChitPicker chits={chits} disabled={!running} busy={busy === 'pick'} onPick={pick} className="min-w-0 flex-1" />
+                    ) : (
+                      <Button size="lg" disabled={!running} loading={busy === 'next'} onClick={() => run('next')} className="min-w-48 flex-1 sm:flex-none"><Flag className="h-5 w-5" /> End round</Button>
+                    )}
+                    <Button size="lg" variant="secondary" disabled={!running} loading={busy === 'reopen'} onClick={() => run('reopen')}><RotateCcw className="h-5 w-5" /> Reopen bidding</Button>
+                  </>
                 ) : (
                   <>
                     <Button size="lg" disabled={!running} loading={busy === 'next'} onClick={() => run('next')} className="min-w-48 flex-1 sm:flex-none"><FastForward className="h-5 w-5" /> Next player</Button>
@@ -335,6 +351,7 @@ export default function ControlRoom() {
                   </>
                 )}
               </div>
+              {!chitMode && (
               <Card className="p-4">
                 <Switch
                   checked={autoNext}
@@ -348,6 +365,7 @@ export default function ControlRoom() {
                   description="Bring up the next player 3.5s after each hammer."
                 />
               </Card>
+              )}
               {/* Below the bid buttons so the auctioneer never scrolls past purses to bid. */}
               <Card className="p-3">
                 <h3 className="mb-2 flex items-center justify-between gap-2 px-1 text-xs font-semibold uppercase tracking-[0.2em] text-ink-400">
@@ -356,6 +374,13 @@ export default function ControlRoom() {
                 <PurseBoard snap={snap} highlightId={cur?.leadingTeamId} teamHref={(id) => `/t/${t.id}/teams/${id}`} />
               </Card>
             </>
+          ) : chitMode && chits.length > 0 ? (
+            <Card className="p-8 text-center sm:p-12">
+              <Image src="/modes/chit.png" alt="" width={640} height={400} className="mx-auto w-full max-w-sm rounded-3xl" />
+              <h2 className="mt-6 font-display text-3xl font-extrabold">Draw a chit</h2>
+              <p className="mx-auto mt-2 max-w-md text-ink-300">Pull a chit from the bowl and type the number on it — that player comes up on every screen.</p>
+              <ChitPicker chits={chits} disabled={!running} busy={busy === 'pick'} onPick={pick} autoFocus className="mx-auto mt-8 max-w-md" />
+            </Card>
           ) : (
             <RoundEnd snap={snap} busy={busy} run={run} />
           )}
@@ -396,6 +421,41 @@ export default function ControlRoom() {
       <RoleIntro snap={snap} sound={sound} compact />
       <HammerOverlay snap={snap} duration={1800} />
     </div>
+  )
+}
+
+/** Chit mode: type the number on the drawn chit to bring that player up. Shows the numbers still in the bowl. */
+function ChitPicker({ chits, disabled, busy, onPick, autoFocus, className }: { chits: number[]; disabled: boolean; busy: boolean; onPick: (serial: number) => Promise<boolean>; autoFocus?: boolean; className?: string }) {
+  const [value, setValue] = useState('')
+  const serial = Number(value)
+  const valid = Number.isInteger(serial) && serial > 0
+  const inBowl = valid && chits.includes(serial)
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!valid || disabled || busy) return
+    if (await onPick(serial)) setValue('')
+  }
+  return (
+    <form onSubmit={submit} className={cn('space-y-2', className)}>
+      <div className="flex gap-2">
+        <Input
+          type="number"
+          inputMode="numeric"
+          min={1}
+          autoFocus={autoFocus}
+          placeholder="Chit number, e.g. 12"
+          aria-label="Number on the drawn chit"
+          className="h-12 flex-1 text-lg font-semibold tabular"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          disabled={disabled}
+        />
+        <Button type="submit" size="lg" variant="gold" disabled={!valid || disabled} loading={busy} className="shrink-0"><Ticket className="h-5 w-5" /> Bring up</Button>
+      </div>
+      <p className={cn('text-left text-xs', valid && !inBowl ? 'text-rose-hot' : 'text-ink-400')}>
+        {valid && !inBowl ? `#${serial} isn’t in the bowl — it may be sold, unsold this round or not a player number.` : `${chits.length} chit${chits.length === 1 ? '' : 's'} left: ${chits.slice(0, 24).map((n) => `#${n}`).join(' ')}${chits.length > 24 ? ' …' : ''}`}
+      </p>
+    </form>
   )
 }
 

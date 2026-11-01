@@ -15,6 +15,12 @@ class BidDto {
   amount?: number
 }
 
+class PickDto {
+  /** The number written on the drawn chit — the player's serial. */
+  @IsInt() @Min(1)
+  serial: number
+}
+
 /** Organiser control room. Every action broadcasts a fresh snapshot to all viewers. */
 @Controller('tournaments/:id/auction')
 @UseGuards(JwtAuthGuard)
@@ -46,6 +52,11 @@ export class AuctionController {
   @Post('next') @HttpCode(200)
   next(@CurrentUser() u: AuthUser, @Param('id') id: string) {
     return this.auction.next(id, u.id)
+  }
+
+  @Post('pick') @HttpCode(200)
+  pick(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() dto: PickDto) {
+    return this.auction.pick(id, u.id, dto.serial)
   }
 
   @Post('bid') @HttpCode(200)

@@ -35,7 +35,8 @@ class HealthController {
 
 @Module({
   imports: [
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 300 }]),
+    // THROTTLE_DISABLED=true is for load-test staging only: load generators share a few IPs and would just measure 429s.
+    ThrottlerModule.forRoot({ throttlers: [{ ttl: 60_000, limit: 300 }], skipIf: () => process.env.THROTTLE_DISABLED === 'true' }),
     ServeStaticModule.forRoot({ rootPath: UPLOAD_DIR, serveRoot: '/uploads', serveStaticOptions: { maxAge: '30d', index: false } }),
     PrismaModule,
     MailModule,
