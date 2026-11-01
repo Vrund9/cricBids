@@ -10,7 +10,7 @@ import { SnapshotService, PUBLIC_PLAYER_SELECT } from '../auction/snapshot.servi
 import { AuctionService } from '../auction/auction.service'
 import { PlayersService } from '../tournaments/players.service'
 import { fieldsFor, parseSubmission } from '../common/registration'
-import { imageUpload, publicUrl } from '../uploads/uploads'
+import { imageUpload, storeUpload } from '../uploads/uploads'
 import { planInfo, PLAN_OWNER_SELECT, publicTheme } from '../common/plans'
 
 class RemoteBidDto {
@@ -132,7 +132,7 @@ export class PublicController {
   async registerPhoto(@Param('token') token: string, @UploadedFile() file: Express.Multer.File) {
     const t = await this.byRegToken(token)
     if (!t.registrationOpen) throw new ForbiddenException('Registrations are closed for this tournament')
-    return publicUrl(file)
+    return storeUpload(file)
   }
 
   // ── Team owner remote paddle ──
