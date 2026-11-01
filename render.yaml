@@ -1,21 +1,28 @@
-# BidWicket on Render: website (Next.js) + API (NestJS + Socket.IO) + Postgres.
+# BidWicket API on Render (free plan): one service per environment.
+#   bidwicket-api-dev  ← `dev` branch  → used by the Vercel dev site
+#   bidwicket-api-prod ← `prod` branch → api.bidwicket.co.in, used by bidwicket.co.in
 # Apply from https://dashboard.render.com/blueprint/new?repo=https://github.com/Vrund9/cricBids
 #
-# The URLs below assume Render gives the services the names used here
-# (bidwicket-web.onrender.com / bidwicket-api.onrender.com). If a name is taken and Render
-# adds a suffix, update NEXT_PUBLIC_API_URL / NEXT_PUBLIC_SITE_URL / WEB_ORIGIN / API_PUBLIC_URL
-# in the Dashboard and redeploy (the NEXT_PUBLIC_ values are baked into the website build).
+# Nothing is stored on Render, so the API can move hosts (Railway, a paid plan) without a data migration:
+#   - Postgres lives on Neon (one database per environment). Use the DIRECT (non-pooled) connection string.
+#   - Uploaded photos live on Cloudinary (one folder per environment).
+#
+# Free-plan notes:
+#   - Free services sleep after ~15 idle minutes; point an uptime monitor at /health every 10 minutes
+#     for prod. Switch prod to `plan: starter` before real auction nights.
+#   - Free services have no pre-deploy step, so migrations run at the end of the build.
+#   - Secrets marked `sync: false` are entered in the Render Dashboard when the Blueprint is applied.
+#     Copy JWT_SECRET when moving hosts, or everyone is signed out.
 
 services:
-  # ───────────── API ─────────────
+  # ───────────── API · dev ─────────────
   - type: web
-    name: bidwicket-api
+    name: bidwicket-api-dev
     runtime: node
     region: singapore
-    # Starter, not free: uploaded photos need a persistent disk, and migrations run as a pre-deploy step.
-    plan: starter
-    buildCommand: npm ci --include=dev && npm run build -w backend
-    preDeployCommand: npm run prisma:deploy -w backend
+    plan: free
+    branch: dev
+    buildCommand: npm ci --include=dev && npm run build -w backend && npm run prisma:deploy -w backend
     startCommand: npm run start -w backend
     healthCheckPath: /health
     autoDeploy: true
@@ -24,33 +31,27 @@ services:
         - backend/**
         - package.json
         - package-lock.json
-    disk:
-      name: uploads
-      # process.cwd() is backend/ under `npm run start -w backend`, so uploads land here.
-      mountPath: /opt/render/project/src/backend/uploads
-      sizeGB: 1
     envVars:
       - key: NODE_VERSION
         value: "22"
       - key: NODE_ENV
         value: production
-      - key: DATABASE_URL
-        fromDatabase:
-          name: bidwicket-db
-          property: connectionString
+      - key: DATABASE_URL # Neon dev database
+        sync: false
+      - key: CLOUDINARY_URL
+        sync: false
+      - key: CLOUDINARY_FOLDER
+        value: bidwicket-dev
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRES_IN
         value: 7d
-      - key: WEB_ORIGIN
-        value: https://bidwicket-web.onrender.com
+      - key: WEB_ORIGIN # the Vercel dev site; comma-separate to add more
+        value: https://bidwicket-app.vercel.app
       - key: API_PUBLIC_URL
-        value: https://bidwicket-api.onrender.com
-      # No payment gateway is wired yet: "demo" activates purchases without charging.
-      # Switch to "disabled" (or change it in Admin → Settings) to stop free activations.
+        value: https://bidwicket-api-dev.onrender.com
       - key: BILLING_MODE
         value: demo
-      # Comma-separated emails that get the admin panel.
       - key: ADMIN_EMAILS
         sync: false
       - key: GOOGLE_CLIENT_ID
@@ -64,20 +65,24 @@ services:
       - key: SMTP_PASS
         sync: false
       - key: MAIL_FROM
-        value: BidWicket <no-reply@bidwicket.app>
+        value: BidWicket Dev <no-reply@bidwicket.co.in>
 
-  # ───────────── Website ─────────────
+  # ───────────── API · prod ─────────────
   - type: web
-    name: bidwicket-web
+    name: bidwicket-api-prod
     runtime: node
     region: singapore
     plan: free
-    buildCommand: npm ci --include=dev && npm run build -w frontend
-    startCommand: npm run start -w frontend
+    branch: prod
+    buildCommand: npm ci --include=dev && npm run build -w backend && npm run prisma:deploy -w backend
+    startCommand: npm run start -w backend
+    healthCheckPath: /health
     autoDeploy: true
+    domains:
+      - api.bidwicket.co.in
     buildFilter:
       paths:
-        - frontend/**
+        - backend/**
         - package.json
         - package-lock.json
     envVars:
@@ -85,21 +90,35 @@ services:
         value: "22"
       - key: NODE_ENV
         value: production
-      - key: NEXT_PUBLIC_API_URL
-        value: https://bidwicket-api.onrender.com
-      - key: NEXT_PUBLIC_SITE_URL
-        value: https://bidwicket-web.onrender.com
-      - key: NEXT_PUBLIC_GOOGLE_CLIENT_ID
+      - key: DATABASE_URL # Neon prod database
         sync: false
-      # Only so the shared `npm ci` (which runs `prisma generate` for the API workspace) can resolve it.
-      - key: DATABASE_URL
-        fromDatabase:
-          name: bidwicket-db
-          property: connectionString
-
-databases:
-  - name: bidwicket-db
-    databaseName: bidwicket
-    region: singapore
-    # Paid: free Render Postgres is deleted after 30 days.
-    plan: basic-256mb
+      - key: CLOUDINARY_URL
+        sync: false
+      - key: CLOUDINARY_FOLDER
+        value: bidwicket-prod
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: WEB_ORIGIN
+        value: https://bidwicket.co.in,https://www.bidwicket.co.in
+      - key: API_PUBLIC_URL
+        value: https://api.bidwicket.co.in
+      # No payment gateway is wired yet: "demo" activates purchases without charging.
+      # Switch to "disabled" (or change it in Admin → Settings) to stop free activations.
+      - key: BILLING_MODE
+        value: demo
+      - key: ADMIN_EMAILS
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
+        value: BidWicket <no-reply@bidwicket.co.in>

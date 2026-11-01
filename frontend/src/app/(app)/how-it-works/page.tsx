@@ -236,7 +236,7 @@ function PlayersVisual() {
           {tag && <span className={cn('rounded-full px-1.5 text-[9px] font-bold uppercase', tag === 'check' ? 'bg-gold/15 text-gold' : 'bg-lime-glow/10 text-lime-glow')}>{tag}</span>}
         </div>
       ))}
-      <div className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-ink-300"><Link2 className="h-3.5 w-3.5 text-sky-live" /> bidwicket.app/register/… <span className="ml-auto text-sky-live">Share</span></div>
+      <div className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-ink-300"><Link2 className="h-3.5 w-3.5 text-sky-live" /> bidwicket.co.in/register/… <span className="ml-auto text-sky-live">Share</span></div>
     </div>
   )
 }
