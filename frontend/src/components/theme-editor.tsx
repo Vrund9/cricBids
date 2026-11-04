@@ -215,7 +215,7 @@ export function ThemeEditor() {
           <div className="overflow-hidden rounded-3xl border border-[var(--border-strong)] shadow-2xl">
             <div className="flex items-center gap-1.5 border-b border-[var(--border-strong)] bg-ink-700 px-4 py-2.5">
               {['#ff5f57', '#febc2e', '#28c840'].map((c) => <span key={c} className="h-2.5 w-2.5 rounded-full" style={{ background: c }} />)}
-              <span className="ml-3 truncate rounded-md bg-ink-850 px-2 py-0.5 font-mono text-[10px] text-ink-300 ring-1 ring-[var(--border)]">bidwicket.app/{screen === 'live' ? 'live' : screen === 'register' ? 'register' : 'bid'}/…</span>
+              <span className="ml-3 truncate rounded-md bg-ink-850 px-2 py-0.5 font-mono text-[10px] text-ink-300 ring-1 ring-[var(--border)]">bidwicket.co.in/{screen === 'live' ? 'live' : screen === 'register' ? 'register' : 'bid'}/…</span>
             </div>
             <motion.div key={`${screen}${theme.preset}${theme.accent}${theme.background}${theme.backgroundImage}`} initial={{ opacity: 0.5 }} animate={{ opacity: 1 }} className="min-h-[440px] p-5" style={themeStyle(theme)}>
               {screen === 'live' && <LivePreview name={t.name} currency={t.currency} />}

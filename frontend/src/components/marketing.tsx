@@ -86,7 +86,7 @@ export function HeroAuctionDemo() {
           <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
           <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
           <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
-          <span className="ml-3 truncate rounded-md border border-white/10 bg-ink-950/60 px-2.5 py-0.5 font-mono text-[11px] text-ink-300">bidwicket.app/live/premier-league</span>
+          <span className="ml-3 truncate rounded-md border border-white/10 bg-ink-950/60 px-2.5 py-0.5 font-mono text-[11px] text-ink-300">bidwicket.co.in/live/premier-league</span>
         </div>
 
         <div className="screen-perf relative" style={themeStyle({ preset: 'royal' })}>
