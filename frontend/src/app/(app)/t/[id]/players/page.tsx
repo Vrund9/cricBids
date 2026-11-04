@@ -209,17 +209,18 @@ export default function PlayersPage() {
           </AnimatePresence>
 
           <div className="scroll-thin overflow-x-auto">
-            <table className="w-full min-w-[760px] text-sm">
+            <table className="w-full text-sm md:min-w-[760px]">
               <thead className="text-left text-xs text-ink-400">
                 <tr className="border-b border-white/5">
                   <th className={cn('px-4 py-3', readOnly ? 'w-2 px-1' : 'w-10')}>
                     {!readOnly && <input type="checkbox" className="accent-lime-glow" checked={allSelected} onChange={() => setSelected(allSelected ? new Set() : new Set(filtered.map((p) => p.id)))} aria-label="Select all" />}
                   </th>
                   <th className="px-2 py-3 font-medium">Player</th>
-                  <th className="px-2 py-3 font-medium">Role</th>
-                  {t.useCategories && <th className="px-2 py-3 font-medium">Category</th>}
-                  <th className="px-2 py-3 font-medium">Mobile</th>
-                  <th className="px-2 py-3 font-medium">Status</th>
+                  {/* Phones fold role and status under the name, so these columns are tablet-up only. */}
+                  <th className="hidden px-2 py-3 font-medium md:table-cell">Role</th>
+                  {t.useCategories && <th className="hidden px-2 py-3 font-medium md:table-cell">Category</th>}
+                  <th className="hidden px-2 py-3 font-medium md:table-cell">Mobile</th>
+                  <th className="hidden px-2 py-3 font-medium md:table-cell">Status</th>
                   <th className="px-2 py-3 font-medium" />
                 </tr>
               </thead>
@@ -227,37 +228,42 @@ export default function PlayersPage() {
                 {filtered.map((p) => {
                   const rm = roleMeta(p.role)
                   const team = p.soldTeamId ? t.teams.find((x) => x.id === p.soldTeamId) : null
+                  const status = !p.approved ? (
+                    <Badge color="#ffb020">pending</Badge>
+                  ) : p.status === 'SOLD' ? (
+                    <span className="text-xs"><b className="text-gold">{money(p.soldPrice, t.currency)}</b> <span className="text-ink-400">· {team?.shortName}{p.retained ? ' · retained' : ''}</span></span>
+                  ) : (
+                    <StatusBadge status={p.status} />
+                  )
                   return (
                     <tr key={p.id} className={cn('transition hover:bg-white/[0.02]', selected.has(p.id) && 'bg-lime-glow/[0.03]')}>
                       <td className={cn('py-2.5', readOnly ? 'px-1' : 'px-4')}>
                         {!readOnly && <input type="checkbox" className="accent-lime-glow" checked={selected.has(p.id)} onChange={() => toggle(p.id)} aria-label={`Select ${p.name}`} />}
                       </td>
-                      <td className="px-2 py-2.5">
+                      {/* max-w-0 + w-full lets the name truncate on phones instead of widening the table. */}
+                      <td className="w-full max-w-0 px-2 py-2.5 md:w-auto md:max-w-none">
                         <div className="flex items-center gap-3">
                           <Avatar src={p.photoUrl} name={p.name} size={36} />
                           <div className="min-w-0">
                             <p className="truncate font-medium">{p.name}</p>
-                            <p className="text-xs text-ink-400">#{p.serial}{p.city ? ` · ${p.city}` : ''}{p.source === 'FORM' ? ' · via form' : ''}</p>
+                            <p className="truncate text-xs text-ink-400">#{p.serial}{p.city ? ` · ${p.city}` : ''}{p.source === 'FORM' ? ' · via form' : ''}</p>
+                            <div className="mt-1 flex flex-wrap items-center gap-1.5 md:hidden">
+                              <Badge color={rm.color}>{rm.short}</Badge>
+                              {t.useCategories && p.category && <Badge color="#ffb020">{p.category}</Badge>}
+                              {status}
+                            </div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-2 py-2.5"><Badge color={rm.color}>{rm.short}</Badge></td>
-                      {t.useCategories && <td className="px-2 py-2.5">{p.category ? <Badge color="#ffb020">{p.category}</Badge> : <span className="text-ink-400">—</span>}</td>}
-                      <td className="px-2 py-2.5 text-ink-300">{p.phone || '—'}</td>
-                      <td className="px-2 py-2.5">
-                        {!p.approved ? (
-                          <Badge color="#ffb020">pending</Badge>
-                        ) : p.status === 'SOLD' ? (
-                          <span className="text-xs"><b className="text-gold">{money(p.soldPrice, t.currency)}</b> <span className="text-ink-400">· {team?.shortName}{p.retained ? ' · retained' : ''}</span></span>
-                        ) : (
-                          <StatusBadge status={p.status} />
-                        )}
-                      </td>
+                      <td className="hidden px-2 py-2.5 md:table-cell"><Badge color={rm.color}>{rm.short}</Badge></td>
+                      {t.useCategories && <td className="hidden px-2 py-2.5 md:table-cell">{p.category ? <Badge color="#ffb020">{p.category}</Badge> : <span className="text-ink-400">—</span>}</td>}
+                      <td className="hidden px-2 py-2.5 text-ink-300 md:table-cell">{p.phone || '—'}</td>
+                      <td className="hidden px-2 py-2.5 md:table-cell">{status}</td>
                       <td className="px-2 py-2.5 text-right">
-                        {!readOnly && <div className="flex justify-end gap-1">
-                          <button className="rounded-lg p-2 text-ink-400 hover:bg-white/5 hover:text-white" onClick={() => setEditing(p)} aria-label={`Edit ${p.name}`}><Pencil className="h-4 w-4" /></button>
+                        {!readOnly && <div className="flex justify-end gap-0.5 sm:gap-1">
+                          <button className="rounded-lg p-2.5 sm:p-2 text-ink-400 hover:bg-white/5 hover:text-white" onClick={() => setEditing(p)} aria-label={`Edit ${p.name}`}><Pencil className="h-4 w-4" /></button>
                           {p.status !== 'SOLD' && p.status !== 'LIVE' && (
-                            <button className="rounded-lg p-2 text-ink-400 hover:bg-rose-hot/10 hover:text-rose-hot" onClick={() => remove(p)} aria-label={`Remove ${p.name}`}><Trash2 className="h-4 w-4" /></button>
+                            <button className="rounded-lg p-2.5 text-ink-400 hover:bg-rose-hot/10 sm:p-2 hover:text-rose-hot" onClick={() => remove(p)} aria-label={`Remove ${p.name}`}><Trash2 className="h-4 w-4" /></button>
                           )}
                         </div>}
                       </td>

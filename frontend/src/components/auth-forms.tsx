@@ -10,6 +10,7 @@ import { Logo } from './brand'
 import { ThemeToggle } from './theme-toggle'
 import { Button, Field, Input } from './ui'
 import { api } from '@/lib/api'
+import { track } from '@/lib/analytics'
 import { useAuth } from '@/lib/auth'
 import type { User } from '@/lib/types'
 
@@ -91,6 +92,7 @@ function GoogleButton() {
       setError(null)
       try {
         onSuccess(await api('/auth/google', { body: { accessToken }, auth: false }))
+        track('login', { method: 'google' })
       } catch (err) {
         setError((err as Error).message)
         setLoading(false)
@@ -174,6 +176,7 @@ function LoginInner() {
     setError(null)
     try {
       onSuccess(await api('/auth/login', { body: { email, password }, auth: false }))
+      track('login', { method: 'email' })
     } catch (err) {
       setError((err as Error).message)
     } finally {
@@ -215,6 +218,7 @@ function SignupInner() {
     setError(null)
     try {
       onSuccess(await api('/auth/signup', { body: form, auth: false }))
+      track('sign_up', { method: 'email' })
       toast.success('Account created — let’s set up your first auction')
     } catch (err) {
       setError((err as Error).message)

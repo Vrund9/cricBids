@@ -141,6 +141,10 @@
 
   * { border-color: var(--border); }
 
+  /* Grid items default to min-width:auto, so one long unbreakable string (a share link, a URL) widens
+     the whole column past a phone screen. Letting them shrink keeps truncation working instead. */
+  .grid > * { min-width: 0; }
+
   ::selection { background: color-mix(in oklab, var(--color-lime-glow) 35%, transparent); color: var(--fg); }
 
   :focus-visible {
