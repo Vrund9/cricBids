@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Bricolage_Grotesque, Geist, Geist_Mono } from 'next/font/google'
 import { SITE_URL } from '@/lib/api'
+import { Analytics } from '@/components/analytics'
 import { Providers } from './providers'
 import './globals.css'
 
@@ -53,6 +54,8 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1, 'max-video-preview': -1 },
   },
   category: 'sports',
+  // Google Search Console ownership check (Settings → Ownership verification → HTML tag → content value).
+  ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION && { verification: { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION } }),
   formatDetection: { telephone: false },
 }
 
@@ -76,6 +79,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body suppressHydrationWarning>
         <Providers>{children}</Providers>
+        <Analytics />
       </body>
     </html>
   )
