@@ -143,7 +143,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
                     </tr>
                   ))}
                 </tbody>
-                <tfoot><tr><td colSpan={4}>Total</td><td className="num strong">{money(spent, cur)}</td></tr></tfoot>
+                <tfoot><tr><td colSpan={3}>Total</td><td /><td className="num strong">{money(spent, cur)}</td></tr></tfoot>
               </table>
             ) : (
               <p className="msg">No players bought.</p>
@@ -231,6 +231,24 @@ function Shell({ children }: { children: React.ReactNode }) {
         .rpt .chips span { border: 1px solid var(--line); border-radius: 99px; padding: 3px 10px; font-size: 12px; }
         .rpt .msg { max-width: 794px; margin: 40px auto; text-align: center; color: var(--mute); }
         .rpt .foot { max-width: 794px; margin: 0 auto; text-align: center; font-size: 11px; color: var(--mute); }
+        /* Phones: the A4 sheet keeps its content but drops the least useful columns to fit the screen. */
+        @media screen and (max-width: 640px) {
+          .rpt { padding: 12px 8px 32px; }
+          .rpt .toolbar { padding: 0 4px; }
+          .rpt .page { padding: 22px 14px; border-radius: 12px; }
+          .rpt .hero { gap: 14px; }
+          .rpt .logo { width: 60px; height: 60px; border-radius: 14px; }
+          .rpt h1 { font-size: 26px; }
+          .rpt .stats { grid-template-columns: repeat(2, 1fr); }
+          .rpt .top { grid-template-columns: repeat(3, 1fr); }
+          .rpt .teamhead { padding: 14px; }
+          .rpt .teamhead h2 { font-size: 21px; }
+          .rpt .tlogo { width: 48px; height: 48px; }
+          .rpt .tbl { font-size: 12px; }
+          .rpt .tbl th, .rpt .tbl td { padding: 7px 5px; }
+          .rpt .tbl:not(.squad) tr > :nth-child(2), .rpt .tbl.squad :is(thead, tbody) tr > :nth-child(4), .rpt .tbl.squad tfoot td:nth-child(2) { display: none; }
+          .rpt .pl { gap: 8px; }
+        }
         @media print {
           html, body { background: #fff !important; }
           .rpt { padding: 0; }

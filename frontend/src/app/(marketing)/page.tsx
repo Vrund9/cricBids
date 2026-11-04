@@ -72,7 +72,13 @@ const jsonLd = [
     '@type': 'Organization',
     name: 'BidWicket',
     url: SITE_URL,
-    logo: `${SITE_URL}/icon.svg`,
+    logo: `${SITE_URL}/logo.png`,
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'BidWicket',
+    url: SITE_URL,
   },
 ]
 

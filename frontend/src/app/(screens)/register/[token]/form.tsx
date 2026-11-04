@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { LogoMark } from '@/components/brand'
 import { Avatar, Button, Field, Input, Select, Textarea } from '@/components/ui'
 import { api, uploadImage } from '@/lib/api'
+import { track } from '@/lib/analytics'
 import type { RegField } from '@/lib/types'
 import type { FormConfig } from './page'
 import { cn } from '@/lib/cn'
@@ -50,6 +51,7 @@ export function RegistrationForm({ token, config }: { token: string; config: For
     setSubmitting(true)
     try {
       setDone(await api(`/public/register/${token}`, { body: values, auth: false }))
+      track('player_registered')
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
       toast.error((err as Error).message)

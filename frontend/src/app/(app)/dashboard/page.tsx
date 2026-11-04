@@ -10,6 +10,7 @@ import { Avatar, Button, EmptyState, Field, Input, Modal, PageLoader, Select, St
 import { Tour } from '@/components/tour'
 import { CricketScene } from '@/components/cricket-scene'
 import { api, uploadImage } from '@/lib/api'
+import { track } from '@/lib/analytics'
 import { useAuth } from '@/lib/auth'
 import { CURRENCIES, moneyShort } from '@/lib/format'
 import { CategoryModePicker, type CategoryChoice } from '@/components/categories'
@@ -45,6 +46,7 @@ export default function Dashboard() {
       const t = await api<{ id: string }>('/tournaments', {
         body: { name: form.name, venue: form.venue || undefined, currency: form.currency, auctionDate: new Date(form.auctionDate).toISOString(), logoUrl: form.logoUrl || undefined, mode, ...(mode === 'CHIT' ? { useCategories: false, categoryList: [] } : cats) },
       })
+      track('tournament_created', { mode })
       router.push(`/t/${t.id}`)
     } catch (err) {
       toast.error((err as Error).message)

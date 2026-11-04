@@ -15,6 +15,7 @@ import { BidDisplay, BidHistory, ConnIndicator, HammerOverlay, PlayerSpotlight, 
 import { RoleAura, RoleIntro, useAuctionAudio } from '@/components/effects'
 import { unlock } from '@/lib/sound'
 import { api, isPlanLimit, SITE_URL } from '@/lib/api'
+import { track } from '@/lib/analytics'
 import { money, moneyShort, ordinal } from '@/lib/format'
 import { useLiveAuction } from '@/lib/live'
 import type { Snapshot } from '@/lib/types'
@@ -61,6 +62,8 @@ export default function ControlRoom() {
         // If the socket is down, pull the state directly so the room never looks stale.
         if (conn !== 'live') setState(await api<Snapshot>(`/tournaments/${t.id}/auction`))
         if (['start', 'pause', 'resume', 'finish', 'reset'].includes(action)) void reload()
+        if (action === 'start') track('auction_started', { teams: t.teams.length })
+        if (action === 'finish') track('auction_finished')
         return true
       } catch (e) {
         toast.error((e as Error).message)
@@ -325,7 +328,8 @@ export default function ControlRoom() {
                 </Card>
               ) : null}
 
-              <div className="flex flex-wrap gap-2">
+              {/* Phones: the hammer controls stay pinned to the bottom of the screen while the organiser scrolls. */}
+              <div className="sticky bottom-0 z-20 -mx-4 flex flex-wrap gap-2 border-t border-white/10 bg-ink-900/90 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl sm:-mx-6 sm:px-6 lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
                 {live ? (
                   <>
                     <Button size="lg" variant="gold" disabled={!leader || !running} loading={busy === 'sell'} onClick={() => run('sell')} className="min-w-48 flex-1 sm:flex-none">
