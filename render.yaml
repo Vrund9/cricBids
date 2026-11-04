@@ -8,8 +8,10 @@
 #   - Uploaded photos live on Cloudinary (one folder per environment).
 #
 # Free-plan notes:
-#   - Free services sleep after ~15 idle minutes; point an uptime monitor at /health every 10 minutes
-#     for prod. Switch prod to `plan: starter` before real auction nights.
+#   - Free services sleep after ~15 idle minutes. .github/workflows/keep-awake.yml pings prod's
+#     /health/live (no database query) every 10 minutes. Only prod is kept awake: the 750 free
+#     instance-hours a month are shared by every free service in the workspace, and one always-on
+#     service uses ~744. Switch prod to `plan: starter` before real auction nights.
 #   - Free services have no pre-deploy step, so migrations run at the end of the build.
 #   - Secrets marked `sync: false` are entered in the Render Dashboard when the Blueprint is applied.
 #     Copy JWT_SECRET when moving hosts, or everyone is signed out.

@@ -1,0 +1,24 @@
+# Keeps the production API on Render's free plan from sleeping (it sleeps after ~15 idle minutes).
+# Pings /health/live, which skips the database so Neon can still suspend when idle.
+# Scheduled workflows run only from the default branch (main), and GitHub can delay them by a few
+# minutes, so an external monitor on the same URL every 5 minutes is the more reliable backup.
+name: Keep API awake
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ping production API
+        # Any HTTP response wakes the service; only fail when the API can't be reached at all.
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 90 --retry 2 https://api.bidwicket.co.in/health/live || true)
+          echo "HTTP $code"
+          [ "$code" != "000" ]
