@@ -31,6 +31,12 @@ class HealthController {
     await this.prisma.$queryRaw`SELECT 1`
     return { ok: true, time: new Date().toISOString() }
   }
+
+  /** Keep-awake ping: answers without touching the database, so Neon can still suspend when idle. */
+  @Get('live')
+  live() {
+    return { ok: true }
+  }
 }
 
 @Module({
