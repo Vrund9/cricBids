@@ -5,12 +5,12 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { AlertTriangle, Check, Dices, ExternalLink, FastForward, Flag, Gavel, Keyboard, MonitorPlay, Pause, Play, RotateCcw, Rocket, SkipForward, Ticket, Trophy, Undo2, Volume2, VolumeX, XCircle } from 'lucide-react'
+import { AlertTriangle, Check, Dices, ExternalLink, FastForward, Flag, Gavel, Keyboard, Pause, Play, RotateCcw, Rocket, SkipForward, Ticket, Trophy, Undo2, Volume2, VolumeX, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTournament } from '@/components/tournament-context'
 import { useUpgrade } from '@/components/upgrade'
 import { Avatar, Button, Card, Input, PageLoader, Switch } from '@/components/ui'
-import { ShareLink } from '@/components/share'
+import { BigScreenLinks, ShareLink } from '@/components/share'
 import { BidDisplay, BidHistory, ConnIndicator, HammerOverlay, PlayerSpotlight, PurseBoard, RecentSales } from '@/components/auction'
 import { RoleAura, RoleIntro, useAuctionAudio } from '@/components/effects'
 import { unlock } from '@/lib/sound'
@@ -212,6 +212,7 @@ export default function ControlRoom() {
           <h3 className="mb-1 font-semibold">Put this on the big screen</h3>
           <p className="mb-4 text-sm text-ink-400">Open it on the projector now — it shows a countdown and switches to the live auction the moment you start.</p>
           <ShareLink url={liveUrl} title={`${snap.tournament.name} live`} message={`🏏 ${snap.tournament.name} player auction — watch live:`} />
+          <BigScreenLinks url={liveUrl} className="mt-3 border-t border-white/5 pt-3" />
         </Card>
       </div>
     )
@@ -241,7 +242,7 @@ export default function ControlRoom() {
         <ConnIndicator conn={conn} viewers={viewers} />
         <span className="text-sm text-ink-400">Round {snap.round} · {chitMode ? `${chits.length} chits left` : `${snap.counts.queue} in queue`} · {snap.counts.sold} sold · {snap.counts.unsold} unsold</span>
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          <a href={liveUrl} target="_blank" rel="noopener" className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-white/10 px-3 text-xs font-semibold hover:bg-white/5"><MonitorPlay className="h-3.5 w-3.5" /> Big screen</a>
+          <BigScreenLinks url={liveUrl} compact />
           <Button size="sm" variant={paused ? 'primary' : 'secondary'} loading={busy === 'pause' || busy === 'resume'} onClick={() => run(paused ? 'resume' : 'pause')}>
             {paused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />} {paused ? 'Resume' : 'Pause'}
           </Button>

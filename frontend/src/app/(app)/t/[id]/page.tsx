@@ -7,7 +7,7 @@ import { ArrowRight, Check, ClipboardList, Crown, FileDown, FileSpreadsheet, Gav
 import { toast } from 'sonner'
 import { useTournament } from '@/components/tournament-context'
 import { Avatar, Button, Card, fadeUp, stagger } from '@/components/ui'
-import { ShareLink } from '@/components/share'
+import { BigScreenLinks, ShareLink } from '@/components/share'
 import { Tour } from '@/components/tour'
 import { CricketScene } from '@/components/cricket-scene'
 import { TournamentDetails } from '@/components/tournament-details'
@@ -101,6 +101,7 @@ function SetupOverview() {
           </div>
           <p className="mb-4 mt-1 text-sm text-ink-400">Projector, TV, team owners, players at home — everyone sees bids in realtime.</p>
           <ShareLink url={liveUrl} title={`${t.name} live`} message={`🏏 Watch the ${t.name} player auction LIVE`} />
+          <BigScreenLinks url={liveUrl} className="mt-3 border-t border-white/5 pt-3" />
         </Card>
         {/* Only while registrations are open; reopening lives on Players → Registration form. */}
         {t.registrationOpen && (

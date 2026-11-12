@@ -1,10 +1,10 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'motion/react'
-import { CalendarDays, Crown, Maximize2, Minimize2, Pause, Trophy, Users, Volume2, VolumeX } from 'lucide-react'
+import { CalendarDays, Crown, Maximize2, Minimize2, MonitorPlay, Pause, Projector, Trophy, Users, Volume2, VolumeX } from 'lucide-react'
 import { LogoMark } from '@/components/brand'
 import { Avatar, Card } from '@/components/ui'
 import { BidDisplay, BidHistory, ConnIndicator, HammerOverlay, LiveDot, PlayerSpotlight, PurseBoard, RecentSales, TeamPurses } from '@/components/auction'
@@ -19,13 +19,53 @@ import { cn } from '@/lib/cn'
 
 type Tab = 'live' | 'teams' | 'squads'
 
-export function LiveView({ token, initial }: { token: string; initial: Snapshot }) {
+/** Projector view lays the screen out on this canvas, then zooms it to fill the display. */
+const CANVAS = { w: 1600, h: 900 }
+
+/**
+ * Zoom for projector view: 1.2× on 1080p, 2.4× on 4K, never below 0.8× so 720p / 4:3 projectors
+ * stay readable (they get a narrower canvas instead). With `fit`, the screen must not scroll, so if
+ * a long name pushes the bid card off the bottom it shrinks just enough instead of clipping.
+ */
+function useStageZoom(on: boolean, fit: boolean, fitKey: string) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [zoom, setZoom] = useState(1)
+  useLayoutEffect(() => {
+    if (!on) {
+      setZoom(1)
+      return
+    }
+    let raf = 0
+    const measure = () => {
+      cancelAnimationFrame(raf)
+      const base = Math.max(0.8, Math.min(window.innerWidth / CANVAS.w, window.innerHeight / CANVAS.h))
+      setZoom(base)
+      if (!fit) return
+      raf = requestAnimationFrame(() => {
+        const el = ref.current
+        if (el && el.scrollHeight > el.clientHeight + 1) setZoom(base * (el.clientHeight / el.scrollHeight))
+      })
+    }
+    measure()
+    void document.fonts?.ready.then(measure)
+    window.addEventListener('resize', measure)
+    return () => {
+      window.removeEventListener('resize', measure)
+      cancelAnimationFrame(raf)
+    }
+  }, [on, fit, fitKey])
+  return { ref, zoom }
+}
+
+export function LiveView({ token, initial, projector: startProjector = false }: { token: string; initial: Snapshot; projector?: boolean }) {
   const { state, conn, viewers, skew } = useLiveAuction({ liveToken: token, initial })
   const snap = state ?? initial
   const [tab, setTab] = useState<Tab>('live')
   const [sound, setSound] = useState(false)
   const [full, setFull] = useState(false)
   const [wide, setWide] = useState(true)
+  const [projector, setProjector] = useState(startProjector)
+  const [idle, setIdle] = useState(false)
   useAuctionAudio(sound, snap, skew)
 
   // Phones get a compact card so the live bid stays above the fold.
@@ -55,16 +95,60 @@ export function LiveView({ token, initial }: { token: string; initial: Snapshot 
       return !s
     })
   }
-  const toggleFull = () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())
+  const toggleFull = useCallback(() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.()), [])
+
+  // Keep ?view=projector in the address bar so a reload (or a copied link) opens the same view.
+  const toggleProjector = () => {
+    const next = !projector
+    setProjector(next)
+    const url = new URL(window.location.href)
+    if (next) url.searchParams.set('view', 'projector')
+    else url.searchParams.delete('view')
+    window.history.replaceState(window.history.state, '', url)
+  }
+
+  // F toggles full screen — the operator is usually across the room from the laptop.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() === 'f' && !e.metaKey && !e.ctrlKey && !e.altKey) toggleFull()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [toggleFull])
+
+  // On a projector, hide the mouse pointer once it stops moving.
+  useEffect(() => {
+    if (!projector) return
+    let timer = setTimeout(() => setIdle(true), 3000)
+    const wake = () => {
+      setIdle(false)
+      clearTimeout(timer)
+      timer = setTimeout(() => setIdle(true), 3000)
+    }
+    window.addEventListener('mousemove', wake)
+    return () => {
+      window.removeEventListener('mousemove', wake)
+      clearTimeout(timer)
+      setIdle(false)
+    }
+  }, [projector])
 
   const t = snap.tournament
   const running = t.status === 'LIVE' || t.status === 'PAUSED'
+  const desk = projector || wide
+  // Results and squads are long lists, so they scroll; everything else has to fit the screen.
+  const fit = projector && tab !== 'squads' && t.status !== 'COMPLETED'
+  const { ref: stageRef, zoom } = useStageZoom(projector, fit, `${t.status}|${snap.current?.player.id ?? ''}|${tab}`)
 
   return (
-    <div className="screen-perf relative min-h-dvh overflow-hidden" style={themeStyle(t.theme)}>
+    <div
+      ref={stageRef}
+      className={cn('screen-perf relative', projector ? cn('flex flex-col', fit ? 'overflow-hidden' : 'overflow-y-auto', idle && 'cursor-none') : 'min-h-dvh overflow-hidden')}
+      style={{ ...themeStyle(t.theme), ...(projector && { zoom, height: `calc(100dvh / ${zoom})` }) }}
+    >
       {(t.theme?.background ?? 'glow') === 'glow' && <div className="grid-bg pointer-events-none absolute inset-0 opacity-50" />}
       <header className="relative z-10 border-b border-white/5 bg-ink-900/70 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-[1600px] items-center gap-3 px-4 sm:px-6">
+        <div className={cn('mx-auto flex h-16 items-center gap-3 px-4 sm:px-6', !projector && 'max-w-[1600px]')}>
           {t.logoUrl ? <Avatar src={t.logoUrl} name={t.name} size={36} rounded="xl" /> : <LogoMark />}
           <div className="min-w-0 flex-1">
             <h1 className="truncate font-display text-lg font-bold sm:text-xl">{t.name}</h1>
@@ -78,11 +162,20 @@ export function LiveView({ token, initial }: { token: string; initial: Snapshot 
           <button onClick={toggleSound} className="rounded-xl p-2 text-ink-300 hover:bg-white/5 hover:text-white" aria-label={sound ? 'Mute sounds' : 'Turn on sounds'}>
             {sound ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
           </button>
-          <button onClick={toggleFull} className="hidden rounded-xl p-2 text-ink-300 hover:bg-white/5 hover:text-white sm:block" aria-label="Toggle full screen">
+          <button
+            onClick={toggleProjector}
+            className={cn('items-center gap-1.5 rounded-xl px-2.5 py-2 text-sm font-semibold hover:bg-white/5', projector ? 'flex text-ink-300 hover:text-white' : 'hidden text-lime-glow sm:flex')}
+            title={projector ? 'Switch to the normal view' : 'Fill a projector or TV — everything scales up to the screen'}
+          >
+            {projector ? <MonitorPlay className="h-5 w-5" /> : <Projector className="h-5 w-5" />}
+            <span className="hidden md:inline">{projector ? 'Normal view' : 'Projector view'}</span>
+          </button>
+          <button onClick={toggleFull} className={cn('items-center gap-1.5 rounded-xl p-2 text-ink-300 hover:bg-white/5 hover:text-white', projector ? 'flex' : 'hidden sm:flex')} aria-label="Toggle full screen" title="Full screen (F)">
             {full ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+            {projector && !full && <span className="text-sm font-semibold">Full screen <kbd className="ml-1 rounded border border-white/15 px-1.5 text-xs">F</kbd></span>}
           </button>
         </div>
-        <div className="flex border-t border-white/5 lg:hidden">
+        <div className={cn('flex border-t border-white/5 lg:hidden', projector && 'hidden')}>
           {(['live', 'teams', 'squads'] as Tab[]).map((x) => (
             <button key={x} onClick={() => setTab(x)} className={cn('relative flex-1 py-2.5 text-sm font-semibold capitalize', tab === x ? 'text-white' : 'text-ink-400')}>
               {x}
@@ -93,7 +186,7 @@ export function LiveView({ token, initial }: { token: string; initial: Snapshot 
       </header>
       <div className="sm:hidden">{conn !== 'live' && <div className="flex justify-center py-2"><ConnIndicator conn={conn} viewers={viewers} /></div>}</div>
 
-      <main className="relative z-10 mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:py-6">
+      <main className={cn('relative z-10', projector ? 'w-full flex-1 px-6 py-5' : 'mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:py-6')}>
         {tab === 'squads' ? (
           <Squads token={token} snap={snap} />
         ) : !running && t.status !== 'COMPLETED' ? (
@@ -103,11 +196,12 @@ export function LiveView({ token, initial }: { token: string; initial: Snapshot 
         ) : (
           <>
           {/* Wide screens: every purse in a couple of rows above the auction, never in a scrolling list. */}
-          <div className="mb-6 hidden lg:block">
-            <PurseBoard snap={snap} highlightId={snap.current?.leadingTeamId} className="grid-cols-[repeat(auto-fill,minmax(150px,1fr))]" />
+          {/* Projector view: same layout at any OS scaling, so no breakpoint can drop it to the phone tabs. */}
+          <div className={projector ? 'mb-5' : 'mb-6 hidden lg:block'}>
+            <PurseBoard snap={snap} highlightId={snap.current?.leadingTeamId} className={projector ? 'grid-cols-[repeat(auto-fit,minmax(170px,1fr))]' : 'grid-cols-[repeat(auto-fill,minmax(150px,1fr))]'} />
           </div>
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.65fr)_minmax(340px,1fr)]">
-            <section className={cn('space-y-6', tab !== 'live' && 'hidden lg:block')}>
+          <div className={cn('grid', projector ? 'grid-cols-[minmax(0,1.65fr)_minmax(340px,1fr)] gap-5' : 'gap-6 lg:grid-cols-[minmax(0,1.65fr)_minmax(340px,1fr)]')}>
+            <section className={cn(projector ? 'space-y-5' : 'space-y-6', !projector && tab !== 'live' && 'hidden lg:block')}>
               {t.status === 'PAUSED' && (
                 <div className="flex items-center gap-3 rounded-2xl border border-gold/30 bg-gold/10 px-5 py-3 text-gold">
                   <Pause className="h-5 w-5" /> The auctioneer has paused bidding. Back shortly.
@@ -115,26 +209,26 @@ export function LiveView({ token, initial }: { token: string; initial: Snapshot 
               )}
               {snap.current ? (
                 <>
-                  <Card className="relative overflow-hidden p-5 sm:p-8">
+                  <Card className={cn('relative overflow-hidden', projector ? 'p-7' : 'p-5 sm:p-8')}>
                     <RoleAura role={snap.current.player.role} />
                     <AnimatePresence mode="wait">
-                      <PlayerSpotlight key={snap.current.player.id} player={snap.current.player} basePrice={snap.current.basePrice} currency={t.currency} size={wide ? 'xl' : 'md'} />
+                      <PlayerSpotlight key={snap.current.player.id} player={snap.current.player} basePrice={snap.current.basePrice} currency={t.currency} size={desk ? 'xl' : 'md'} />
                     </AnimatePresence>
                   </Card>
-                  <BidDisplay snap={snap} skew={skew} size={wide ? 'xl' : 'md'} />
+                  <BidDisplay snap={snap} skew={skew} size={desk ? 'xl' : 'md'} />
                 </>
               ) : (
                 <RoundBreak snap={snap} />
               )}
             </section>
-            <aside className={cn('space-y-6', tab === 'live' && 'hidden lg:block')}>
+            <aside className={cn(projector ? 'space-y-5' : 'space-y-6', !projector && tab === 'live' && 'hidden lg:block')}>
               {snap.current && (
                 <Card className="p-5">
                   <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-ink-400">Bidding</h3>
                   <BidHistory snap={snap} limit={6} />
                 </Card>
               )}
-              <Card className="p-5 lg:hidden">
+              <Card className={cn('p-5', projector ? 'hidden' : 'lg:hidden')}>
                 <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-ink-400">Team purses</h3>
                 <TeamPurses snap={snap} compact highlightId={snap.current?.leadingTeamId} />
               </Card>
@@ -148,10 +242,10 @@ export function LiveView({ token, initial }: { token: string; initial: Snapshot 
         )}
       </main>
 
-      {running && snap.sold.length > 0 && tab !== 'squads' && <SalesTicker snap={snap} />}
-      <RoleIntro snap={snap} sound={sound} compact={!wide} />
+      {running && snap.sold.length > 0 && tab !== 'squads' && <SalesTicker snap={snap} docked={projector} />}
+      <RoleIntro snap={snap} sound={sound} compact={!desk} />
       <HammerOverlay snap={snap} />
-      <footer className="relative z-10 pb-20 pt-4 text-center text-xs text-ink-500">
+      <footer className={cn('relative z-10 pb-20 pt-4 text-center text-xs text-ink-500', projector && 'hidden')}>
         {!t.theme?.hideBranding && (
           <>
             Powered by <Link href="/" className="font-semibold text-ink-300 hover:text-lime-glow">BidWicket</Link>
@@ -162,11 +256,12 @@ export function LiveView({ token, initial }: { token: string; initial: Snapshot 
   )
 }
 
-function SalesTicker({ snap }: { snap: Snapshot }) {
+/** `docked` puts the ticker in the page flow (projector view) instead of floating over the bottom edge. */
+function SalesTicker({ snap, docked }: { snap: Snapshot; docked?: boolean }) {
   const items = snap.sold.slice(0, 12)
   const teams = new Map(snap.teams.map((t) => [t.id, t]))
   return (
-    <div className="fixed inset-x-0 bottom-0 z-20 hidden overflow-hidden border-t border-white/5 bg-ink-950/90 py-2.5 backdrop-blur lg:block">
+    <div className={cn('z-20 overflow-hidden border-t border-white/5 bg-ink-950/90 py-2.5 backdrop-blur', docked ? 'relative shrink-0' : 'fixed inset-x-0 bottom-0 hidden lg:block')}>
       <div className="flex w-max animate-marquee gap-10" style={{ animationDuration: `${Math.max(20, items.length * 6)}s` }}>
         {[...items, ...items].map((p, i) => {
           const tm = teams.get(p.soldTeamId!)
