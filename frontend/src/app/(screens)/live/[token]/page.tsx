@@ -19,7 +19,7 @@ interface Meta {
   topBuy?: { name: string; soldPrice: number } | null
 }
 
-type Props = { params: Promise<{ token: string }> }
+type Props = { params: Promise<{ token: string }>; searchParams: Promise<{ view?: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { token } = await params
@@ -40,9 +40,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-export default async function LivePage({ params }: Props) {
-  const { token } = await params
+export default async function LivePage({ params, searchParams }: Props) {
+  const [{ token }, { view }] = await Promise.all([params, searchParams])
   const initial = await serverGet<Snapshot>(`/public/live/${token}`, 0)
   if (!initial) notFound()
-  return <LiveView token={token} initial={initial} />
+  return <LiveView token={token} initial={initial} projector={view === 'projector'} />
 }

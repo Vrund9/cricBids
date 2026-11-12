@@ -2,7 +2,7 @@
 
 import { useId, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
-import { Check, Copy, Download, ExternalLink, QrCode, Share2 } from 'lucide-react'
+import { Check, Copy, Download, ExternalLink, MonitorPlay, Projector, QrCode, Share2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button, Modal } from './ui'
 import { cn } from '@/lib/cn'
@@ -27,6 +27,24 @@ export function useCopy() {
     setTimeout(() => setCopied(false), 1600)
   }
   return { copied, copy }
+}
+
+/** The live screen zoomed to fill a projector or TV (see LiveView). */
+export const projectorUrl = (liveUrl: string) => `${liveUrl}${liveUrl.includes('?') ? '&' : '?'}view=projector`
+
+/** Open the live screen in its normal layout, or scaled up to fill a projector / TV. */
+export function BigScreenLinks({ url, compact, className }: { url: string; compact?: boolean; className?: string }) {
+  const base = 'inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold'
+  return (
+    <div className={cn('flex flex-wrap gap-2', className)}>
+      <a href={url} target="_blank" rel="noopener" className={cn(base, 'border-white/10 text-ink-200 hover:bg-white/5 hover:text-white')} title="Open the live screen at normal size">
+        <MonitorPlay className="h-3.5 w-3.5" /> {compact ? 'Big screen' : 'Normal view'}
+      </a>
+      <a href={projectorUrl(url)} target="_blank" rel="noopener" className={cn(base, 'border-lime-glow/40 text-lime-glow hover:bg-lime-glow/10')} title="Everything scales up to fill the projector or TV, no scrolling">
+        <Projector className="h-3.5 w-3.5" /> {compact ? 'Projector' : 'Projector view'}
+      </a>
+    </div>
+  )
 }
 
 /** A share link with copy, native share / WhatsApp, open and QR — for venue screens and group chats. */
