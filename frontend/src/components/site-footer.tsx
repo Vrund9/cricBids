@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Logo } from './brand'
+import { CONTACT_EMAIL } from '@/lib/site'
 
 export function SiteFooter() {
   return (
@@ -16,6 +17,9 @@ export function SiteFooter() {
           <a href="/#faq" className="hover:text-white">FAQ</a>
           <Link href="/login" className="hover:text-white">Log in</Link>
           <Link href="/signup" className="hover:text-white">Sign up</Link>
+          <Link href="/about" className="hover:text-white">About us</Link>
+          <Link href="/privacy" className="hover:text-white">Privacy</Link>
+          <a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-white">Contact</a>
         </nav>
         <p>© {new Date().getFullYear()} BidWicket</p>
       </div>
