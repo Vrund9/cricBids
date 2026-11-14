@@ -83,7 +83,7 @@ export default function PrivacyPage() {
             <h3>Usage and technical data</h3>
             <ul>
               <li>
-                Privacy-friendly analytics (Vercel Web Analytics and Speed Insights): which pages are visited, the referring site, rough location (country), device and browser type, and page load speed. It uses no cookies, and we strip private link codes from page addresses before anything is recorded, so a team’s bidding link or a registration link is never stored in analytics.
+                Privacy-friendly analytics: which pages are visited, the referring site, rough location (country), device and browser type, and page load speed. It uses no cookies, and we strip private link codes from page addresses before anything is recorded, so a team’s bidding link or a registration link is never stored in analytics.
               </li>
               <li>Basic product events, such as an account being created, a tournament being created, an auction starting or finishing, and a player registering. These events carry no names or contact details.</li>
               <li>Our hosting providers keep standard server logs (IP address, time, the page or API called, and errors) to keep the service secure and working.</li>
@@ -117,15 +117,15 @@ export default function PrivacyPage() {
           <Section id="providers" n={5} title="Services we rely on">
             <p>We use trusted providers to run BidWicket. They process data only to provide their service to us:</p>
             <ul>
-              <li><b>Vercel</b>: hosts the website, and provides Web Analytics and Speed Insights.</li>
-              <li><b>Render</b>: runs our application server (Singapore region).</li>
-              <li><b>Neon</b>: hosts our PostgreSQL database.</li>
-              <li><b>Cloudinary</b>: stores and resizes uploaded photos and logos.</li>
+              <li><b>Hosting providers</b>: run the website and our application server.</li>
+              <li><b>A database provider</b>: stores account, tournament and player data.</li>
+              <li><b>A media storage provider</b>: stores and resizes uploaded photos and logos.</li>
+              <li><b>An analytics provider</b>: gives us the privacy-friendly usage and page speed figures described above.</li>
               <li><b>Google</b>: provides “Continue with Google” sign-in, if you use it.</li>
               <li><b>An email delivery provider</b>: sends account emails such as password resets.</li>
             </ul>
             <p>
-              Because of this, your data may be stored or processed outside India, including in Singapore and other countries where these providers operate. We may also disclose data if the law requires it, or to protect the rights and safety of our users or BidWicket.
+              Because of this, your data may be stored or processed outside India, in the countries where these providers operate. We may also disclose data if the law requires it, or to protect the rights and safety of our users or BidWicket.
             </p>
           </Section>
 
