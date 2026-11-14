@@ -113,7 +113,7 @@ export function RegistrationForm({ token, config }: { token: string; config: For
                 <FieldInput key={f.key} field={f} value={values[f.key] ?? ''} error={errors[f.key]} onChange={(v) => set(f.key, v)} token={token} uploading={uploading} setUploading={setUploading} />
               ))}
               <Button type="submit" size="lg" className="w-full" loading={submitting} disabled={uploading}>Register</Button>
-              <p className="text-center text-xs text-ink-400">Your mobile number and email are only visible to the organiser — never on the auction screen.</p>
+              <p className="text-center text-xs text-ink-400">Your mobile number and email are only visible to the organiser — never on the auction screen. <a href="/privacy" target="_blank" rel="noopener" className="underline hover:text-white">Privacy Policy</a></p>
             </motion.form>
           )}
         </AnimatePresence>

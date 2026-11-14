@@ -244,6 +244,9 @@ function SignupInner() {
         <Button type="submit" size="lg" className="w-full" loading={loading}>Create account</Button>
       </form>
       <GoogleButton />
+      <p className="mt-4 text-center text-xs text-ink-400">
+        By creating an account you agree to our <Link href="/privacy" className="underline hover:text-white">Privacy Policy</Link>.
+      </p>
     </Shell>
   )
 }
