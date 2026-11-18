@@ -114,5 +114,26 @@ export function themeStyle(theme?: Partial<ThemeConfig> | null): CSSProperties {
     colorScheme: 'dark',
     color: '#ffffff',
     background: themeBackground(theme, p),
+    ...lightScreenVars(theme, p),
   } as CSSProperties
+}
+
+/**
+ * Light-mode values for screens that follow the viewer's light/dark choice (`.screen-adaptive`, the
+ * registration form). globals.css applies them only there and only in light mode; dark mode ignores them.
+ */
+function lightScreenVars(theme: Partial<ThemeConfig> | null | undefined, p: Palette & { accent: string }) {
+  // The default lime is unreadable on white, so it keeps the app's own light-mode green.
+  const lime = p.accent.toLowerCase() === THEMES.floodlight.accent
+  const image = theme?.background === 'image' && theme.backgroundImage
+  return {
+    '--light-accent': lime ? '#4ade80' : p.accent,
+    '--light-accent-text': lime ? '#15913f' : `color-mix(in oklab, ${p.accent} 68%, #000)`,
+    '--light-accent-fill': lime ? 'linear-gradient(135deg, #86efac 0%, #4ade80 50%, #22c55e 100%)' : p.accent,
+    '--light-accent-fill-hover': lime ? 'linear-gradient(135deg, #4ade80 0%, #22c55e 55%, #16a34a 100%)' : `color-mix(in oklab, ${p.accent} 88%, #000)`,
+    '--light-on-accent': lime ? '#052e16' : '#0d1324',
+    '--light-bg': image
+      ? `linear-gradient(#f6f8fbd9, #f6f8fbf0), url("${theme.backgroundImage!.replace(/"/g, '%22')}") center / cover no-repeat fixed, #f6f8fb`
+      : `radial-gradient(1100px 560px at 88% -12%, ${p.accent}24, transparent 62%), radial-gradient(900px 520px at -12% 6%, ${p.second}1a, transparent 60%), #f6f8fb`,
+  }
 }

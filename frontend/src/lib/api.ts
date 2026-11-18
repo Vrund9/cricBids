@@ -81,9 +81,11 @@ function safeJson(text: string) {
 }
 
 export async function uploadImage(file: File, path = '/uploads'): Promise<string> {
-  if (file.size > 5 * 1024 * 1024) throw new ApiError(400, 'Image must be under 5 MB')
+  // Shrink first: most phone photos start above the limit and end up well under it.
+  const image = await downscale(file)
+  if (image.size > 5 * 1024 * 1024) throw new ApiError(400, 'Image must be under 5 MB')
   const form = new FormData()
-  form.append('file', await downscale(file))
+  form.append('file', image)
   const res = await api<{ url: string }>(path, { body: form })
   return res.url
 }

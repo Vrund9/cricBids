@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Reorder, motion, AnimatePresence } from 'motion/react'
 import { ArrowDown, ArrowUp, Download, GripVertical, Lock, Plus, RefreshCw, Save, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -28,6 +29,36 @@ export default function RegistrationPage() {
     setFields(t.registrationFields)
     setDirty(false)
   }, [t.registrationFields])
+
+  // Changes (like ticking "Required") only reach players after Save form, so warn before leaving with
+  // them unsaved: closing or reloading the tab, and following any link inside the app.
+  const router = useRouter()
+  useEffect(() => {
+    if (!dirty) return
+    const onUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    const onClick = async (e: MouseEvent) => {
+      const a = (e.target as Element | null)?.closest?.('a[href]') as HTMLAnchorElement | null
+      if (!a || a.target === '_blank' || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+      const next = new URL(a.href, window.location.href)
+      if (next.origin !== window.location.origin || next.pathname === window.location.pathname) return
+      // Capture phase: stop the link before Next.js navigates, then ask.
+      e.preventDefault()
+      e.stopPropagation()
+      const leave = await confirm({ title: 'Leave without saving?', message: 'Your form changes aren’t saved yet, so players won’t see them.', confirmLabel: 'Leave', danger: true })
+      if (!leave) return
+      setDirty(false)
+      router.push(next.pathname + next.search + next.hash)
+    }
+    window.addEventListener('beforeunload', onUnload)
+    document.addEventListener('click', onClick, true)
+    return () => {
+      window.removeEventListener('beforeunload', onUnload)
+      document.removeEventListener('click', onClick, true)
+    }
+  }, [dirty, confirm, router])
 
   const origin = typeof window !== 'undefined' ? window.location.origin : SITE_URL
   const url = `${origin}/register/${t.registrationToken}`

@@ -68,7 +68,7 @@ export const viewport: Viewport = {
 }
 
 /** Applies the saved theme before paint (no flash). Public screens are always dark. */
-const THEME_SCRIPT = `(function(){try{var d=document.documentElement,t=localStorage.getItem('cricbid.theme');if(/^\\/(live|register|bid)\\//.test(location.pathname))t='dark';d.dataset.theme=t==='light'?'light':'dark';if(t==='light'){var m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content','#f4f6fa')}}catch(e){}})()`
+const THEME_SCRIPT = `(function(){try{var d=document.documentElement,t=localStorage.getItem('cricbid.theme');if(/^\\/(live|bid)\\//.test(location.pathname))t='dark';d.dataset.theme=t==='light'?'light':'dark';if(t==='light'){var m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content','#f4f6fa')}}catch(e){}})()`
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
