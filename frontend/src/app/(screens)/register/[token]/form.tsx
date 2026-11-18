@@ -148,6 +148,8 @@ function FieldInput({ field: f, value, error, onChange, token, uploading, setUpl
             className="hidden"
             onChange={async (e) => {
               const file = e.target.files?.[0]
+              // Clear the picker so choosing the same file again (after an error) still triggers an upload.
+              e.target.value = ''
               if (!file) return
               setUploading(true)
               try {
