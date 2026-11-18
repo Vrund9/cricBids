@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Check, Download, FileSpreadsheet, ImagePlus, Pencil, Plus, Search, Tag, Trash2, UserPlus, X } from 'lucide-react'
 import { toast } from 'sonner'
@@ -56,7 +56,7 @@ export default function PlayersPage() {
   }, [load])
 
   // New self-registrations pop in live while the organiser is on this page.
-  useLiveAuction({
+  const { state: live } = useLiveAuction({
     ownerTournamentId: t.id,
     onRegistration: (p) => {
       toast.success(`${p.name} just registered`, { description: p.role })
@@ -64,6 +64,23 @@ export default function PlayersPage() {
       void reloadT()
     },
   })
+
+  // Changes made on another device (a photo or details edited on a phone, approvals) rebroadcast the
+  // auction state, so reload the list when one arrives. The first state is the one sent on joining, which
+  // the initial load already covers. Bids rebroadcast too, so a burst is collapsed into one reload.
+  const joined = useRef(false)
+  useEffect(() => {
+    if (!live) return
+    if (!joined.current) {
+      joined.current = true
+      return
+    }
+    const timer = setTimeout(() => {
+      void load()
+      void reloadT()
+    }, 600)
+    return () => clearTimeout(timer)
+  }, [live, load, reloadT])
 
   const refresh = () => {
     void load()
