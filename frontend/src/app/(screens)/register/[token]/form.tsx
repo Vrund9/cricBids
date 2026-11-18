@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { CalendarDays, Camera, CheckCircle2, Lock, MapPin, Share2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { LogoMark } from '@/components/brand'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { Avatar, Button, Field, Input, Select, Textarea } from '@/components/ui'
 import { api, uploadImage } from '@/lib/api'
 import { track } from '@/lib/analytics'
@@ -73,7 +74,8 @@ export function RegistrationForm({ token, config }: { token: string; config: For
   }
 
   return (
-    <main className="relative min-h-dvh px-4 py-10" style={themeStyle(config.theme)}>
+    <main className="screen-adaptive relative min-h-dvh px-4 py-10" style={themeStyle(config.theme)}>
+      <ThemeToggle className="absolute right-4 top-4" />
       {(config.theme?.background ?? 'glow') === 'glow' && <div className="grid-bg pointer-events-none absolute inset-0 -z-10" />}
       <div className="mx-auto max-w-xl">
         <motion.header initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="text-center">

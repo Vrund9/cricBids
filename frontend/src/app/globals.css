@@ -114,6 +114,48 @@
     --avatar-bg: linear-gradient(135deg, #e4eaf3, #d3dbe8);
     --avatar-fg: #34405e;
   }
+  /* The registration form follows the viewer's light/dark choice. Its inline theme style (themeStyle)
+     pins the dark tokens, so in light mode they inherit the light values again (!important beats inline
+     styles) and the accent comes from the --light-* values themeStyle provides. */
+  :root[data-theme='light'] .screen-adaptive {
+    --color-ink-950: inherit !important;
+    --color-ink-900: inherit !important;
+    --color-ink-850: inherit !important;
+    --color-ink-800: inherit !important;
+    --color-ink-700: inherit !important;
+    --color-ink-600: inherit !important;
+    --color-ink-500: inherit !important;
+    --color-ink-400: inherit !important;
+    --color-ink-300: inherit !important;
+    --color-ink-200: inherit !important;
+    --color-ink-100: inherit !important;
+    --color-white: inherit !important;
+    --color-gold: inherit !important;
+    --color-gold-bright: inherit !important;
+    --color-sky-live: inherit !important;
+    --color-rose-hot: inherit !important;
+    --color-on-gold: inherit !important;
+    --border: inherit !important;
+    --border-strong: inherit !important;
+    --tint-strength: inherit !important;
+    --card-bg: inherit !important;
+    --card-shadow: inherit !important;
+    --avatar-bg: inherit !important;
+    --avatar-fg: inherit !important;
+    --gradient-end: inherit !important;
+    --fg: inherit !important;
+    --color-lime-glow: var(--light-accent-text) !important;
+    --color-lime-deep: var(--light-accent-text) !important;
+    --color-lime-bright: var(--light-accent) !important;
+    --color-lime-hover: var(--light-accent) !important;
+    --accent-fill: var(--light-accent-fill) !important;
+    --accent-fill-hover: var(--light-accent-fill-hover) !important;
+    --color-on-accent: var(--light-on-accent) !important;
+    color-scheme: light !important;
+    color: var(--fg) !important;
+    background: var(--light-bg) !important;
+  }
+
   :root[data-theme='light'] body {
     background:
       radial-gradient(1100px 560px at 88% -12%, rgb(74 222 128 / 0.14), transparent 62%),
