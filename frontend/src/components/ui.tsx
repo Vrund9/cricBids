@@ -1,6 +1,6 @@
 'use client'
 
-import { Children, Fragment, forwardRef, isValidElement, useEffect, useId, useState } from 'react'
+import { Children, Fragment, forwardRef, isValidElement, useEffect, useId, useRef, useState } from 'react'
 import ReactSelect from 'react-select'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion, useSpring, useTransform } from 'motion/react'
@@ -354,12 +354,18 @@ const NEUTRAL_AVATARS = ['#34405a', '#222c41', '#182031', '#111622']
 
 export function Avatar({ src, name, size = 40, className, color, rounded = 'full' }: { src?: string | null; name: string; size?: number; className?: string; color?: string; rounded?: 'full' | 'xl' }) {
   const [failed, setFailed] = useState(false)
-  useEffect(() => setFailed(false), [src])
+  const img = useRef<HTMLImageElement>(null)
+  // A server-rendered image can fail before React attaches onError, so check once it's mounted.
+  useEffect(() => {
+    const el = img.current
+    setFailed(!!el && el.complete && el.naturalWidth === 0)
+  }, [src])
   const radius = rounded === 'full' ? 'rounded-full' : 'rounded-xl'
   if (src && !failed) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
+        ref={img}
         src={src}
         alt={name}
         width={size}
