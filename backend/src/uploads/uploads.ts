@@ -13,10 +13,16 @@ mkdirSync(UPLOAD_DIR, { recursive: true })
 
 /**
  * With CLOUDINARY_URL set (cloudinary://key:secret@cloud), images go to Cloudinary so they survive
- * restarts on hosts without a persistent disk. Without it they are written to UPLOAD_DIR (local dev).
+ * restarts on hosts without a persistent disk. Without it they are written to UPLOAD_DIR (local dev only).
  * The SDK reads CLOUDINARY_URL from the environment itself.
+ *
+ * Production refuses to start without it: Render's disk is wiped on every deploy, so a silent fallback
+ * to UPLOAD_DIR loses every photo uploaded since the last deploy.
  */
 const useCloudinary = !!process.env.CLOUDINARY_URL
+if (process.env.NODE_ENV === 'production' && !/^cloudinary:\/\/[^:]+:[^@]+@.+/.test(process.env.CLOUDINARY_URL ?? '')) {
+  throw new Error('CLOUDINARY_URL must be set to cloudinary://<api_key>:<api_secret>@<cloud_name> in production')
+}
 const CLOUD_FOLDER = process.env.CLOUDINARY_FOLDER || 'bidwicket'
 const logger = new Logger('Uploads')
 
