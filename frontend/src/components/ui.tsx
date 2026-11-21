@@ -4,7 +4,7 @@ import { Children, Fragment, forwardRef, isValidElement, useEffect, useId, useSt
 import ReactSelect from 'react-select'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion, useSpring, useTransform } from 'motion/react'
-import { Check, Loader2, X } from 'lucide-react'
+import { Check, Eye, EyeOff, Loader2, X } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { initials } from '@/lib/format'
 
@@ -64,6 +64,25 @@ const control =
 
 export const Input = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(function Input({ className, ...props }, ref) {
   return <input ref={ref} className={cn(control, 'h-11', className)} {...props} />
+})
+
+/** A password input with an eye button that shows or hides what was typed. */
+export const PasswordInput = forwardRef<HTMLInputElement, Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'>>(function PasswordInput({ className, ...props }, ref) {
+  const [shown, setShown] = useState(false)
+  return (
+    <div className="relative">
+      <input ref={ref} type={shown ? 'text' : 'password'} autoCapitalize="none" spellCheck={false} className={cn(control, 'h-11 pr-11', className)} {...props} />
+      <button
+        type="button"
+        onClick={() => setShown((s) => !s)}
+        className="absolute inset-y-0 right-0 grid w-11 place-items-center rounded-r-xl text-ink-400 transition hover:text-white"
+        aria-label={shown ? 'Hide password' : 'Show password'}
+        aria-pressed={shown}
+      >
+        {shown ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+      </button>
+    </div>
+  )
 })
 
 export const Textarea = forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement>>(function Textarea({ className, ...props }, ref) {

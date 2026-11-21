@@ -8,7 +8,7 @@ import { motion } from 'motion/react'
 import { toast } from 'sonner'
 import { Logo } from './brand'
 import { ThemeToggle } from './theme-toggle'
-import { Button, Field, Input } from './ui'
+import { Button, Field, Input, PasswordInput } from './ui'
 import { api } from '@/lib/api'
 import { track } from '@/lib/analytics'
 import { useAuth } from '@/lib/auth'
@@ -191,7 +191,7 @@ function LoginInner() {
           <Input id="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
         </Field>
         <Field label={<span className="flex justify-between">Password <Link href="/forgot-password" className="text-xs font-normal text-ink-300 hover:text-white">Forgot?</Link></span>} htmlFor="password">
-          <Input id="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+          <PasswordInput id="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
         </Field>
         {error && <p className="rounded-lg bg-rose-hot/10 px-3 py-2 text-sm text-rose-hot">{error}</p>}
         <Button type="submit" size="lg" className="w-full" loading={loading}>Log in</Button>
@@ -238,7 +238,7 @@ function SignupInner() {
           <Input id="email" type="email" autoComplete="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
         </Field>
         <Field label="Password" htmlFor="password" hint="At least 8 characters">
-          <Input id="password" type="password" autoComplete="new-password" required minLength={8} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+          <PasswordInput id="password" autoComplete="new-password" required minLength={8} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
         </Field>
         {error && <p className="rounded-lg bg-rose-hot/10 px-3 py-2 text-sm text-rose-hot">{error}</p>}
         <Button type="submit" size="lg" className="w-full" loading={loading}>Create account</Button>
@@ -310,7 +310,7 @@ function ResetInner() {
       ) : (
         <form onSubmit={submit} className="space-y-4">
           <Field label="New password" htmlFor="password" hint="At least 8 characters">
-            <Input id="password" type="password" autoComplete="new-password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
+            <PasswordInput id="password" autoComplete="new-password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
           </Field>
           {error && <p className="rounded-lg bg-rose-hot/10 px-3 py-2 text-sm text-rose-hot">{error}</p>}
           <Button type="submit" size="lg" className="w-full" loading={loading}>Update password</Button>
