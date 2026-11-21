@@ -160,6 +160,8 @@ export interface Tournament {
   registrationToken: string
   registrationFields: RegField[]
   requireApproval: boolean
+  /** Photo upload link; null until the organiser first opens it. */
+  photoToken: string | null
   liveToken: string
   remoteBidding: boolean
   plan: PlanName

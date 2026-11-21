@@ -256,6 +256,9 @@ model Tournament {
   registrationFields Json
   requireApproval    Boolean @default(false)
 
+  /// Shareable link where players pick their name and upload a photo. Created the first time the organiser asks for it.
+  photoToken String? @unique
+
   // Public live link + team bidding links
   liveToken     String  @unique
   remoteBidding Boolean @default(false)

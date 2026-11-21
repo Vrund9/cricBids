@@ -2,14 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Check, Download, FileSpreadsheet, ImagePlus, Pencil, Plus, Search, Tag, Trash2, UserPlus, X } from 'lucide-react'
+import { Camera, Check, Download, FileSpreadsheet, ImagePlus, Pencil, Plus, RefreshCw, Search, Tag, Trash2, UserPlus, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTournament } from '@/components/tournament-context'
 import { ImportWizard } from '@/components/import-wizard'
+import { ShareLink } from '@/components/share'
 import { PlayersNav } from '@/components/players-nav'
 import { CricketScene } from '@/components/cricket-scene'
 import { Avatar, Badge, Button, Card, EmptyState, Field, Input, Modal, PageLoader, Select, StatusBadge } from '@/components/ui'
-import { api, uploadImage } from '@/lib/api'
+import { api, SITE_URL, uploadImage } from '@/lib/api'
 import { downloadTemplate, exportPlayers } from '@/lib/excel'
 import { money, roleMeta } from '@/lib/format'
 import { useLiveAuction } from '@/lib/live'
@@ -31,6 +32,7 @@ export default function PlayersPage() {
   const [importing, setImporting] = useState(false)
   const [editing, setEditing] = useState<Player | 'new' | null>(null)
   const [catOpen, setCatOpen] = useState(false)
+  const [photoLinkOpen, setPhotoLinkOpen] = useState(false)
   const started = ['LIVE', 'PAUSED', 'COMPLETED'].includes(t.status)
   // After the auction the list is a record: view and export only.
   const readOnly = t.status === 'COMPLETED'
@@ -158,6 +160,11 @@ export default function PlayersPage() {
           )}
           {!readOnly && (
             <>
+              {players.length > 0 && (
+                <Button variant="secondary" size="sm" onClick={() => setPhotoLinkOpen(true)}>
+                  <Camera className="h-4 w-4" /> Photo upload link
+                </Button>
+              )}
               <Button variant="secondary" size="sm" onClick={() => setEditing('new')}>
                 <UserPlus className="h-4 w-4" /> Add player
               </Button>
@@ -298,9 +305,62 @@ export default function PlayersPage() {
       <ImportWizard open={importing} onClose={() => setImporting(false)} tournamentId={t.id} hasPlayers={players.length > 0} locked={started} useCategories={t.useCategories} onImported={refresh} />
       <PlayerModal player={editing} onClose={() => setEditing(null)} tournamentId={t.id} categories={t.useCategories ? t.categoryList : null} onSaved={refresh} />
       <CategoryModal open={catOpen} onClose={() => setCatOpen(false)} ids={[...selected]} tournamentId={t.id} existing={t.categoryList} onSaved={() => { setSelected(new Set()); refresh() }} />
+      <PhotoLinkModal open={photoLinkOpen} onClose={() => setPhotoLinkOpen(false)} />
       </>}
     </div>
     </div>
+  )
+}
+
+/** A link players open to pick their name and upload a photo; it's created the first time it's opened here. */
+function PhotoLinkModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t, reload } = useTournament()
+  const confirm = useConfirm()
+  const [token, setToken] = useState(t.photoToken)
+  useEffect(() => setToken(t.photoToken), [t.photoToken])
+
+  useEffect(() => {
+    if (!open || token) return
+    api<{ photoToken: string }>(`/tournaments/${t.id}/photo-link`, { method: 'POST' })
+      .then((r) => {
+        setToken(r.photoToken)
+        void reload()
+      })
+      .catch((e) => toast.error((e as Error).message))
+  }, [open, token, t.id, reload])
+
+  const resetLink = async () => {
+    if (!(await confirm({ title: 'Reset the photo link?', message: 'The old link stops working straight away — anyone you already sent it to will need the new one.', confirmLabel: 'Reset link', danger: true }))) return
+    try {
+      const r = await api<{ photoToken: string }>(`/tournaments/${t.id}/rotate-token`, { body: { kind: 'photo' } })
+      setToken(r.photoToken)
+      void reload()
+      toast.success('New photo link created')
+    } catch (e) {
+      toast.error((e as Error).message)
+    }
+  }
+
+  const origin = typeof window !== 'undefined' ? window.location.origin : SITE_URL
+  return (
+    <Modal open={open} onClose={onClose} title="Photo upload link">
+      <p className="text-sm text-ink-300">
+        Share this link with your players. Each player picks their name from your player list and uploads a photo — it shows up here and on the auction screen straight away.
+      </p>
+      <div className="mt-5">
+        {token ? (
+          <ShareLink url={`${origin}/photos/${token}`} title={`${t.name} player photos`} message={`📸 ${t.name} — pick your name and upload your photo here:`} />
+        ) : (
+          <p className="text-sm text-ink-400">Creating your link…</p>
+        )}
+      </div>
+      <p className="mt-4 text-xs text-ink-400">Anyone with this link can change any player’s photo, so share it only with your players.</p>
+      {token && (
+        <button onClick={resetLink} className="mt-3 inline-flex items-center gap-1.5 text-xs text-ink-400 hover:text-white">
+          <RefreshCw className="h-3 w-3" /> Reset link
+        </button>
+      )}
+    </Modal>
   )
 }
 

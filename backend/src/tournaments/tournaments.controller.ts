@@ -48,6 +48,12 @@ export class TournamentsController {
     return this.tournaments.rotateToken(id, u.id, dto.kind)
   }
 
+  @Post(':id/photo-link')
+  @HttpCode(200)
+  photoLink(@CurrentUser() u: AuthUser, @Param('id') id: string) {
+    return this.tournaments.photoLink(id, u.id)
+  }
+
   @Get(':id/suggestions')
   suggestions(@CurrentUser() u: AuthUser, @Param('id') id: string) {
     return this.tournaments.suggestions(id, u.id)

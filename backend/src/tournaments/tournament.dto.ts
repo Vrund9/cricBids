@@ -126,8 +126,8 @@ export class RetainDto {
 }
 
 export class RotateTokenDto {
-  @IsIn(['live', 'registration'])
-  kind: 'live' | 'registration'
+  @IsIn(['live', 'registration', 'photo'])
+  kind: 'live' | 'registration' | 'photo'
 }
 
 export class TeamDto {
