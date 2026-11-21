@@ -232,13 +232,20 @@ export class TournamentsService {
     return { ok: true }
   }
 
-  async rotateToken(id: string, userId: string, kind: 'live' | 'registration') {
+  async rotateToken(id: string, userId: string, kind: 'live' | 'registration' | 'photo') {
     await this.owned(id, userId)
     return this.prisma.tournament.update({
       where: { id },
-      data: kind === 'live' ? { liveToken: randomToken() } : { registrationToken: randomToken() },
-      select: { liveToken: true, registrationToken: true },
+      data: kind === 'live' ? { liveToken: randomToken() } : kind === 'photo' ? { photoToken: randomToken() } : { registrationToken: randomToken() },
+      select: { liveToken: true, registrationToken: true, photoToken: true },
     })
+  }
+
+  /** The photo upload link, created on first use so tournaments that never share it don't carry one. */
+  async photoLink(id: string, userId: string) {
+    const t = await this.owned(id, userId)
+    if (t.photoToken) return { photoToken: t.photoToken }
+    return this.prisma.tournament.update({ where: { id }, data: { photoToken: randomToken() }, select: { photoToken: true } })
   }
 
   /**
