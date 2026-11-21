@@ -135,6 +135,44 @@ export class PublicController {
     return storeUpload(file)
   }
 
+  // ── Photo upload link: players pick their name, then upload a photo ──
+
+  private async byPhotoToken(token: string) {
+    const t = await this.prisma.tournament.findUnique({ where: { photoToken: token }, include: { owner: { select: PLAN_OWNER_SELECT } } })
+    if (!t) throw new NotFoundException('This photo link is invalid or has been reset')
+    return t
+  }
+
+  @Get('photos/:token')
+  async photoList(@Param('token') token: string) {
+    const t = await this.byPhotoToken(token)
+    const players = await this.prisma.player.findMany({
+      where: { tournamentId: t.id },
+      select: { id: true, serial: true, name: true, photoUrl: true },
+      orderBy: { serial: 'asc' },
+    })
+    return {
+      tournament: { name: t.name, logoUrl: t.logoUrl },
+      open: t.status !== 'COMPLETED',
+      players,
+      theme: publicTheme(t.theme, planInfo(t, t.owner).limits),
+    }
+  }
+
+  @Post('photos/:token/:playerId')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @UseInterceptors(imageUpload)
+  async photoUpload(@Param('token') token: string, @Param('playerId') playerId: string, @UploadedFile() file: Express.Multer.File) {
+    const t = await this.byPhotoToken(token)
+    if (t.status === 'COMPLETED') throw new ForbiddenException('This auction is over, so photos can no longer be changed')
+    const player = await this.prisma.player.findFirst({ where: { id: playerId, tournamentId: t.id }, select: { id: true } })
+    if (!player) throw new NotFoundException('Player not found — reload the page and pick your name again')
+    const { url } = await storeUpload(file)
+    await this.prisma.player.update({ where: { id: player.id }, data: { photoUrl: url } })
+    this.realtime.stateChanged(t.id)
+    return { url }
+  }
+
   // ── Team owner remote paddle ──
 
   private async byBidToken(token: string) {
