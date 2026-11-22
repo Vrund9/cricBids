@@ -1,8 +1,11 @@
-import { Body, Controller, Get, HttpCode, Patch, Post, UseGuards } from '@nestjs/common'
+import { Body, Controller, Delete, Get, HttpCode, Param, ParseEnumPipe, Patch, Post, UseGuards } from '@nestjs/common'
 import { Throttle } from '@nestjs/throttler'
 import { AuthService } from './auth.service'
 import { AuthUser, CurrentUser, JwtAuthGuard } from './jwt.guard'
 import { ChangePasswordDto, ForgotPasswordDto, GoogleLoginDto, LoginDto, ResetPasswordDto, SignupDto, UpdateProfileDto } from './auth.dto'
+
+/** Guided tours the web app can mark as seen (matches the `id` of each <Tour>). */
+const TOURS = { dashboard: 'dashboard', tournament: 'tournament' } as const
 
 @Controller('auth')
 export class AuthController {
@@ -52,6 +55,19 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   update(@CurrentUser() user: AuthUser, @Body() dto: UpdateProfileDto) {
     return this.auth.updateProfile(user.id, dto)
+  }
+
+  @Post('me/tours/:tour')
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  tourSeen(@CurrentUser() user: AuthUser, @Param('tour', new ParseEnumPipe(TOURS)) tour: string) {
+    return this.auth.markTourSeen(user.id, tour)
+  }
+
+  @Delete('me/tours')
+  @UseGuards(JwtAuthGuard)
+  resetTours(@CurrentUser() user: AuthUser) {
+    return this.auth.resetTours(user.id)
   }
 
   @Post('change-password')

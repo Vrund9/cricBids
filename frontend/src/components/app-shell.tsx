@@ -60,7 +60,7 @@ function AnnouncementBar() {
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useRequireAuth()
+  const { user, loading, setUser } = useRequireAuth()
   const router = useRouter()
   const [menu, setMenu] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -114,7 +114,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <button
                       onClick={() => {
                         setMenu(false)
-                        resetTours(user.id)
+                        resetTours(user.id, setUser)
                         router.push('/dashboard?tour=1')
                         if (window.location.pathname === '/dashboard') window.location.reload()
                       }}

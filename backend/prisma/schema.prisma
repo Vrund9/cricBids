@@ -76,6 +76,10 @@ model User {
   auctionsCreated Int          @default(0)
   /// Everything unlocked for free — set by redeeming a plan code, cleared when the code is revoked.
   fullAccess      Boolean      @default(false)
+  /// Guided tours (by id) this user has finished or skipped, so they don't replay on another device.
+  toursSeen       String[]     @default([])
+  /// Show each player's sold price on the shareable result images.
+  posterPrices    Boolean      @default(true)
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
   tournaments     Tournament[]

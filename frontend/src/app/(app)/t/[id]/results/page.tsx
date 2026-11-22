@@ -3,11 +3,11 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'motion/react'
-import { Crown, FileDown, FileSpreadsheet, LayoutGrid, Trophy } from 'lucide-react'
+import { Crown, Download, FileDown, FileSpreadsheet, ImageIcon, LayoutGrid, Share2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTournament } from '@/components/tournament-context'
 import { CricketScene } from '@/components/cricket-scene'
-import { Avatar, Badge, Button, Card, EmptyState, PageLoader, Select, fadeUp, stagger } from '@/components/ui'
+import { Avatar, Badge, Button, Card, EmptyState, Modal, PageLoader, Select, Spinner, fadeUp, stagger } from '@/components/ui'
 import { api } from '@/lib/api'
 import { exportResults } from '@/lib/excel'
 import { money, moneyShort, roleMeta, tintText } from '@/lib/format'
@@ -61,6 +61,8 @@ export default function ResultsPage() {
           <Button onClick={() => exportResults(r.players, r.teams, r.tournament)}><FileSpreadsheet className="h-4 w-4" /> Excel</Button>
         </div>
       </div>
+
+      <SharePosters liveToken={t.liveToken} teams={r.teams} tournamentName={t.name} />
 
       {view === '' && (
         <>
@@ -191,5 +193,89 @@ function TeamDetail({ team, squad, currency, href }: { team: Team; squad: Player
         </table>
       </div>
     </Card>
+  )
+}
+
+type Poster = { title: string; query: string; file: string }
+
+/** Ready-made images of the results (top buys + each squad) to post in WhatsApp groups and on social media. */
+function SharePosters({ liveToken, teams, tournamentName }: { liveToken: string; teams: Team[]; tournamentName: string }) {
+  const [open, setOpen] = useState<(Poster & { v: number }) | null>(null)
+  const posters: Poster[] = [
+    { title: 'Top buys', query: '', file: 'top-buys' },
+    ...teams.map((tm) => ({ title: tm.name, query: `?team=${tm.id}`, file: tm.name })),
+  ]
+  return (
+    <Card className="p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="flex items-center gap-2 font-semibold"><ImageIcon className="h-4 w-4 text-lime-glow" /> Share images</p>
+          <p className="text-sm text-ink-400">Ready-to-post pictures of the top buys and every team’s squad, for WhatsApp and Instagram.</p>
+        </div>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {posters.map((p, i) => (
+          <button
+            key={p.query}
+            onClick={() => setOpen({ ...p, v: Date.now() })}
+            className={i === 0 ? 'inline-flex h-10 items-center gap-2 rounded-xl bg-gold/15 px-4 text-sm font-semibold text-gold hover:bg-gold/25' : 'inline-flex h-10 items-center gap-2 rounded-xl border border-white/10 px-4 text-sm font-semibold hover:bg-white/5'}
+          >
+            {i === 0 ? <Crown className="h-4 w-4" /> : <span className="h-2.5 w-2.5 rounded-full" style={{ background: teams[i - 1].color }} />}
+            {p.title}
+          </button>
+        ))}
+      </div>
+      <Modal open={!!open} onClose={() => setOpen(null)} title={open?.title}>
+        {open && <PosterPreview src={`/live/${liveToken}/poster${open.query}`} version={open.v} fileName={`${tournamentName} ${open.file}`} />}
+      </Modal>
+    </Card>
+  )
+}
+
+function PosterPreview({ src, version, fileName }: { src: string; version: number; fileName: string }) {
+  const [loaded, setLoaded] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const [sharing, setSharing] = useState(false)
+  // Posters are drawn from live data, so a version stamp makes each open show the latest results.
+  const url = `${src}${src.includes('?') ? '&' : '?'}v=${version}`
+  const name = `${fileName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}.png`
+
+  const share = async () => {
+    setSharing(true)
+    try {
+      const blob = await (await fetch(url)).blob()
+      const file = new File([blob], name, { type: 'image/png' })
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file] }).catch(() => undefined)
+      } else {
+        // Desktop browsers can't share files: save it instead.
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(blob)
+        a.download = name
+        a.click()
+        URL.revokeObjectURL(a.href)
+      }
+    } catch {
+      toast.error('Could not prepare the image. Try again.')
+    } finally {
+      setSharing(false)
+    }
+  }
+
+  return (
+    <div>
+      <div className="relative flex min-h-64 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-ink-950">
+        {!loaded && !failed && <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-sm text-ink-400"><Spinner className="h-6 w-6" /> Drawing the image…</div>}
+        {failed && <p className="p-8 text-center text-sm text-ink-400">Couldn’t draw this image. Close and try again.</p>}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={url} alt="" className={loaded ? 'block w-full' : 'h-0 w-0 opacity-0'} onLoad={() => setLoaded(true)} onError={() => setFailed(true)} />
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <a href={`${url}&download=1`} download={name} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/15 text-sm font-semibold hover:bg-white/5">
+          <Download className="h-4 w-4" /> Download
+        </a>
+        <Button onClick={share} loading={sharing} disabled={!loaded}><Share2 className="h-4 w-4" /> Share</Button>
+      </div>
+    </div>
   )
 }

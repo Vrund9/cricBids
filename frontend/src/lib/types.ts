@@ -50,6 +50,12 @@ export interface User {
   rewardPoints?: number
   /** Everything unlocked via a plan code */
   fullAccess?: boolean
+  /** Guided tours finished or skipped on any device */
+  toursSeen?: string[]
+  /** Auctions this account has ever created */
+  auctionsCreated?: number
+  /** Show sold prices on the shareable result images */
+  posterPrices?: boolean
 }
 
 export interface IncrementTier {
