@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer'
-import { IsEmail, IsOptional, IsString, IsUrl, MaxLength, MinLength, ValidateIf } from 'class-validator'
+import { IsBoolean, IsEmail, IsOptional, IsString, IsUrl, MaxLength, MinLength, ValidateIf } from 'class-validator'
 
 const lower = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim().toLowerCase() : value)
 
@@ -58,4 +58,7 @@ export class UpdateProfileDto {
 
   @IsOptional() @IsUrl({ require_tld: false })
   avatarUrl?: string
+
+  @IsOptional() @IsBoolean()
+  posterPrices?: boolean
 }

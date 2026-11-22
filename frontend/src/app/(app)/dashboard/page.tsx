@@ -87,6 +87,7 @@ export default function Dashboard() {
       <Tour
         id="dashboard"
         onlyNewUsers
+        skipAfterAuctions={1}
         steps={[
           { title: `Welcome to BidWicket, ${user?.name.split(' ')[0] ?? 'there'}! 🏏`, body: 'Here’s a 30-second tour of how to run your first player auction.' },
           { target: 'new-auction', title: 'Start a new auction', body: 'Name your tournament here. Then add players, set the rules and go live — BidWicket guides you through each step.' },

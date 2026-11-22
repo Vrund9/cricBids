@@ -31,7 +31,7 @@ export class PublicController {
   ) {}
 
   private async byLiveToken(token: string) {
-    const t = await this.prisma.tournament.findUnique({ where: { liveToken: token }, include: { owner: { select: PLAN_OWNER_SELECT } } })
+    const t = await this.prisma.tournament.findUnique({ where: { liveToken: token }, include: { owner: { select: { ...PLAN_OWNER_SELECT, posterPrices: true } } } })
     if (!t) throw new NotFoundException('This live link is invalid or has been reset')
     return t
   }
@@ -65,6 +65,8 @@ export class PublicController {
       totalSpent: sold._sum.soldPrice ?? 0,
       topBuy: top,
       theme: publicTheme(t.theme, planInfo(t, t.owner).limits),
+      /** Organiser's choice (Settings → Profile) for the shareable result images. */
+      posterPrices: t.owner.posterPrices,
     }
   }
 

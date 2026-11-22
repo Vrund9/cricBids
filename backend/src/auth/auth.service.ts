@@ -42,6 +42,9 @@ export class AuthService {
       rewardPoints: u.rewardPoints,
       fullAccess: u.fullAccess,
       isAdmin: isAdminUser(u),
+      toursSeen: u.toursSeen,
+      posterPrices: u.posterPrices,
+      auctionsCreated: u.auctionsCreated,
     }
   }
 
@@ -134,7 +137,21 @@ export class AuthService {
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
-    const user = await this.prisma.user.update({ where: { id: userId }, data: { name: dto.name?.trim(), avatarUrl: dto.avatarUrl } })
+    const user = await this.prisma.user.update({ where: { id: userId }, data: { name: dto.name?.trim(), avatarUrl: dto.avatarUrl, posterPrices: dto.posterPrices } })
+    return this.publicUser(user)
+  }
+
+  async markTourSeen(userId: string, tour: string) {
+    const u = await this.prisma.user.findUnique({ where: { id: userId }, select: { toursSeen: true } })
+    if (!u) throw new NotFoundException('User not found')
+    if (u.toursSeen.includes(tour)) return this.me(userId)
+    const user = await this.prisma.user.update({ where: { id: userId }, data: { toursSeen: { push: tour } } })
+    return this.publicUser(user)
+  }
+
+  /** "Take the tour" in the account menu: every tour plays again. */
+  async resetTours(userId: string) {
+    const user = await this.prisma.user.update({ where: { id: userId }, data: { toursSeen: [] } })
     return this.publicUser(user)
   }
 

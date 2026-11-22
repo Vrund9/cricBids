@@ -124,6 +124,7 @@ function SetupOverview() {
 
       <Tour
         id="tournament"
+        skipAfterAuctions={2}
         steps={[
           { target: 'tabs', title: 'Everything for this auction', body: 'Players (and their registration form), teams, auction rules, the control room and results — all in these tabs. Tournament details are on this page; the screen theme lives in Settings.' },
           { target: 'checklist', title: 'Three steps to auction day', body: 'Add players, set the rules, go live. This card always shows the one thing to do next.' },
