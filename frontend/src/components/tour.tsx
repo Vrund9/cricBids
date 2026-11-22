@@ -5,7 +5,9 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { ArrowLeft, ArrowRight, X } from 'lucide-react'
 import { Button } from './ui'
+import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
+import type { User } from '@/lib/types'
 import { uiFlags } from '@/lib/flags'
 
 export interface TourStep {
@@ -20,20 +22,25 @@ const GAP = 14
 const CARD_W = 340
 
 const storageKey = (id: string, userId: string) => `cricbid.tour.${id}.${userId}`
+const REPLAY_KEY = 'cricbid.tour-replay'
 
 /** Clears every tour's "seen" flag so they replay (used by "Take the tour" in the account menu). */
-export function resetTours(userId: string) {
+export function resetTours(userId: string, setUser: (u: User) => void) {
   try {
     for (const k of Object.keys(localStorage)) if (k.startsWith('cricbid.tour.') && k.endsWith(`.${userId}`)) localStorage.removeItem(k)
+    sessionStorage.setItem(REPLAY_KEY, '1')
   } catch {}
+  api<User>('/auth/me/tours', { method: 'DELETE' }).then(setUser).catch(() => undefined)
 }
 
 /**
  * First-run guided tour: spotlights one element at a time with a tooltip.
- * Shown once per user per tour id; `when` lets the page wait until its content has rendered.
+ * Shown once per account per tour id (remembered on the server, so a new device doesn't replay it);
+ * `when` lets the page wait until its content has rendered. Organisers who have already created
+ * `skipAfterAuctions` auctions know their way around, so it only plays for them from "Take the tour".
  */
-export function Tour({ id, steps, when = true, onlyNewUsers = false }: { id: string; steps: TourStep[]; when?: boolean; onlyNewUsers?: boolean }) {
-  const { user } = useAuth()
+export function Tour({ id, steps, when = true, onlyNewUsers = false, skipAfterAuctions }: { id: string; steps: TourStep[]; when?: boolean; onlyNewUsers?: boolean; skipAfterAuctions?: number }) {
+  const { user, setUser } = useAuth()
   const [active, setActive] = useState(false)
   const [i, setI] = useState(0)
   const [rect, setRect] = useState<DOMRect | null>(null)
@@ -42,20 +49,31 @@ export function Tour({ id, steps, when = true, onlyNewUsers = false }: { id: str
 
   useEffect(() => {
     if (!when || !user) return
-    let seen = true
+    let seenHere = true
+    let replay = new URLSearchParams(window.location.search).has('tour')
     try {
-      seen = !!localStorage.getItem(storageKey(id, user.id))
+      seenHere = !!localStorage.getItem(storageKey(id, user.id))
+      replay ||= sessionStorage.getItem(REPLAY_KEY) === '1'
     } catch {}
-    // "New" = joined in the last 3 days, so existing organisers aren't interrupted after an update.
-    const isNew = Date.now() - new Date(user.createdAt).getTime() < 3 * 24 * 60 * 60 * 1000
-    const replay = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('tour')
     // Arriving to buy add-ons (pricing calculator link) — don't cover the checkout with the tour.
     if (window.location.hash.startsWith('#addons') || uiFlags.checkoutFromLink) return
-    if (!seen && (!onlyNewUsers || isNew || replay)) {
+    let show: boolean
+    if (replay) {
+      // Asked for from the account menu: the reset there cleared this browser's flags; the account's may still be in flight.
+      show = !seenHere
+    } else {
+      // "New" = joined in the last 3 days, so existing organisers aren't interrupted after an update.
+      const isNew = Date.now() - new Date(user.createdAt).getTime() < 3 * 24 * 60 * 60 * 1000
+      const experienced = skipAfterAuctions !== undefined && (user.auctionsCreated ?? 0) >= skipAfterAuctions
+      show = !seenHere && !user.toursSeen?.includes(id) && !experienced && (!onlyNewUsers || isNew)
+    }
+    if (show) {
       const t = setTimeout(() => setActive(true), 600)
       return () => clearTimeout(t)
     }
-  }, [id, user, when, onlyNewUsers])
+    // Only re-check when the account changes, not on every refresh of the user object (e.g. after marking a tour seen).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, user?.id, when, onlyNewUsers, skipAfterAuctions])
 
   const finish = useCallback(() => {
     setActive(false)
@@ -63,8 +81,9 @@ export function Tour({ id, steps, when = true, onlyNewUsers = false }: { id: str
       try {
         localStorage.setItem(storageKey(id, user.id), new Date().toISOString())
       } catch {}
+      api<User>(`/auth/me/tours/${id}`, { method: 'POST' }).then(setUser).catch(() => undefined)
     }
-  }, [id, user])
+  }, [id, user, setUser])
 
   const step = steps[i]
 
