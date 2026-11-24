@@ -9,6 +9,7 @@ import { useTournament } from '@/components/tournament-context'
 import { Avatar, Button, Card, Field, Input, Select, Switch, fadeUp, stagger } from '@/components/ui'
 import { useCopy } from '@/components/share'
 import { api, isPlanLimit, SITE_URL, uploadImage } from '@/lib/api'
+import { useImageCrop } from '@/components/image-crop'
 import { money, moneyShort } from '@/lib/format'
 import type { Player, Team, Tournament } from '@/lib/types'
 import { useConfirm } from '@/components/confirm'
@@ -122,6 +123,7 @@ export default function TeamsPage() {
 function TeamCard({ team, tournamentId, currency, started, remote, onChange, children }: { team: Team; tournamentId: string; currency: string; started: boolean; remote: boolean; onChange: () => Promise<void>; children?: React.ReactNode }) {
   const [form, setForm] = useState({ name: team.name, shortName: team.shortName, ownerName: team.ownerName ?? '', color: team.color, logoUrl: team.logoUrl ?? '' })
   const [uploading, setUploading] = useState(false)
+  const crop = useImageCrop()
   const { copied, copy } = useCopy()
   const confirm = useConfirm()
   useEffect(() => setForm({ name: team.name, shortName: team.shortName, ownerName: team.ownerName ?? '', color: team.color, logoUrl: team.logoUrl ?? '' }), [team])
@@ -172,10 +174,13 @@ function TeamCard({ team, tournamentId, currency, started, remote, onChange, chi
             </span>
             <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
               const f = e.target.files?.[0]
+              e.target.value = ''
               if (!f) return
+              const file = await crop(f, { title: 'Adjust team logo', fit: 'contain', maxSize: 800 })
+              if (!file) return
               setUploading(true)
               try {
-                const url = await uploadImage(f)
+                const url = await uploadImage(file)
                 setForm((x) => ({ ...x, logoUrl: url }))
                 await save({ logoUrl: url })
               } catch (err) {

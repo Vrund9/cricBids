@@ -9,6 +9,7 @@ import { useConfirm } from '@/components/confirm'
 import { useTournament } from '@/components/tournament-context'
 import { Avatar, Button, Card, Field, Input, Select, Textarea } from '@/components/ui'
 import { api, uploadImage } from '@/lib/api'
+import { useImageCrop } from '@/components/image-crop'
 import { CURRENCIES, moneyShort } from '@/lib/format'
 import type { Tournament } from '@/lib/types'
 
@@ -28,6 +29,7 @@ export function TournamentDetails({ stats: showStats = true }: { stats?: boolean
   const [cats, setCats] = useState<CategoryChoice>({ useCategories: t.useCategories, categoryList: t.categoryList })
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const crop = useImageCrop()
   useEffect(() => {
     setForm(formOf(t))
     setCats({ useCategories: t.useCategories, categoryList: t.categoryList })
@@ -115,8 +117,10 @@ export function TournamentDetails({ stats: showStats = true }: { stats?: boolean
                 accept="image/*"
                 className="hidden"
                 onChange={async (e) => {
-                  const file = e.target.files?.[0]
+                  const picked = e.target.files?.[0]
                   e.target.value = ''
+                  if (!picked) return
+                  const file = await crop(picked, { title: 'Adjust tournament picture', fit: 'contain', maxSize: 800 })
                   if (!file) return
                   setUploading(true)
                   try {

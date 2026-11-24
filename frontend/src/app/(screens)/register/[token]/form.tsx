@@ -9,6 +9,7 @@ import { LogoMark } from '@/components/brand'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Avatar, Button, Field, Input, Select, Textarea } from '@/components/ui'
 import { api, uploadImage } from '@/lib/api'
+import { useImageCrop } from '@/components/image-crop'
 import { track } from '@/lib/analytics'
 import type { RegField } from '@/lib/types'
 import type { FormConfig } from './page'
@@ -126,6 +127,7 @@ export function RegistrationForm({ token, config }: { token: string; config: For
 }
 
 function FieldInput({ field: f, value, error, onChange, token, uploading, setUploading }: { field: RegField; value: string; error?: string; onChange: (v: string) => void; token: string; uploading: boolean; setUploading: (v: boolean) => void }) {
+  const crop = useImageCrop()
   const id = `f-${f.key}`
   const label = (
     <>
@@ -147,9 +149,11 @@ function FieldInput({ field: f, value, error, onChange, token, uploading, setUpl
             accept="image/*"
             className="hidden"
             onChange={async (e) => {
-              const file = e.target.files?.[0]
+              const picked = e.target.files?.[0]
               // Clear the picker so choosing the same file again (after an error) still triggers an upload.
               e.target.value = ''
+              if (!picked) return
+              const file = await crop(picked, { title: 'Adjust your photo' })
               if (!file) return
               setUploading(true)
               try {

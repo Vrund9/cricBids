@@ -4,12 +4,15 @@ import { MotionConfig } from 'motion/react'
 import { Toaster } from 'sonner'
 import { AuthProvider } from '@/lib/auth'
 import { ConfirmProvider } from '@/components/confirm'
+import { ImageCropProvider } from '@/components/image-crop'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <MotionConfig reducedMotion="user">
       <AuthProvider>
-        <ConfirmProvider>{children}</ConfirmProvider>
+        <ConfirmProvider>
+          <ImageCropProvider>{children}</ImageCropProvider>
+        </ConfirmProvider>
         <Toaster
           theme="dark"
           position="top-center"
