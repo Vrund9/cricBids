@@ -9,6 +9,7 @@ import { useUpgrade } from '@/components/upgrade'
 import { Button, Card, Switch } from '@/components/ui'
 import { BACKGROUNDS, palette, THEMES, themeBackground, themeStyle, type ThemeConfig, type ThemePreset } from '@/lib/themes'
 import { uploadImage } from '@/lib/api'
+import { useImageCrop } from '@/components/image-crop'
 import { money } from '@/lib/format'
 import { cn } from '@/lib/cn'
 
@@ -25,6 +26,7 @@ export function ThemeEditor() {
   const [theme, setTheme] = useState<ThemeConfig>(saved)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const crop = useImageCrop()
   const [screen, setScreen] = useState<Screen>('live')
   useEffect(() => setTheme({ preset: 'floodlight', ...(t.theme ?? {}) }), [t.theme])
 
@@ -59,7 +61,9 @@ export function ThemeEditor() {
     }
   }
 
-  const upload = async (f: File) => {
+  const upload = async (picked: File) => {
+    const f = await crop(picked, { title: 'Adjust background', aspect: 16 / 9, shape: 'rect', maxSize: 1920 })
+    if (!f) return
     setUploading(true)
     try {
       const url = await uploadImage(f)

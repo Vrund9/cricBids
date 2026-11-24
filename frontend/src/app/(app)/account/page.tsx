@@ -5,6 +5,7 @@ import { ImagePlus, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Avatar, Button, Card, Field, Input, Switch } from '@/components/ui'
 import { api, uploadImage } from '@/lib/api'
+import { useImageCrop } from '@/components/image-crop'
 import { useAuth } from '@/lib/auth'
 import type { User } from '@/lib/types'
 
@@ -14,6 +15,7 @@ export default function ProfilePage() {
   const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl ?? '')
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const crop = useImageCrop()
   if (!user) return null
 
   const saveProfile = async (e: React.FormEvent) => {
@@ -51,10 +53,12 @@ export default function ProfilePage() {
                 const f = e.target.files?.[0]
                 e.target.value = ''
                 if (!f) return
+                const file = await crop(f, { title: 'Adjust your photo', shape: 'circle' })
+                if (!file) return
                 setUploading(true)
                 try {
                   // Saved straight away — no need to press "Save profile".
-                  const url = await uploadImage(f)
+                  const url = await uploadImage(file)
                   setAvatarUrl(url)
                   setUser(await api<User>('/auth/me', { method: 'PATCH', body: { avatarUrl: url } }))
                   toast.success('Photo updated')

@@ -9,6 +9,7 @@ import { LogoMark } from '@/components/brand'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Avatar, Button, Input } from '@/components/ui'
 import { uploadImage } from '@/lib/api'
+import { useImageCrop } from '@/components/image-crop'
 import { cn } from '@/lib/cn'
 import { themeStyle } from '@/lib/themes'
 import type { PhotoConfig, PhotoPlayer } from './page'
@@ -18,6 +19,7 @@ export function PhotoUploader({ token, config }: { token: string; config: PhotoC
   const [q, setQ] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
+  const crop = useImageCrop()
   const [savedId, setSavedId] = useState<string | null>(null)
   const t = config.tournament
   const selected = players.find((p) => p.id === selectedId) ?? null
@@ -34,8 +36,10 @@ export function PhotoUploader({ token, config }: { token: string; config: PhotoC
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const upload = async (file: File) => {
+  const upload = async (picked: File) => {
     if (!selected) return
+    const file = await crop(picked, { title: 'Adjust your photo' })
+    if (!file) return
     setUploading(true)
     try {
       const url = await uploadImage(file, `/public/photos/${token}/${selected.id}`)

@@ -302,27 +302,32 @@ export function EmptyState({ icon, art, title, children, action }: { icon?: Reac
   )
 }
 
-export function Modal({ open, onClose, title, children, className, wide }: { open: boolean; onClose: () => void; title?: React.ReactNode; children: React.ReactNode; className?: string; wide?: boolean }) {
+export function Modal({ open, onClose, title, children, className, wide, stacked }: { open: boolean; onClose: () => void; title?: React.ReactNode; children: React.ReactNode; className?: string; wide?: boolean; /** Opens above another open modal */ stacked?: boolean }) {
   // Rendered into <body>: a modal opened from inside an animated card would otherwise be positioned
   // relative to that card (transforms trap `position: fixed`) and later cards would paint over it.
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    window.addEventListener('keydown', onKey)
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      // A stacked modal listens first (capture) and keeps Escape from also closing the one beneath it.
+      if (stacked) e.stopPropagation()
+      onClose()
+    }
+    window.addEventListener('keydown', onKey, stacked)
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => {
-      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('keydown', onKey, stacked)
       document.body.style.overflow = prev
     }
-  }, [open, onClose])
+  }, [open, onClose, stacked])
   if (!mounted) return null
   return createPortal(
     <AnimatePresence>
       {open && (
-        <motion.div className="fixed inset-0 z-[60] flex items-end justify-center p-0 sm:items-center sm:p-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+        <motion.div className={cn('fixed inset-0 flex items-end justify-center p-0 sm:items-center sm:p-6', stacked ? 'z-[70]' : 'z-[60]')} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           <div className="absolute inset-0 bg-ink-950/80 backdrop-blur-sm" onClick={onClose} />
           <motion.div
             role="dialog"
