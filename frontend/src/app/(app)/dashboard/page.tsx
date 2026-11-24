@@ -10,6 +10,7 @@ import { Avatar, Button, EmptyState, Field, Input, Modal, PageLoader, Select, St
 import { Tour } from '@/components/tour'
 import { CricketScene } from '@/components/cricket-scene'
 import { api, uploadImage } from '@/lib/api'
+import { useImageCrop } from '@/components/image-crop'
 import { track } from '@/lib/analytics'
 import { useAuth } from '@/lib/auth'
 import { CURRENCIES, moneyShort } from '@/lib/format'
@@ -28,6 +29,7 @@ export default function Dashboard() {
   const [mode, setMode] = useState<AuctionMode>('RANDOM')
   const [creating, setCreating] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const crop = useImageCrop()
 
   useEffect(() => {
     api<TournamentSummary[]>('/tournaments')
@@ -110,8 +112,10 @@ export default function Dashboard() {
                   className="hidden"
                   disabled={uploading}
                   onChange={async (e) => {
-                    const file = e.target.files?.[0]
+                    const picked = e.target.files?.[0]
                     e.target.value = ''
+                    if (!picked) return
+                    const file = await crop(picked, { title: 'Adjust tournament picture', fit: 'contain', maxSize: 800 })
                     if (!file) return
                     setUploading(true)
                     try {

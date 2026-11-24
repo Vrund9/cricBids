@@ -11,6 +11,7 @@ import { PlayersNav } from '@/components/players-nav'
 import { CricketScene } from '@/components/cricket-scene'
 import { Avatar, Badge, Button, Card, EmptyState, Field, Input, Modal, PageLoader, Select, StatusBadge } from '@/components/ui'
 import { api, SITE_URL, uploadImage } from '@/lib/api'
+import { useImageCrop } from '@/components/image-crop'
 import { downloadTemplate, exportPlayers } from '@/lib/excel'
 import { money, roleMeta } from '@/lib/format'
 import { useLiveAuction } from '@/lib/live'
@@ -401,6 +402,7 @@ function PlayerModal({ player, onClose, tournamentId, categories, onSaved }: { p
   const [form, setForm] = useState(empty)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const crop = useImageCrop()
 
   useEffect(() => {
     if (p) {
@@ -454,9 +456,11 @@ function PlayerModal({ player, onClose, tournamentId, categories, onSaved }: { p
               const f = e.target.files?.[0]
               e.target.value = ''
               if (!f) return
+              const file = await crop(f, { title: 'Adjust player photo' })
+              if (!file) return
               setUploading(true)
               try {
-                const url = await uploadImage(f)
+                const url = await uploadImage(file)
                 setForm((x) => ({ ...x, photoUrl: url }))
                 // Existing players get the new photo saved immediately; new players save it with the form.
                 if (!isNew && p) {
