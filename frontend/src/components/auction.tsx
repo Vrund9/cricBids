@@ -40,7 +40,7 @@ export function PlayerSpotlight({ player, basePrice, currency, size = 'lg' }: { 
     <motion.div key={player.id} initial={{ opacity: 0, y: 24, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 160, damping: 20 }} className={cn('relative flex gap-6', size === 'xl' ? 'flex-col items-center text-center lg:flex-row lg:items-end lg:text-left' : 'flex-col items-center text-center sm:flex-row sm:items-end sm:text-left')}>
       <div className="relative shrink-0">
         <div className="absolute -inset-3 rounded-[2rem] opacity-60 blur-2xl" style={{ background: rm.color }} />
-        <Avatar src={player.photoUrl} name={player.name} size={px} rounded="xl" className="relative rounded-[1.75rem] border-2 border-white/10 shadow-2xl" color="#222c41" />
+        <Avatar src={player.photoUrl} name={player.name} size={px} rounded="xl" fit="photo" eager className="relative rounded-[1.75rem] border-2 border-white/10 shadow-2xl" color="#222c41" />
         <span className="absolute -bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-white/10 bg-ink-900 px-3 py-1 font-mono text-xs text-ink-200">#{player.serial}</span>
       </div>
       <div className="min-w-0 pb-2">
@@ -290,7 +290,7 @@ export function HammerOverlay({ snap, duration = 3200 }: { snap: Snapshot | null
           <motion.div initial={{ scale: 0.7, opacity: 0, y: 40 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0 }} transition={{ type: 'spring', stiffness: 220, damping: 18 }} className="relative flex flex-col items-center text-center">
             <div className="relative">
               <div className="absolute -inset-6 rounded-[2.5rem] opacity-60 blur-3xl" style={{ background: sold ? color : '#ff4d6d' }} />
-              <Avatar src={player.photoUrl} name={player.name} size={220} rounded="xl" className="relative rounded-[2rem] border-4 border-white/15" color="#222c41" />
+              <Avatar src={player.photoUrl} name={player.name} size={220} rounded="xl" fit="photo" eager className="relative rounded-[2rem] border-4 border-white/15" color="#222c41" />
               <motion.div initial={{ scale: 3, rotate: -25, opacity: 0 }} animate={{ scale: 1, rotate: -10, opacity: 1 }} transition={{ delay: 0.25, type: 'spring', stiffness: 300, damping: 12 }} className={cn('absolute -right-10 -top-6 rounded-2xl border-[5px] bg-ink-950/80 px-5 py-1 font-display text-5xl font-black tracking-widest sm:text-6xl', sold ? 'border-gold text-gold' : 'border-rose-hot text-rose-hot')}>
                 {sold ? 'SOLD' : 'UNSOLD'}
               </motion.div>
