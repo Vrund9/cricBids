@@ -66,6 +66,7 @@ export function LiveView({ token, initial, projector: startProjector = false }: 
   const [wide, setWide] = useState(true)
   const [projector, setProjector] = useState(startProjector)
   const [idle, setIdle] = useState(false)
+  const [bigPhoto, setBigPhoto] = useState(false)
   useAuctionAudio(sound, snap, skew)
 
   // Phones get a compact card so the live bid stays above the fold.
@@ -80,6 +81,7 @@ export function LiveView({ token, initial, projector: startProjector = false }: 
   useEffect(() => {
     try {
       setSound(localStorage.getItem('cricbid.sound') === '1')
+      setBigPhoto(localStorage.getItem('cricbid.bigPhoto') === '1')
     } catch {}
     const on = () => setFull(!!document.fullscreenElement)
     document.addEventListener('fullscreenchange', on)
@@ -95,6 +97,14 @@ export function LiveView({ token, initial, projector: startProjector = false }: 
       return !s
     })
   }
+  // Remembered per screen, so the operator sets it once on the venue laptop.
+  const toggleBigPhoto = () =>
+    setBigPhoto((b) => {
+      try {
+        localStorage.setItem('cricbid.bigPhoto', b ? '0' : '1')
+      } catch {}
+      return !b
+    })
   const toggleFull = useCallback(() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.()), [])
 
   // Keep ?view=projector in the address bar so a reload (or a copied link) opens the same view.
@@ -212,7 +222,7 @@ export function LiveView({ token, initial, projector: startProjector = false }: 
                   <Card className={cn('relative overflow-hidden', projector ? 'p-7' : 'p-5 sm:p-8')}>
                     <RoleAura role={snap.current.player.role} />
                     <AnimatePresence mode="wait">
-                      <PlayerSpotlight key={snap.current.player.id} player={snap.current.player} basePrice={snap.current.basePrice} currency={t.currency} size={desk ? 'xl' : 'md'} />
+                      <PlayerSpotlight key={snap.current.player.id} player={snap.current.player} basePrice={snap.current.basePrice} currency={t.currency} size={desk ? 'xl' : 'md'} big={desk && bigPhoto} onToggleBig={desk ? toggleBigPhoto : undefined} />
                     </AnimatePresence>
                   </Card>
                   <BidDisplay snap={snap} skew={skew} size={desk ? 'xl' : 'md'} />
