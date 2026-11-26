@@ -375,56 +375,81 @@ function retryUrl(url: string, pass: number) {
   return `${url}${url.includes('?') ? '&' : '?'}retry=${pass}`
 }
 
+/** Every retry after the first load fails: the other hosts straight away, then every host on each back-off. */
+function retryPlan(src: string) {
+  const urls = photoUrls(src)
+  const plan = urls.slice(1).map((url) => ({ url, wait: 0 }))
+  PHOTO_RETRY_MS.forEach((wait, i) => urls.forEach((u, j) => plan.push({ url: retryUrl(u, i + 1), wait: j ? 0 : wait })))
+  return plan
+}
+
 /**
  * `fit="photo"` keeps the height but lets the width follow the photo, so a portrait or landscape shot
  * is shown whole instead of cropped to a square. Initials stay square.
  * `eager` skips lazy loading, for the one photo everybody is looking at.
  */
 export function Avatar({ src, name, size = 40, className, color, rounded = 'full', fit = 'square', eager }: { src?: string | null; name: string; size?: number; className?: string; color?: string; rounded?: 'full' | 'xl'; fit?: 'square' | 'photo'; eager?: boolean }) {
-  // Tied to the src it belongs to, so a new photo starts again from its first URL.
-  const [tries, setTries] = useState({ src, attempt: 0, waiting: false })
-  const { attempt, waiting } = tries.src === src ? tries : { attempt: 0, waiting: false }
+  // `url` is what the <img> shows; null means initials while retries run off-screen, `gaveUp` once they're spent.
+  // Tied to the src it belongs to, so a new photo starts again from its own URL.
+  const [state, setState] = useState({ src, url: src ?? null, gaveUp: false, loaded: false })
+  const { url, gaveUp, loaded } = state.src === src ? state : { url: src ?? null, gaveUp: false, loaded: false }
   const img = useRef<HTMLImageElement>(null)
-  const urls = src ? photoUrls(src) : []
-  const pass = Math.floor(attempt / Math.max(1, urls.length))
-  const failed = !src || pass > PHOTO_RETRY_MS.length
 
-  const onError = useCallback(() => {
-    const next = attempt + 1
-    // Try the other host straight away; once every host has failed, back off before the next pass.
-    setTries({ src, attempt: next, waiting: next % urls.length === 0 && next / urls.length <= PHOTO_RETRY_MS.length })
-  }, [src, attempt, urls.length])
+  // A retried URL that loaded off-screen is in the cache, so if it still fails here, stop.
+  const onError = useCallback(() => setState({ src, url: null, gaveUp: url !== src, loaded: false }), [src, url])
 
+  // Retry with a hidden Image so the screen keeps showing initials, instead of flicking to an empty box each try.
   useEffect(() => {
-    if (!waiting) return
-    const t = setTimeout(() => setTries((s) => ({ ...s, waiting: false })), PHOTO_RETRY_MS[pass - 1])
-    return () => clearTimeout(t)
-  }, [waiting, pass])
+    if (!src || url !== null || gaveUp) return
+    const plan = retryPlan(src)
+    let stopped = false
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const tryAt = (i: number) => {
+      if (stopped) return
+      if (i >= plan.length) return setState({ src, url: null, gaveUp: true, loaded: false })
+      timer = setTimeout(() => {
+        const probe = new Image()
+        probe.referrerPolicy = 'no-referrer'
+        probe.onload = () => !stopped && setState({ src, url: plan[i].url, gaveUp: false, loaded: false })
+        probe.onerror = () => tryAt(i + 1)
+        probe.src = plan[i].url
+      }, plan[i].wait)
+    }
+    tryAt(0)
+    return () => {
+      stopped = true
+      clearTimeout(timer)
+    }
+  }, [src, url, gaveUp])
 
-  // A server-rendered image can fail before React attaches onError, so check once it's mounted.
+  // A server-rendered image can load or fail before React attaches its handlers, so check once it's mounted.
   useEffect(() => {
     const el = img.current
-    if (el && el.complete && el.naturalWidth === 0) onError()
+    if (!el?.complete) return
+    if (el.naturalWidth === 0) onError()
+    else if (fit === 'photo') setState({ src, url, gaveUp: false, loaded: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src])
 
   const radius = rounded === 'full' ? 'rounded-full' : 'rounded-xl'
-  if (src && !failed && !waiting) {
-    const photo = fit === 'photo'
+  if (url) {
+    // Until it loads the width is unknown, so hold a square instead of collapsing and then jumping.
+    const photo = fit === 'photo' && loaded
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         ref={img}
-        key={attempt}
-        src={retryUrl(urls[attempt % urls.length], pass)}
+        key={url}
+        src={url}
         alt={name}
         width={photo ? undefined : size}
         height={size}
         loading={eager ? 'eager' : 'lazy'}
         fetchPriority={eager ? 'high' : undefined}
         referrerPolicy="no-referrer"
+        onLoad={() => fit === 'photo' && setState({ src, url, gaveUp: false, loaded: true })}
         onError={onError}
-        className={cn('shrink-0 bg-ink-700', photo ? 'object-contain' : 'object-cover', radius, className)}
+        className={cn('shrink-0 bg-ink-700', fit === 'photo' ? 'object-contain' : 'object-cover', radius, className)}
         style={photo ? { height: size, width: 'auto', minWidth: size * 0.6, maxWidth: size * 1.5 } : { width: size, height: size }}
       />
     )

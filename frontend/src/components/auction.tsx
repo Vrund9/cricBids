@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Gavel, Smartphone, Wifi, WifiOff } from 'lucide-react'
+import { Gavel, Maximize2, Minimize2, Smartphone, Wifi, WifiOff } from 'lucide-react'
 import { AnimatedNumber, Avatar, Badge } from './ui'
 import { money, moneyShort, roleMeta, tintText } from '@/lib/format'
 import { useCountdown, type ConnState } from '@/lib/live'
@@ -31,16 +31,30 @@ export function LiveDot({ label = 'LIVE', color = '#ff4d6d' }: { label?: string;
   )
 }
 
-/** Hero card for the player currently under the hammer. */
-export function PlayerSpotlight({ player, basePrice, currency, size = 'lg' }: { player: PublicPlayer; basePrice: number; currency: string; size?: 'md' | 'lg' | 'xl' }) {
+/**
+ * Hero card for the player currently under the hammer.
+ * With `onToggleBig`, hovering the photo shows a button to switch it to a larger size (`big`).
+ * It only appears on hover, so the audience never sees it on a projector.
+ */
+export function PlayerSpotlight({ player, basePrice, currency, size = 'lg', big, onToggleBig }: { player: PublicPlayer; basePrice: number; currency: string; size?: 'md' | 'lg' | 'xl'; big?: boolean; onToggleBig?: () => void }) {
   const rm = roleMeta(player.role)
-  const px = size === 'xl' ? 230 : size === 'lg' ? 180 : 112
+  const px = size === 'xl' ? (big ? 380 : 230) : size === 'lg' ? 180 : 112
   const facts = [player.battingStyle, player.bowlingStyle && player.bowlingStyle !== 'Does not bowl' ? player.bowlingStyle : null, player.age ? `${player.age} yrs` : null, player.city].filter(Boolean) as string[]
   return (
     <motion.div key={player.id} initial={{ opacity: 0, y: 24, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 160, damping: 20 }} className={cn('relative flex gap-6', size === 'xl' ? 'flex-col items-center text-center lg:flex-row lg:items-end lg:text-left' : 'flex-col items-center text-center sm:flex-row sm:items-end sm:text-left')}>
-      <div className="relative shrink-0">
+      <div className="group relative shrink-0">
         <div className="absolute -inset-3 rounded-[2rem] opacity-60 blur-2xl" style={{ background: rm.color }} />
         <Avatar src={player.photoUrl} name={player.name} size={px} rounded="xl" fit="photo" eager className="relative rounded-[1.75rem] border-2 border-white/10 shadow-2xl" color="#222c41" />
+        {onToggleBig && (
+          <button
+            onClick={onToggleBig}
+            className="absolute right-2 top-2 grid h-9 w-9 place-items-center rounded-xl border border-white/15 bg-ink-950/70 text-ink-200 opacity-0 backdrop-blur transition-opacity hover:text-white focus-visible:opacity-100 group-hover:opacity-100"
+            aria-label={big ? 'Normal photo size' : 'Bigger photo'}
+            title={big ? 'Normal photo size' : 'Bigger photo'}
+          >
+            {big ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </button>
+        )}
         <span className="absolute -bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-white/10 bg-ink-900 px-3 py-1 font-mono text-xs text-ink-200">#{player.serial}</span>
       </div>
       <div className="min-w-0 pb-2">
