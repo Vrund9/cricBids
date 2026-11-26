@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 import { RealtimeService } from '../realtime/realtime.service'
 import { cleanCategory, cleanStr, normalizePhotoUrl, normalizeRole } from '../common/util'
@@ -7,6 +7,7 @@ import { ImportPlayersDto, PlayerInputDto, UpdatePlayerDto } from './tournament.
 import { Prisma } from '../generated/prisma/client'
 import type { PlayerSource } from '../generated/prisma/enums'
 import { planLimit } from '../common/plans'
+import { driveId, eachLimit, mirrorDrivePhoto } from '../uploads/drive-mirror'
 
 const dedupeKey = (name: string, phone?: string | null) =>
   `${name.trim().toLowerCase().replace(/\s+/g, ' ')}|${(phone || '').replace(/\D/g, '').slice(-10)}`
@@ -29,6 +30,8 @@ export interface NewPlayer {
 
 @Injectable()
 export class PlayersService {
+  private readonly logger = new Logger(PlayersService.name)
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly tournaments: TournamentsService,
@@ -96,6 +99,7 @@ export class PlayersService {
           })
         })
         await this.appendToLiveQueue(tournamentId, created.filter((p) => p.approved).map((p) => p.id))
+        this.mirrorPhotos(tournamentId, created)
         return created
       } catch (e) {
         if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002' && attempt < 4) continue
@@ -171,7 +175,27 @@ export class PlayersService {
     const updated = await this.prisma.player.update({ where: { id: playerId }, data })
     if (approved === true && !player.approved) await this.appendToLiveQueue(tournamentId, [playerId])
     this.realtime.stateChanged(tournamentId)
+    if (updated.photoUrl !== player.photoUrl) this.mirrorPhotos(tournamentId, [updated])
     return updated
+  }
+
+  /**
+   * Copies Drive photos to Cloudinary in the background, so saving a big Excel sheet doesn't wait on it.
+   * Only replaces the URL if nobody changed the photo in the meantime.
+   */
+  private mirrorPhotos(tournamentId: string, players: { id: string; photoUrl: string | null }[]) {
+    const drive = players.filter((p) => driveId(p.photoUrl))
+    if (!drive.length) return
+    void (async () => {
+      let changed = 0
+      await eachLimit(drive, 4, async (p) => {
+        const url = await mirrorDrivePhoto(p.photoUrl)
+        if (!url) return
+        const res = await this.prisma.player.updateMany({ where: { id: p.id, photoUrl: p.photoUrl }, data: { photoUrl: url } })
+        changed += res.count
+      })
+      if (changed) this.realtime.stateChanged(tournamentId)
+    })().catch((err) => this.logger.warn(`Photo copy failed for ${tournamentId}: ${err?.message ?? err}`))
   }
 
   async remove(tournamentId: string, playerId: string, userId: string) {

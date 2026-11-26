@@ -1,6 +1,6 @@
 'use client'
 
-import { Children, Fragment, forwardRef, isValidElement, useEffect, useId, useRef, useState } from 'react'
+import { Children, Fragment, forwardRef, isValidElement, useCallback, useEffect, useId, useRef, useState } from 'react'
 import ReactSelect from 'react-select'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion, useSpring, useTransform } from 'motion/react'
@@ -357,29 +357,75 @@ export function Modal({ open, onClose, title, children, className, wide, stacked
 
 const NEUTRAL_AVATARS = ['#34405a', '#222c41', '#182031', '#111622']
 
-export function Avatar({ src, name, size = 40, className, color, rounded = 'full' }: { src?: string | null; name: string; size?: number; className?: string; color?: string; rounded?: 'full' | 'xl' }) {
-  const [failed, setFailed] = useState(false)
+/** Waits between full passes over a photo's URLs; after the last one we give up and show initials. */
+const PHOTO_RETRY_MS = [1500, 4000, 8000, 15000, 30000]
+
+/**
+ * URLs to try for one photo. Drive photos get a second Google host: Google throttles each by IP, and
+ * every big screen at a venue shares one, so when lh3 starts refusing, the thumbnail host often still serves.
+ */
+function photoUrls(src: string) {
+  const drive = src.match(/^https:\/\/lh3\.googleusercontent\.com\/d\/([\w-]+)/)?.[1]
+  return drive ? [src, `https://drive.google.com/thumbnail?id=${drive}&sz=w800`] : [src]
+}
+
+/** A failed image is cached by URL, so a retry needs a URL the browser hasn't seen. */
+function retryUrl(url: string, pass: number) {
+  if (!pass) return url
+  return `${url}${url.includes('?') ? '&' : '?'}retry=${pass}`
+}
+
+/**
+ * `fit="photo"` keeps the height but lets the width follow the photo, so a portrait or landscape shot
+ * is shown whole instead of cropped to a square. Initials stay square.
+ * `eager` skips lazy loading, for the one photo everybody is looking at.
+ */
+export function Avatar({ src, name, size = 40, className, color, rounded = 'full', fit = 'square', eager }: { src?: string | null; name: string; size?: number; className?: string; color?: string; rounded?: 'full' | 'xl'; fit?: 'square' | 'photo'; eager?: boolean }) {
+  // Tied to the src it belongs to, so a new photo starts again from its first URL.
+  const [tries, setTries] = useState({ src, attempt: 0, waiting: false })
+  const { attempt, waiting } = tries.src === src ? tries : { attempt: 0, waiting: false }
   const img = useRef<HTMLImageElement>(null)
+  const urls = src ? photoUrls(src) : []
+  const pass = Math.floor(attempt / Math.max(1, urls.length))
+  const failed = !src || pass > PHOTO_RETRY_MS.length
+
+  const onError = useCallback(() => {
+    const next = attempt + 1
+    // Try the other host straight away; once every host has failed, back off before the next pass.
+    setTries({ src, attempt: next, waiting: next % urls.length === 0 && next / urls.length <= PHOTO_RETRY_MS.length })
+  }, [src, attempt, urls.length])
+
+  useEffect(() => {
+    if (!waiting) return
+    const t = setTimeout(() => setTries((s) => ({ ...s, waiting: false })), PHOTO_RETRY_MS[pass - 1])
+    return () => clearTimeout(t)
+  }, [waiting, pass])
+
   // A server-rendered image can fail before React attaches onError, so check once it's mounted.
   useEffect(() => {
     const el = img.current
-    setFailed(!!el && el.complete && el.naturalWidth === 0)
+    if (el && el.complete && el.naturalWidth === 0) onError()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src])
+
   const radius = rounded === 'full' ? 'rounded-full' : 'rounded-xl'
-  if (src && !failed) {
+  if (src && !failed && !waiting) {
+    const photo = fit === 'photo'
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         ref={img}
-        src={src}
+        key={attempt}
+        src={retryUrl(urls[attempt % urls.length], pass)}
         alt={name}
-        width={size}
+        width={photo ? undefined : size}
         height={size}
-        loading="lazy"
+        loading={eager ? 'eager' : 'lazy'}
+        fetchPriority={eager ? 'high' : undefined}
         referrerPolicy="no-referrer"
-        onError={() => setFailed(true)}
-        className={cn('shrink-0 bg-ink-700 object-cover', radius, className)}
-        style={{ width: size, height: size }}
+        onError={onError}
+        className={cn('shrink-0 bg-ink-700', photo ? 'object-contain' : 'object-cover', radius, className)}
+        style={photo ? { height: size, width: 'auto', minWidth: size * 0.6, maxWidth: size * 1.5 } : { width: size, height: size }}
       />
     )
   }

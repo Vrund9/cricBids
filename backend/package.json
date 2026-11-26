@@ -15,7 +15,8 @@
     "seed": "tsx prisma/seed.ts",
     "seed:bulk": "tsx prisma/seed-bulk.ts",
     "seed:loadtest": "tsx prisma/seed-loadtest.ts",
-    "db:local": "node scripts/local-db.mjs"
+    "db:local": "node scripts/local-db.mjs",
+    "photos:mirror": "tsx prisma/mirror-photos.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.2.7",
